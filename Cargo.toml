@@ -1,0 +1,10 @@
+[workspace]
+members = [
+  "champ/node",
+  "champ/wallet",
+  "champ/lib/*",
+]
+
+[profile.release]
+debug = 1
+lto = true

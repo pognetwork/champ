@@ -1,0 +1,8 @@
+[package]
+authors = ["henry <mail@henrygressmann.de>"]
+edition = "2018"
+name = "crypto"
+version = "0.1.0"
+
+[lib]
+path = "lib.rs"

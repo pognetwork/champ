@@ -1,0 +1,8 @@
+[package]
+authors = ["The POG Contributors <contact@pog.network>"]
+edition = "2018"
+name = "log"
+version = "0.1.0"
+
+[lib]
+path = "lib.rs"
