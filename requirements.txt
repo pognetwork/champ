@@ -1,0 +1,2 @@
+# this is only relevant for generating the documentation
+mkdocs-material

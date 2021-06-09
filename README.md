@@ -12,3 +12,7 @@
   │   └── rpc
   ├── node
   └── wallet</pre></big>
+
+
+## Requirements
+* `$ cargo install just`
