@@ -1,29 +1,3 @@
 site_name: Champ
 nav:
   - Home: "index.md"
-  - Docs:
-      - "License": "license.md"
-      - "Release Notes": "release-notes.md"
-theme:
-  name: "material"
-  features:
-    - tabs
-    - instant
-  palette:
-    - scheme: slate
-      toggle:
-        icon: material/toggle-switch-off-outline
-        name: Switch to light mode
-    - scheme: default
-      toggle:
-        icon: material/toggle-switch
-        name: Switch to dark mode
-
-repo_url: https://github.com/pognetwork/champ
-repo_name: pognetwork/champ
-
-extra:
-  social:
-    - icon: fontawesome/brands/github
-      link: https://github.com/pognetwork/champ
-      name: Github
