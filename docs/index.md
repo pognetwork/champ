@@ -1,22 +1,29 @@
 ---
-title: Home
+title: Getting Started
 template: main.html
 ---
 
-# Welcome to MkDocs
+## Getting Started
+### 1. Install Requirements
 
-For full documentation visit [mkdocs.org](https://www.mkdocs.org).
+* [`rust` >= `1.52.0`](https://rustup.rs/)
+* `just` >= `0.9.4` &nbsp;(`$ cargo install just`)
 
-## Commands
+### 2. Clone Repo
 
-* `mkdocs new [dir-name]` - Create a new project.
-* `mkdocs serve` - Start the live-reloading docs server.
-* `mkdocs build` - Build the documentation site.
-* `mkdocs -h` - Print help message and exit.
+```bash
+$ git clone https://github.com/pognetwork/champ.git && cd champ
+```
 
-## Project layout
+## Development
 
-    mkdocs.yml    # The configuration file.
-    docs/
-        index.md  # The documentation homepage.
-        ...       # Other markdown pages, images and other files.
+### List all Commands
+```bash
+$ just
+```
+
+### Run node/wallet
+```
+$ just node
+$ just wallet
+```
