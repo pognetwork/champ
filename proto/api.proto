@@ -1,0 +1,78 @@
+syntax = "proto3";
+package POG_API;
+
+enum AccountType {
+  Managed = 0;
+  Autonomous = 1;
+}
+
+message PrivateAccount {
+  AccountType type = 1;
+  bytes address = 2;
+  bytes publicKey = 3;
+  bytes privateKey = 4;
+  uint32 votingPower = 5;
+}
+
+message PublicAccount {
+  AccountType type = 1;
+  bytes address = 2;
+  uint32 votingPower = 3;
+}
+
+enum SigType { Ed25519 = 0; }
+enum BlockVersion { V1 = 0; }
+
+message Transaction {
+  // Initialize a new Account
+  message TxOpen { AccountType type = 1; };
+
+  // Block send is a send transaction in the sender's account
+  message TxSend {
+    bytes reviever = 1;
+    uint64 amount = 2;
+    bytes data = 3;
+  };
+
+  // Block Claim collects a transaction from another account's block
+  message TxClaim {
+    bytes block = 1;
+    int64 transactionIndex = 2;
+  };
+
+  // Block delegate assigns a new representative to an account
+  message TxDelegate { bytes representative = 1; };
+
+  oneof transaction {
+    TxOpen txOpen = 5;
+    TxSend txSend = 6;
+    TxClaim txCollect = 7;
+    TxDelegate txDelegate = 8;
+  };
+}
+
+message Block {
+  bytes hash = 1;
+
+  SigType sigType = 2; // only Ed25519 for now
+  bytes sig = 3;       // 64 bytes (for Ed25519, might be expanded later)
+
+  // 32 byte public key
+  bytes account = 4;
+  // the new account ballance after applying all transactions
+  uint64 balance = 5;
+
+  uint64 gasPrice = 6;
+  uint64 gasLimit = 7;
+
+  // previous block, 0 if first block
+  bytes previous = 8;
+
+  repeated Transaction transactions = 9;
+}
+
+// Calls for a vote on conflicting blocks (e.g when double spending)
+message CallVoteRequest {}
+
+// Vote casts a vote on which of multiple conflicting block will be chosen
+message VoteResponse {}
