@@ -52,23 +52,37 @@ message Transaction {
 }
 
 message Block {
-  bytes hash = 1;
+  // SHA-3-256 hash of the block data
+  bytes hash = 2;
 
-  SigType sigType = 2; // only Ed25519 for now
-  bytes sig = 3;       // 64 bytes (for Ed25519, might be expanded later)
+  // 64 bytes (for Ed25519, might be expanded later)
+  bytes signature = 4;
 
-  // 32 byte public key
-  bytes account = 4;
-  // the new account ballance after applying all transactions
-  uint64 balance = 5;
+  // 32 bytes (for Ed25519)
+  // this needs to be provided since account addresses are hashed public keys
+  bytes publicKey = 5;
 
-  uint64 gasPrice = 6;
-  uint64 gasLimit = 7;
+  // data is the field that will be signed and hashed to generate the values
+  // above
+  BlockData data = 6;
+  message BlockData {
+    BlockVersion version = 1;
+    SigType signatureType = 2;
 
-  // previous block, 0 if first block
-  bytes previous = 8;
+    // 24 bytes
+    bytes address = 3;
 
-  repeated Transaction transactions = 9;
+    // the new account ballance after applying all transactions
+    uint64 balance = 4;
+
+    // the block height (block index)
+    uint64 height = 5;
+
+    // previous block, empty if first block
+    optional bytes previous = 6;
+
+    repeated Transaction transactions = 7;
+  }
 }
 
 // Calls for a vote on conflicting blocks (e.g when double spending)
