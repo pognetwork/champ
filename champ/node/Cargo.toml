@@ -1,14 +1,17 @@
 [package]
 authors = ["The POG Contributors <contact@pog.network>"]
-default-run = "champ-node"
 edition = "2018"
-name = "node"
+name = "champ-node"
 version = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 champ-proto = {path = "../../proto"}
 clap = "3.0.0-beta.2"
+futures = ""
+prost = "0.8"
+tokio = {version = "1.0", features = ["macros", "rt-multi-thread"]}
+tonic = "0.5"
 
 [[bin]]
 name = "champ-node"
