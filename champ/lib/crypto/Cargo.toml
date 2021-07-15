@@ -4,5 +4,8 @@ edition = "2018"
 name = "crypto"
 version = "0.1.0"
 
+[dependencies]
+ring = "0.16.20"
+
 [lib]
 path = "lib.rs"
