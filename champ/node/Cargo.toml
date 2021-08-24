@@ -6,6 +6,7 @@ version = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0"
 champ-proto = {path = "../../proto"}
 clap = "3.0.0-beta.2"
 derive-new = "0.5"
@@ -14,6 +15,7 @@ hyper = "0.14"
 prost = "0.8"
 tokio = {version = "1.0", features = ["macros", "rt-multi-thread"]}
 tonic = "0.5"
+tonic-web = "0.1"
 tower = "0.4.8"
 
 [[bin]]

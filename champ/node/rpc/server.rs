@@ -23,8 +23,9 @@ impl RpcServer {
             .into_inner();
 
         Server::builder()
+            .accept_http1(true)
             .layer(layer)
-            .add_service(greeter_server)
+            .add_service(tonic_web::enable(greeter_server))
             .serve(addr)
             .await?;
 

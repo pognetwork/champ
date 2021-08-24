@@ -21,7 +21,11 @@ impl Greeter for GreeterService {
         // Return an instance of type HelloReply
         println!("Got a request: {:?}", request);
 
-        let state = self.state.lock().unwrap();
+        let state = self
+            .state
+            .lock()
+            .ok_or_else(Status::new(tonic::Code::Internal, "internal server error"))?;
+
         println!("{}", state.username);
 
         let reply = HelloReply {
