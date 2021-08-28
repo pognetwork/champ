@@ -28,8 +28,9 @@ impl Greeter for GreeterService {
 
         println!("{}", state.username);
 
+        let req = request.into_inner(); // We must use .into_inner() as the fields of gRPC requests and responses are private
         let reply = HelloReply {
-            message: format!("Hello {}!", request.into_inner().name).into(), // We must use .into_inner() as the fields of gRPC requests and responses are private
+            message: format!("Hello {}!", req.name).into(),
         };
 
         Ok(Response::new(reply)) // Send back our formatted greeting
