@@ -1,8 +1,12 @@
 [package]
 authors = ["The POG Contributors <contact@pog.network>"]
 edition = "2018"
-name = "consensus"
+name = "storage"
 version = "0.1.0"
+
+[dependencies]
+rocksdb = "0.16.0"
+scylla = "0.2.1"
 
 [lib]
 path = "lib.rs"
