@@ -1,22 +1,17 @@
 mod http;
 mod rpc;
+mod state;
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use clap::clap_app;
 use futures::try_join;
 use http::server::HttpServer;
 use rpc::server::RpcServer;
 use std::sync::{Arc, Mutex};
 
-#[derive(Debug, Default)]
-pub struct ChampState {
-    username: String,
-}
-
-pub type ChampStateMutex = Arc<Mutex<ChampState>>;
+use crate::state::ChampState;
 
 #[tokio::main]
-
 async fn main() -> Result<()> {
     let state = Arc::new(Mutex::new(ChampState {
         username: String::from("tyee"),

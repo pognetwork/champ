@@ -1,11 +1,10 @@
-use derive_new::new;
-use tonic::{Request, Response, Status};
-
-use crate::ChampStateMutex;
-
+use crate::state::ChampStateMutex;
 use champ_proto::rpc::greeter_server::Greeter;
 pub use champ_proto::rpc::greeter_server::GreeterServer;
 use champ_proto::rpc::{HelloReply, HelloRequest};
+
+use derive_new::new;
+use tonic::{Request, Response, Status};
 
 #[derive(Debug, Default, new)]
 pub struct GreeterService {
@@ -24,7 +23,7 @@ impl Greeter for GreeterService {
         let state = self
             .state
             .lock()
-            .ok_or_else(Status::new(tonic::Code::Internal, "internal server error"))?;
+            .map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
 
         println!("{}", state.username);
 
