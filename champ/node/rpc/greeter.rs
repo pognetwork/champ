@@ -1,7 +1,7 @@
 use crate::state::ChampStateMutex;
-use champ_proto::rpc::greeter_server::Greeter;
-pub use champ_proto::rpc::greeter_server::GreeterServer;
-use champ_proto::rpc::{HelloReply, HelloRequest};
+use pog_proto::rpc::greeter_server::Greeter;
+pub use pog_proto::rpc::greeter_server::GreeterServer;
+use pog_proto::rpc::{HelloReply, HelloRequest};
 
 use derive_new::new;
 use tonic::{Request, Response, Status};
