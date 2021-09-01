@@ -3,7 +3,7 @@ use std::{net::SocketAddr, time::Duration};
 
 use crate::{
     rpc::greeter::{GreeterServer, GreeterService},
-    ChampStateMutex,
+    state::ChampStateMutex,
 };
 use tonic::transport::Server;
 
