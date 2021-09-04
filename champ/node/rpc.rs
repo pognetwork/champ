@@ -1,2 +1,2 @@
-mod greeter;
+mod account;
 pub mod server;
