@@ -6,8 +6,16 @@ version = "0.1.0"
 
 [dependencies]
 anyhow = "1.0"
-rocksdb = "0.16.0"
-scylla = "0.2.1"
+async-trait = "0.1.51"
+pog-proto = {git = "https://github.com/pognetwork/proto"}
+rocksdb = {version = "0.16.0", optional = true}
+scylla = {version = "0.2.1", optional = true}
+thiserror = "1.0"
 
 [lib]
 path = "lib.rs"
+
+[features]
+backend-rocksdb = ["rocksdb"]
+backend-scylla = ["scylla"]
+default = ["backend-scylla", "backend-rocksdb"]

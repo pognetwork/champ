@@ -4,10 +4,13 @@ template: main.html
 ---
 
 ## Getting Started
+
 ### 1. Install Requirements
 
-* [`rust` >= `1.52.0`](https://rustup.rs/)
-* `just` >= `0.9.4` &nbsp;(`$ cargo install just`)
+- [`rust` >= `1.52.0`](https://rustup.rs/)
+- `just` >= `0.9.4` &nbsp;(`$ cargo install just`)
+- `clang`/`llvm` ([windows](https://llvm.org/builds/))
+- [buildtools](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2019) (windows only)
 
 ### 2. Clone Repo
 
@@ -18,11 +21,13 @@ $ git clone https://github.com/pognetwork/champ.git && cd champ
 ## Development
 
 ### List all Commands
+
 ```bash
 $ just
 ```
 
 ### Run node/wallet
+
 ```
 $ just node
 $ just wallet

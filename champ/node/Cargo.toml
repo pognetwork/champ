@@ -13,6 +13,7 @@ futures = "0.3.15"
 hyper = "0.14"
 pog-proto = {git = "https://github.com/pognetwork/proto"}
 prost = "0.8"
+storage = {path = "../lib/storage"}
 tokio = {version = "1.0", features = ["macros", "rt-multi-thread"]}
 tonic = "0.5"
 tonic-web = "0.1"
