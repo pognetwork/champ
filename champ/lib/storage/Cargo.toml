@@ -18,4 +18,4 @@ path = "lib.rs"
 [features]
 backend-rocksdb = ["rocksdb"]
 backend-scylla = ["scylla"]
-default = ["backend-scylla", "backend-rocksdb"]
+default = ["backend-scylla"]
