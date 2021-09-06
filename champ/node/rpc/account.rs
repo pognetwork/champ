@@ -25,13 +25,16 @@ impl Account for AccountService {
             .lock()
             .map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
 
-        let db_response = state.db.get_latest_block_by_account(&account_address);
+        let db_response = state.db.get_latest_block_by_account(&account_address).await;
         let response = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
 
-        let reply = BalanceReply {
-            balance: response.block.data.balance,
-        };
+        let r = response.data.unwrap();
 
-        Ok(Response::new(reply)) // Send back our formatted greeting
+        match response.data {
+            Some(data) => Ok(Response::new(BalanceReply {
+                balance: data.balance,
+            })),
+            None => Err(Status::new(tonic::Code::Internal, "missing Block data")),
+        }
     }
 }
