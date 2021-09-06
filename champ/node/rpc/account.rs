@@ -1,4 +1,4 @@
-use crate::state::ChampStateMutex;
+use crate::{rpc::account, state::ChampStateMutex};
 use pog_proto::rpc::account_server::Account;
 pub use pog_proto::rpc::account_server::AccountServer;
 use pog_proto::rpc::{BalanceReply, BalanceRequest};
@@ -13,22 +13,23 @@ pub struct AccountService {
 
 #[tonic::async_trait]
 impl Account for AccountService {
-    async fn get_balance (
-        &self,
-        request: Request<BalanceRequest>, // Accept request of type HelloRequest
-    ) -> Result<Response<BalanceReply>, Status> {
-        // Return an instance of type HelloReply
-        println!("Got a request for address: {:?}", request.into_inner().address); // We must use .into_inner() as the fields of gRPC requests and responses are private
+    async fn get_balance (&self, request: Request<BalanceRequest>) -> Result<Response<BalanceReply>, Status> {
+        // We must use .into_inner() as the fields of gRPC requests and responses are private        
+        let account_address = request.into_inner().address;
 
-        // TODO: check and get storage for account address
-        
-        let _state = self
+        println!("Got a request for address: {:?}", account_address); 
+
+    
+        let state = self
             .state
             .lock()
             .map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
 
+        let db_response = state.db.get_latest_block_by_account(&account_address);
+        let response = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
+
         let reply = BalanceReply {
-            balance: 0, // DB response here
+            balance: response.block.data.balance,
         };
 
         Ok(Response::new(reply)) // Send back our formatted greeting
