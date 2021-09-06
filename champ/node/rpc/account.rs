@@ -13,17 +13,15 @@ pub struct AccountService {
 
 #[tonic::async_trait]
 impl Account for AccountService {
-    async fn get_balance(
+    async fn get_balance (
         &self,
         request: Request<BalanceRequest>, // Accept request of type HelloRequest
     ) -> Result<Response<BalanceReply>, Status> {
         // Return an instance of type HelloReply
-        println!(
-            "Got a request for address: {:?}",
-            request.into_inner().address
-        ); // We must use .into_inner() as the fields of gRPC requests and responses are private
+        println!("Got a request for address: {:?}", request.into_inner().address); // We must use .into_inner() as the fields of gRPC requests and responses are private
 
         // TODO: check and get storage for account address
+        
         let _state = self
             .state
             .lock()
