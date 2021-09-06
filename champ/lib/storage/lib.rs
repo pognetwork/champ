@@ -34,6 +34,7 @@ pub enum DatabaseError {
 pub async fn new(cfg: &DatabaseConfig<'_>) -> Result<Box<dyn Database>, DatabaseError> {
     let mut db: Box<dyn Database>;
     match cfg.kind {
+        #[cfg(feature = "backend-rocksdb")]
         Databases::RocksDB => {
             db = Box::new(rocksdb::RocksDB::new());
             db.init(cfg).await.map_err(|_e| DatabaseError::Unknown)?;
