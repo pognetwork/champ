@@ -1,4 +1,4 @@
-use crate::{rpc::account, state::ChampStateMutex};
+use crate::{state::ChampStateMutex};
 use pog_proto::rpc::account_server::Account;
 pub use pog_proto::rpc::account_server::AccountServer;
 use pog_proto::rpc::{BalanceReply, BalanceRequest};
@@ -19,21 +19,12 @@ impl Account for AccountService {
 
         println!("Got a request for address: {:?}", account_address); 
 
-    
-        let state = self
-            .state
-            .lock()
-            .map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
-
+        let state = self.state.lock().await;
         let db_response = state.db.get_latest_block_by_account(&account_address).await;
         let response = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
 
-        let r = response.data.unwrap();
-
         match response.data {
-            Some(data) => Ok(Response::new(BalanceReply {
-                balance: data.balance,
-            })),
+            Some(data) => Ok(Response::new(BalanceReply {balance: data.balance})),
             None => Err(Status::new(tonic::Code::Internal, "missing Block data")),
         }
     }
