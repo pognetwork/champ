@@ -4,12 +4,12 @@
 
 <big><pre>
 **champ**
-├── lib
+├── lib # shared code
 │ ├── crypto
 │ ├── db
 │ ├── log
 │ └── p2p
-├── node
-└── wallet</pre></big>
+├── node # pog node application
+└── wallet # simple wallet (native) </pre></big>
 
 For further information, check out our [`documentation`](https://pog.network/champ)

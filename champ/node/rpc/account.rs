@@ -6,7 +6,7 @@ use pog_proto::rpc::{BalanceReply, BalanceRequest};
 use derive_new::new;
 use tonic::{Request, Response, Status};
 
-#[derive(Debug, Default, new)]
+#[derive(Debug, new)]
 pub struct AccountService {
     pub state: ChampStateMutex,
 }

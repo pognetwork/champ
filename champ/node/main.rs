@@ -13,10 +13,13 @@ use crate::state::ChampState;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let state = Arc::new(Mutex::new(ChampState {
-        username: String::from("tyee"),
-    }));
+    let db = storage::new(&storage::DatabaseConfig {
+        kind: storage::Databases::Scylla,
+        uri: "",
+    })
+    .await?;
 
+    let state = Arc::new(Mutex::new(ChampState { db }));
     let matches = clap_app!("champ-node" =>
         (version: "0.0.1")
         (author: "The POG Project <contact@pog.network>")
