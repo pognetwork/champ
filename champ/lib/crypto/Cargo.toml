@@ -6,6 +6,7 @@ version = "0.1.0"
 
 [dependencies]
 ring = "0.16.20"
+sha3 = "0.9.1"
 
 [lib]
 path = "lib.rs"

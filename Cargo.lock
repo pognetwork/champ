@@ -623,6 +623,7 @@ name = "crypto"
 version = "0.1.0"
 dependencies = [
  "ring",
+ "sha3",
 ]
 
 [[package]]
@@ -2319,7 +2320,7 @@ checksum = "3831453b3449ceb48b6d9c7ad7c96d5ea673e9b470a1dc578c2ce6521230884c"
 [[package]]
 name = "pog-proto"
 version = "0.1.0"
-source = "git+https://github.com/pognetwork/proto#d16ac203b5b609d51644c0d1ce38ffc83ceff71b"
+source = "git+https://github.com/pognetwork/proto#470c68e4c739489abd2f0ef140adbb6675172c6c"
 dependencies = [
  "prost",
  "tonic",
@@ -2954,6 +2955,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "crypto",
+ "hex",
  "pog-proto",
  "rocksdb",
  "scylla",
