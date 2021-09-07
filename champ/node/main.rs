@@ -7,7 +7,8 @@ use clap::clap_app;
 use futures::try_join;
 use http::server::HttpServer;
 use rpc::server::RpcServer;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 use crate::state::ChampState;
 
