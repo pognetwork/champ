@@ -15,7 +15,7 @@ use crate::state::ChampState;
 #[tokio::main]
 async fn main() -> Result<()> {
     let db = storage::new(&storage::DatabaseConfig {
-        kind: storage::Databases::Scylla,
+        kind: storage::Databases::Mock,
         uri: "",
     })
     .await?;

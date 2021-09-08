@@ -5,13 +5,14 @@ use async_trait::async_trait;
 use pog_proto::api;
 use thiserror::Error;
 
+pub mod mock;
 #[cfg(feature = "backend-rocksdb")]
 pub mod rocksdb;
 #[cfg(feature = "backend-scylla")]
 pub mod scylla;
 
 pub enum Databases {
-    InMemory,
+    Mock,
     #[cfg(feature = "backend-rocksdb")]
     RocksDB,
     #[cfg(feature = "backend-scylla")]
@@ -39,11 +40,15 @@ pub async fn new(cfg: &DatabaseConfig<'_>) -> Result<Box<dyn Database>, Database
             db = Box::new(rocksdb::RocksDB::new());
             db.init(cfg).await.map_err(|_e| DatabaseError::Unknown)?;
         }
+        #[cfg(feature = "backend-scylla")]
         Databases::Scylla => {
             db = Box::new(scylla::Scylla::new());
             db.init(cfg).await.map_err(|_e| DatabaseError::Unknown)?;
         }
-        _ => return Err(DatabaseError::InvalidKind),
+        Databases::Mock => {
+            db = Box::new(mock::MockDB::new());
+            db.init(cfg).await.map_err(|_e| DatabaseError::Unknown)?;
+        } // _ => return Err(DatabaseError::InvalidKind),
     }
     Ok(db)
 }
@@ -59,23 +64,22 @@ impl Debug for dyn Database {
 pub trait Database: Send + Sync {
     async fn init(&mut self, config: &DatabaseConfig) -> Result<()>;
 
-    async fn get_block_by_id(&self, _block_id: &str) -> Result<api::Block> {
-        unimplemented!("method unsupported by database backend")
-    }
+    async fn get_block_by_id(&self, _block_id: &str) -> Result<&api::Block, DatabaseError>;
 
-    async fn get_transaction_by_id(&self, _transaction_id: &str) -> Result<api::Transaction> {
-        unimplemented!("method unsupported by database backend")
-    }
+    async fn get_transaction_by_id(
+        &self,
+        _transaction_id: &str,
+    ) -> Result<&api::Transaction, DatabaseError>;
 
-    async fn get_latest_block_by_account(&self, _account_id: &str) -> Result<api::Block> {
-        unimplemented!("method unsupported by database backend")
-    }
+    async fn get_latest_block_by_account(
+        &self,
+        _acc_id: &str,
+    ) -> Result<&api::Block, DatabaseError>;
 
-    async fn get_transactions_by_account(&self, _account_id: &str) -> Result<api::PublicAccount> {
-        unimplemented!("method unsupported by database backend")
-    }
+    async fn get_account_by_id(
+        &self,
+        _account_id: &str,
+    ) -> Result<&api::PublicAccount, DatabaseError>;
 
-    async fn add_block(&self, _block: api::Block) -> Result<()> {
-        unimplemented!("method unsupported by database backend")
-    }
+    async fn add_block(&mut self, _block: api::Block) -> Result<(), DatabaseError>;
 }
