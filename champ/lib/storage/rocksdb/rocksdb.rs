@@ -31,7 +31,7 @@ impl Database for RocksDB {
         unimplemented!("method unsupported by database backend")
     }
 
-    async fn get_transactions_by_account(&self, _account_id: &str) -> Result<&api::PublicAccount, DatabaseError> {
+    async fn get_account_by_id(&self, _account_id: &str) -> Result<&api::PublicAccount, DatabaseError> {
         unimplemented!("method unsupported by database backend")
     }
 

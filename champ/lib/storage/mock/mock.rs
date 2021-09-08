@@ -63,7 +63,7 @@ impl Database for MockDB {
         self.get_block_by_id(&last_block_id).await
     }
 
-    async fn get_transactions_by_account(
+    async fn get_account_by_id(
         &self,
         account_id: &str,
     ) -> Result<&api::PublicAccount, DatabaseError> {
@@ -79,7 +79,7 @@ impl Database for MockDB {
         let account_hash = hex::encode(&block_data.address.clone());
         let block_hash = hex::encode(&block.hash.clone());
 
-        let (_account, blocks, transactions) = self
+        let (_account, account_blocks, account_transactions) = self
             .accounts
             .get_mut(&account_hash)
             .ok_or(DatabaseError::Unknown)?;
@@ -88,13 +88,13 @@ impl Database for MockDB {
             .insert(block_hash.clone(), block.clone())
             .ok_or(DatabaseError::Unknown)?;
 
-        blocks.push(block_hash.clone());
+        account_blocks.push(block_hash);
 
         for tx in block_data.transactions {
             let tx_id = crypto::hash::sha3([tx.hash.clone(), block.hash.clone()].concat());
             let tx_id_str = hex::encode(&tx_id);
 
-            transactions.push(tx_id_str.clone());
+            account_transactions.push(tx_id_str.clone());
             self.transactions
                 .insert(tx_id_str, tx)
                 .ok_or(DatabaseError::Unknown)?;

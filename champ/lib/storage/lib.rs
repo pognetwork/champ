@@ -40,6 +40,7 @@ pub async fn new(cfg: &DatabaseConfig<'_>) -> Result<Box<dyn Database>, Database
             db = Box::new(rocksdb::RocksDB::new());
             db.init(cfg).await.map_err(|_e| DatabaseError::Unknown)?;
         }
+        #[cfg(feature = "backend-scylla")]
         Databases::Scylla => {
             db = Box::new(scylla::Scylla::new());
             db.init(cfg).await.map_err(|_e| DatabaseError::Unknown)?;
@@ -75,7 +76,7 @@ pub trait Database: Send + Sync {
         _acc_id: &str,
     ) -> Result<&api::Block, DatabaseError>;
 
-    async fn get_transactions_by_account(
+    async fn get_account_by_id(
         &self,
         _account_id: &str,
     ) -> Result<&api::PublicAccount, DatabaseError>;

@@ -38,7 +38,7 @@ impl Database for Scylla {
         unimplemented!("method unsupported by database backend")
     }
 
-    async fn get_transactions_by_account(
+    async fn get_account_by_id(
         &self,
         _account_id: &str,
     ) -> Result<&api::PublicAccount, DatabaseError> {
