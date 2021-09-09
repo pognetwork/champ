@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use pog_proto::api;
 use scylla::{Session, SessionBuilder};
 
+#[derive(Default)]
 pub struct Scylla {
     session: Option<Session>,
 }

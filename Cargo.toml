@@ -1,7 +1,6 @@
 [workspace]
 members = [
   "champ/node",
-  "champ/wallet",
   "champ/lib/*",
 ]
 
