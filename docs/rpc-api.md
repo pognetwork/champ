@@ -5,7 +5,7 @@ This document is work in progress and just contains some ideas for required enpo
 ## Account Service
 
 - getBalance (is the balance pending? at what block (latest?)?)
-- getNextNonce
+- getNextBlockHeight
 - getInfo
 
   - getDelegate
