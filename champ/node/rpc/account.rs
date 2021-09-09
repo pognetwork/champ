@@ -39,6 +39,6 @@ impl Account for AccountService {
             _ => return Err(Status::new(tonic::Code::Internal, "couldn't get last block")),
           };
 
-        Ok(Response::new(NextBlockHeightReply {next_height: height}))
+        Ok(Response::new(NextBlockHeightReply {next_height: height+1}))
     }
 }
