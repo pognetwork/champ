@@ -18,8 +18,6 @@ impl Account for AccountService {
         // We must use .into_inner() as the fields of gRPC requests and responses are private
         let account_address = request.into_inner().address;
 
-        println!("Got a request for address: {:?}", account_address); 
-
         let state = self.state.lock().await;
         let db_response = state.db.get_latest_block_by_account(&account_address).await;
         let response = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
@@ -35,19 +33,12 @@ impl Account for AccountService {
         let state = self.state.lock().await;
         let db_response = state.db.get_latest_block_by_account(&account_address).await;
 
-        let response = match db_response {
-            Err(storage::DatabaseError::NoLastBlock) => db_response.unwrap(),
-            _ => db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?,
-        };
+        let height = match db_response {
+            Ok(response) => response.data.as_ref().ok_or(Status::new(tonic::Code::Internal, "missing Block data"))?.height,
+            Err(storage::DatabaseError::NoLastBlock) => 0,
+            _ => return Err(Status::new(tonic::Code::Internal, "couldn't get last block")),
+          };
 
-
-        let current_height = match &response.data {
-            Some(data) => data.height,
-            None => 0,
-        };
-
-        let new_height = current_height + 1;
-
-        Ok(Response::new(NextBlockHeightReply {next_height: new_height}))
+        Ok(Response::new(NextBlockHeightReply {next_height: height}))
     }
 }
