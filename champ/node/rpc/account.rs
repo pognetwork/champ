@@ -13,17 +13,14 @@ pub struct AccountService {
 
 #[tonic::async_trait]
 impl Account for AccountService {
-    async fn get_balance(
-        &self,
-        request: Request<BalanceRequest>,
-    ) -> Result<Response<BalanceReply>, Status> {
+    async fn get_balance(&self, request: Request<BalanceRequest>) -> Result<Response<BalanceReply>, Status> {
         // We must use .into_inner() as the fields of gRPC requests and responses are private
         let account_address = request.into_inner().address;
 
         let state = self.state.lock().await;
         let db_response = state.db.get_latest_block_by_account(&account_address).await;
-        let response = db_response
-            .map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
+        let response =
+            db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
 
         match &response.data {
             Some(data) => Ok(Response::new(BalanceReply {
@@ -50,12 +47,7 @@ impl Account for AccountService {
                     .height
             }
             Err(storage::DatabaseError::NoLastBlock) => 0,
-            _ => {
-                return Err(Status::new(
-                    tonic::Code::Internal,
-                    "couldn't get last block",
-                ))
-            }
+            _ => return Err(Status::new(tonic::Code::Internal, "couldn't get last block")),
         };
 
         Ok(Response::new(NextBlockHeightReply {
