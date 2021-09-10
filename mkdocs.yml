@@ -2,3 +2,4 @@ site_name: Champ
 nav:
   - Home: "index.md"
   - Overview: "overview.md"
+  - RPC API: "rpc-api.md"

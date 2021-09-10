@@ -11,6 +11,7 @@ pub mod rocksdb;
 #[cfg(feature = "backend-scylla")]
 pub mod scylla;
 
+#[non_exhaustive]
 pub enum Databases {
     Mock,
     #[cfg(feature = "backend-rocksdb")]

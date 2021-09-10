@@ -9,6 +9,7 @@ use crate::{Database, DatabaseConfig, DatabaseError};
 type TransactionIDs = Vec<String>;
 type BlockIDs = Vec<String>;
 
+#[derive(Default, Debug)]
 pub struct MockDB {
     blocks: HashMap<String, api::Block>,
     accounts: HashMap<String, (api::PublicAccount, BlockIDs, TransactionIDs)>,
@@ -28,8 +29,6 @@ impl MockDB {
         }
     }
 }
-
-// pub fn create_block() {}
 
 #[async_trait]
 impl Database for MockDB {
@@ -76,8 +75,8 @@ impl Database for MockDB {
 
     async fn add_block(&mut self, block: api::Block) -> Result<(), DatabaseError> {
         let block_data = block.data.clone().ok_or(DatabaseError::Unknown)?;
-        let account_hash = hex::encode(&block_data.address.clone());
-        let block_hash = hex::encode(&block.hash.clone());
+        let account_hash = hex::encode(&block_data.address);
+        let block_hash = hex::encode(&block.hash);
 
         let (_account, account_blocks, account_transactions) = self
             .accounts

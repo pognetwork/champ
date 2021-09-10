@@ -4,6 +4,7 @@ use pog_proto::api;
 
 use crate::{Database, DatabaseConfig};
 
+#[derive(Default, Debug)]
 pub struct RocksDB {
     db: Option<rocksdb::DB>,
 }
