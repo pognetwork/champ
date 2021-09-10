@@ -69,20 +69,11 @@ pub trait Database: Send + Sync {
 
     async fn get_block_by_id(&self, _block_id: &str) -> Result<&api::Block, DatabaseError>;
 
-    async fn get_transaction_by_id(
-        &self,
-        _transaction_id: &str,
-    ) -> Result<&api::Transaction, DatabaseError>;
+    async fn get_transaction_by_id(&self, _transaction_id: &str) -> Result<&api::Transaction, DatabaseError>;
 
-    async fn get_latest_block_by_account(
-        &self,
-        _acc_id: &str,
-    ) -> Result<&api::Block, DatabaseError>;
+    async fn get_latest_block_by_account(&self, _acc_id: &str) -> Result<&api::Block, DatabaseError>;
 
-    async fn get_account_by_id(
-        &self,
-        _account_id: &str,
-    ) -> Result<&api::PublicAccount, DatabaseError>;
+    async fn get_account_by_id(&self, _account_id: &str) -> Result<&api::PublicAccount, DatabaseError>;
 
     async fn add_block(&mut self, _block: api::Block) -> Result<(), DatabaseError>;
 }
