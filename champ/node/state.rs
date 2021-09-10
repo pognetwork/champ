@@ -1,6 +1,6 @@
 use std::sync::Arc;
-use tokio::sync::Mutex;
 use storage::Database;
+use tokio::sync::Mutex;
 
 #[derive(Debug)]
 pub struct ChampState {
