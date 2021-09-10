@@ -58,8 +58,8 @@ impl Database for MockDB {
             .get(account_id)
             .ok_or(DatabaseError::Unknown)?;
 
-        let last_block_id = blocks.last().ok_or(DatabaseError::Unknown)?;
-        self.get_block_by_id(last_block_id).await
+        let last_block_id = blocks.last().clone().ok_or(DatabaseError::NoLastBlock)?;
+        self.get_block_by_id(&last_block_id).await
     }
 
     async fn get_account_by_id(

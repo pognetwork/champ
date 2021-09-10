@@ -31,6 +31,8 @@ pub enum DatabaseError {
     Unknown,
     #[error("invalid database kind")]
     InvalidKind,
+    #[error("no last block")]
+    NoLastBlock,
 }
 
 pub async fn new(cfg: &DatabaseConfig<'_>) -> Result<Box<dyn Database>, DatabaseError> {

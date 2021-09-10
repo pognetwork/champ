@@ -2320,7 +2320,7 @@ checksum = "3831453b3449ceb48b6d9c7ad7c96d5ea673e9b470a1dc578c2ce6521230884c"
 [[package]]
 name = "pog-proto"
 version = "0.1.0"
-source = "git+https://github.com/pognetwork/proto#470c68e4c739489abd2f0ef140adbb6675172c6c"
+source = "git+https://github.com/pognetwork/proto#828fbdb1b27bbac4070211c946c26ada68db03c4"
 dependencies = [
  "prost",
  "tonic",

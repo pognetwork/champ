@@ -24,15 +24,24 @@ impl Database for RocksDB {
     async fn get_block_by_id(&self, _block_id: &str) -> Result<&api::Block, DatabaseError> {
         unimplemented!("method unsupported by database backend")
     }
-    async fn get_transaction_by_id(&self, _transaction_id: &str) -> Result<&api::Transaction, DatabaseError> {
+    async fn get_transaction_by_id(
+        &self,
+        _transaction_id: &str,
+    ) -> Result<&api::Transaction, DatabaseError> {
         unimplemented!("method unsupported by database backend")
     }
 
-    async fn get_latest_block_by_account(&self, _account_id: &str) -> Result<&api::Block, DatabaseError> {
+    async fn get_latest_block_by_account(
+        &self,
+        _account_id: &str,
+    ) -> Result<&api::Block, DatabaseError> {
         unimplemented!("method unsupported by database backend")
     }
 
-    async fn get_account_by_id(&self, _account_id: &str) -> Result<&api::PublicAccount, DatabaseError> {
+    async fn get_account_by_id(
+        &self,
+        _account_id: &str,
+    ) -> Result<&api::PublicAccount, DatabaseError> {
         unimplemented!("method unsupported by database backend")
     }
 
