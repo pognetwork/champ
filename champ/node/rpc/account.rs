@@ -56,17 +56,18 @@ impl Account for AccountService {
 
     async fn get_voting_power(
         &self,
-        request: Request<VotingPowerRequest>,
+        _request: Request<VotingPowerRequest>,
     ) -> Result<Response<VotingPowerReply>, Status> {
-        let account_address = request.into_inner().address;
+        unimplemented!("requires conmsensus module with voting power calculation")
+        // let account_address = request.into_inner().address;
 
-        let state = self.state.lock().await;
-        let db_response = state.db.get_account_by_id(&account_address).await;
-        let response = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
+        // let state = self.state.lock().await;
+        // let db_response = state.db.get_account_by_id(&account_address).await;
+        // let response = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
 
-        Ok(Response::new(VotingPowerReply {
-            power: response.voting_power,
-        }))
+        // Ok(Response::new(VotingPowerReply {
+        //     power: response.voting_power,
+        // }))
     }
     async fn get_block_by_id(&self, request: Request<BlockByIdRequest>) -> Result<Response<BlockByIdReply>, Status> {
         let block_hash = request.into_inner().hash;

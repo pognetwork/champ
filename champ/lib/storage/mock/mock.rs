@@ -55,11 +55,6 @@ impl Database for MockDB {
         self.get_block_by_id(last_block_id).await
     }
 
-    async fn get_account_by_id(&self, account_id: &str) -> Result<&api::PublicAccount, DatabaseError> {
-        let (account, _blocks, _txs) = self.accounts.get(account_id).ok_or(DatabaseError::Unknown)?;
-        Ok(account)
-    }
-
     async fn add_block(&mut self, block: api::Block) -> Result<(), DatabaseError> {
         let block_data = block.data.clone().ok_or(DatabaseError::Unknown)?;
         let account_hash = hex::encode(&block_data.address);

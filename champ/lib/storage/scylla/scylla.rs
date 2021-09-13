@@ -37,11 +37,7 @@ impl Database for Scylla {
         unimplemented!("method unsupported by database backend")
     }
 
-    async fn get_block_by_height(
-        &self,
-        _account_id: &str,
-        _block_height: &u64,
-    ) -> Result<&api::Block, DatabaseError> {
+    async fn get_block_by_height(&self, _account_id: &str, _block_height: &u64) -> Result<&api::Block, DatabaseError> {
         unimplemented!()
     }
 
