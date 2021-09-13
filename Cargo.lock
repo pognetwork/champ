@@ -489,6 +489,7 @@ dependencies = [
  "clap",
  "derive-new",
  "futures",
+ "hex",
  "hyper",
  "pog-proto",
  "prost",
@@ -2320,7 +2321,7 @@ checksum = "3831453b3449ceb48b6d9c7ad7c96d5ea673e9b470a1dc578c2ce6521230884c"
 [[package]]
 name = "pog-proto"
 version = "0.1.0"
-source = "git+https://github.com/pognetwork/proto#eacdf43f7d47c5f78d6f5845d21a5856c1001ab3"
+source = "git+https://github.com/pognetwork/proto#a533cc7cf1de00f93fa53a619f7e32974bbcae69"
 dependencies = [
  "prost",
  "tonic",
