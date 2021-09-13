@@ -85,4 +85,36 @@ impl Database for MockDB {
         }
         Ok(())
     }
+
+    async fn get_block_by_height(
+        &self,
+        account_id: &str,
+        block_height: &u64,
+    ) -> Result<&api::Block, DatabaseError> {
+        let found_block = self.blocks.iter().find_map(|b| {
+            let block_data = b.1.to_owned().data;
+            if let Some(block) = block_data {
+                if block.address == account_id && &block.height == block_height {
+                    return Some(b.1);
+                }
+            }
+            None
+        });
+
+        return found_block.ok_or(DatabaseError::Unknown);
+    }
+
+    async fn get_account_delegate(
+        &self,
+        _account_id: &str,
+    ) -> Result<Option<&api::transaction::TxDelegate>, DatabaseError> {
+        unimplemented!()
+    }
+
+    async fn get_delegates_by_account(
+        &self,
+        _account_id: &str,
+    ) -> Result<&api::transaction::TxDelegate, DatabaseError> {
+        unimplemented!()
+    }
 }

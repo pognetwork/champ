@@ -29,6 +29,7 @@ impl Account for AccountService {
             None => Err(Status::new(tonic::Code::Internal, "missing Block data")),
         }
     }
+
     async fn get_next_block_height(
         &self,
         request: Request<NextBlockHeightRequest>,
@@ -54,6 +55,7 @@ impl Account for AccountService {
             next_height: height + 1,
         }))
     }
+
     async fn get_voting_power(
         &self,
         request: Request<VotingPowerRequest>,
