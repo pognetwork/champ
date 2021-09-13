@@ -1,6 +1,6 @@
 use crate::state::ChampStateMutex;
 pub use pog_proto::rpc::account_server::{Account, AccountServer};
-use pog_proto::rpc::{BalanceReply, BalanceRequest};
+use pog_proto::rpc::{BalanceReply, BalanceRequest, VotingPowerReply, VotingPowerRequest};
 use pog_proto::rpc::{NextBlockHeightReply, NextBlockHeightRequest};
 
 use derive_new::new;
@@ -52,6 +52,21 @@ impl Account for AccountService {
 
         Ok(Response::new(NextBlockHeightReply {
             next_height: height + 1,
+        }))
+    }
+    async fn get_voting_power(
+        &self,
+        request: Request<VotingPowerRequest>,
+    ) -> Result<Response<VotingPowerReply>, Status> {
+        let account_address = request.into_inner().address;
+
+        let state = self.state.lock().await;
+        let db_response = state.db.get_account_by_id(&account_address).await;
+        let response =
+            db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
+
+        Ok(Response::new(VotingPowerReply {
+            power: response.voting_power,
         }))
     }
 }
