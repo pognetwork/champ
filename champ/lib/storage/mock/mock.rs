@@ -91,17 +91,16 @@ impl Database for MockDB {
         account_id: &str,
         block_height: &u64,
     ) -> Result<&api::Block, DatabaseError> {
-        let found_block = self.blocks.iter().find_map(|b| {
-            let block_data = b.1.to_owned().data;
-            if let Some(block) = block_data {
-                if block.address == account_id && &block.height == block_height {
-                    return Some(b.1);
+        self.blocks
+            .iter()
+            .find_map(|b| {
+                if matches!(b.1.to_owned().data, Some(block) if block.address == account_id && &block.height == block_height) {
+                    Some(b.1)
+                } else {
+                    None
                 }
-            }
-            None
-        });
-
-        return found_block.ok_or(DatabaseError::Unknown);
+            })
+            .ok_or(DatabaseError::Unknown)
     }
 
     async fn get_account_delegate(
