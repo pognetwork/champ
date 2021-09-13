@@ -47,17 +47,11 @@ impl Database for RocksDB {
     ) -> Result<&api::Block, DatabaseError> {
         unimplemented!()
     }
-    async fn get_account_delegate(
-        &self,
-        _account_id: &str,
-    ) -> Result<Option<&api::transaction::TxDelegate>, DatabaseError> {
+    async fn get_account_delegate(&self, _account_id: &str) -> Result<Option<&str>, DatabaseError> {
         unimplemented!()
     }
 
-    async fn get_delegates_by_account(
-        &self,
-        _account_id: &str,
-    ) -> Result<&api::transaction::TxDelegate, DatabaseError> {
+    async fn get_delegates_by_account(&self, _account_id: &str) -> Result<Vec<&str>, DatabaseError> {
         unimplemented!()
     }
 }

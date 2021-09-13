@@ -44,7 +44,7 @@ impl Account for AccountService {
                 response
                     .data
                     .as_ref()
-                    .ok_or(Status::new(tonic::Code::Internal, "missing Block data"))?
+                    .ok_or_else(|| Status::new(tonic::Code::Internal, "missing Block data"))?
                     .height
             }
             Err(storage::DatabaseError::NoLastBlock) => 0,

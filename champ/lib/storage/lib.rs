@@ -79,16 +79,10 @@ pub trait Database: Send + Sync {
     async fn get_latest_block_by_account(&self, acc_id: &str) -> Result<&api::Block, DatabaseError>;
 
     // get_account_delegate finds out if an account is delegating their power to someone else
-    async fn get_account_delegate(
-        &self,
-        account_id: &str,
-    ) -> Result<Option<&api::transaction::TxDelegate>, DatabaseError>;
+    async fn get_account_delegate(&self, account_id: &str) -> Result<Option<String>, DatabaseError>;
 
     // get_account_delegate finds who is delegating power to an account
-    async fn get_delegates_by_account(
-        &self,
-        account_id: &str,
-    ) -> Result<&api::transaction::TxDelegate, DatabaseError>;
+    async fn get_delegates_by_account(&self, account_id: &str) -> Result<Vec<String>, DatabaseError>;
 
     async fn add_block(&mut self, _block: api::Block) -> Result<(), DatabaseError>;
 
