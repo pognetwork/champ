@@ -2,7 +2,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use pog_proto::api;
 
-use crate::{Database, DatabaseConfig};
+use crate::{Database, DatabaseConfig, DatabaseError};
 
 #[derive(Default, Debug)]
 pub struct RocksDB {

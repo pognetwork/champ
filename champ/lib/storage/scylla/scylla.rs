@@ -9,10 +9,14 @@ pub struct Scylla {
     session: Option<Session>,
 }
 
+// TODO: use newtype pattern to derive IntoUserType and FromUserType into proto types
+
 impl Scylla {
     pub fn new() -> Self {
         Self { session: None }
     }
+
+    fn initialize_schema() {}
 }
 
 #[async_trait]
