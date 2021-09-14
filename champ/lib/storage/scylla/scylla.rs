@@ -33,11 +33,19 @@ impl Database for Scylla {
         unimplemented!("method unsupported by database backend")
     }
 
-    async fn get_account_by_id(&self, _account_id: &str) -> Result<&api::PublicAccount, DatabaseError> {
+    async fn add_block(&mut self, _block: api::Block) -> Result<(), DatabaseError> {
         unimplemented!("method unsupported by database backend")
     }
 
-    async fn add_block(&mut self, _block: api::Block) -> Result<(), DatabaseError> {
-        unimplemented!("method unsupported by database backend")
+    async fn get_block_by_height(&self, _account_id: &str, _block_height: &u64) -> Result<&api::Block, DatabaseError> {
+        unimplemented!()
+    }
+
+    async fn get_account_delegate(&self, _account_id: &str) -> Result<Option<String>, DatabaseError> {
+        unimplemented!()
+    }
+
+    async fn get_delegates_by_account(&self, _account_id: &str) -> Result<Vec<String>, DatabaseError> {
+        unimplemented!()
     }
 }

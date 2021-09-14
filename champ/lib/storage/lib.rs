@@ -11,6 +11,7 @@ pub mod rocksdb;
 #[cfg(feature = "backend-scylla")]
 pub mod scylla;
 
+/// Represents a generic storage backend
 #[non_exhaustive]
 pub enum Databases {
     Mock,
@@ -68,12 +69,20 @@ pub trait Database: Send + Sync {
     async fn init(&mut self, config: &DatabaseConfig) -> Result<()>;
 
     async fn get_block_by_id(&self, _block_id: &str) -> Result<&api::Block, DatabaseError>;
+    async fn get_block_by_height(&self, account_id: &str, block_height: &u64) -> Result<&api::Block, DatabaseError>;
+    async fn get_transaction_by_id(&self, transaction_id: &str) -> Result<&api::Transaction, DatabaseError>;
 
-    async fn get_transaction_by_id(&self, _transaction_id: &str) -> Result<&api::Transaction, DatabaseError>;
+    /// Finds the latest block for a givin address
+    ///
+    /// Only includes confirmed blocks
+    async fn get_latest_block_by_account(&self, acc_id: &str) -> Result<&api::Block, DatabaseError>;
 
-    async fn get_latest_block_by_account(&self, _acc_id: &str) -> Result<&api::Block, DatabaseError>;
+    // get_account_delegate finds out if an account is delegating their power to someone else
+    async fn get_account_delegate(&self, account_id: &str) -> Result<Option<String>, DatabaseError>;
 
-    async fn get_account_by_id(&self, _account_id: &str) -> Result<&api::PublicAccount, DatabaseError>;
+    /// Finds who is delegating power to an account
+    async fn get_delegates_by_account(&self, account_id: &str) -> Result<Vec<String>, DatabaseError>;
 
+    /// Adds a new block to the database
     async fn add_block(&mut self, _block: api::Block) -> Result<(), DatabaseError>;
 }

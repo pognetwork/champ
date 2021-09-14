@@ -1,7 +1,7 @@
 use crate::state::ChampStateMutex;
 pub use pog_proto::rpc::account_server::{Account, AccountServer};
 use pog_proto::rpc::{BalanceReply, BalanceRequest, VotingPowerReply, VotingPowerRequest};
-use pog_proto::rpc::{BlockHeightReply, BlockHeightRequest, BlockByIdReply, BlockByIdRequest};
+use pog_proto::rpc::{BlockByIdReply, BlockByIdRequest, BlockHeightReply, BlockHeightRequest};
 
 use derive_new::new;
 use tonic::{Request, Response, Status};
@@ -33,7 +33,7 @@ impl Account for AccountService {
         let request = block_height_request.into_inner();
         let account_address = request.address;
         let get_next_block_height = request.get_next.unwrap_or(false) as u64;
-        
+
         let state = self.state.lock().await;
         let db_response = state.db.get_latest_block_by_account(&account_address).await;
 
@@ -42,7 +42,7 @@ impl Account for AccountService {
                 response
                     .data
                     .as_ref()
-                    .ok_or(Status::new(tonic::Code::Internal, "missing Block data"))?
+                    .ok_or_else(|| Status::new(tonic::Code::Internal, "missing Block data"))?
                     .height
             }
             Err(storage::DatabaseError::NoLastBlock) => 0,
@@ -53,23 +53,25 @@ impl Account for AccountService {
             next_height: height + get_next_block_height,
         }))
     }
+
     async fn get_voting_power(
         &self,
-        request: Request<VotingPowerRequest>,
+        _request: Request<VotingPowerRequest>,
     ) -> Result<Response<VotingPowerReply>, Status> {
-        let account_address = request.into_inner().address;
+        unimplemented!("requires conmsensus module with voting power calculation")
+        // let account_address = request.into_inner().address;
 
-        let state = self.state.lock().await;
-        let db_response = state.db.get_account_by_id(&account_address).await;
-        let response = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
+        // let state = self.state.lock().await;
+        // let db_response = state.db.get_account_by_id(&account_address).await;
+        // let response = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
 
-        Ok(Response::new(VotingPowerReply {
-            power: response.voting_power,
-        }))
+        // Ok(Response::new(VotingPowerReply {
+        //     power: response.voting_power,
+        // }))
     }
     async fn get_block_by_id(&self, request: Request<BlockByIdRequest>) -> Result<Response<BlockByIdReply>, Status> {
         let block_hash = request.into_inner().hash;
-        
+
         let state = self.state.lock().await;
         let db_response = state.db.get_block_by_id(&hex::encode(block_hash)).await;
         let block = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
