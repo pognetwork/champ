@@ -96,7 +96,7 @@ impl Database for MockDB {
             .ok_or(DatabaseError::Unknown)
     }
 
-    async fn get_account_delegate(&self, _account_id: &str) -> Result<Option<String>, DatabaseError> {
+    async fn get_account_delegate(&self, account_id: &str) -> Result<Option<String>, DatabaseError> {
         let delegate = self
             .transactions
             .iter()
@@ -104,7 +104,9 @@ impl Database for MockDB {
             .rev()
             .find_map(|t| {
                 if let Some(TxDelegate(delegate_tx)) = &t.1 .0.data {
-                    return Some(Some(delegate_tx.representative.clone()));
+                    if t.1 .1 == account_id {
+                        return Some(Some(delegate_tx.representative.clone()));
+                    }
                 }
                 None
             })
@@ -121,27 +123,20 @@ impl Database for MockDB {
 
     async fn get_delegates_by_account(&self, account_id: &str) -> Result<Vec<String>, DatabaseError> {
         let mut delegated_accounts = HashSet::new();
-
         let account_hex = hex::decode(account_id).map_err(|_| DatabaseError::Unknown)?;
-        let delegates = self
-            .transactions
-            .iter()
-            .rev()
-            .filter_map(|t| {
-                if let Some(TxDelegate(delegate_tx)) = &t.1 .0.data {
-                    if delegate_tx.representative == account_hex {
-                        // only the latest transaction counts per account
-                        if delegated_accounts.contains(&t.1 .1) {
-                            return None;
-                        }
-                        delegated_accounts.insert(t.1 .1.clone());
 
-                        return Some(t.0.to_owned());
+        self.transactions.iter().rev().for_each(|t| {
+            if let Some(TxDelegate(delegate_tx)) = &t.1 .0.data {
+                if delegate_tx.representative == account_hex {
+                    // only the latest transaction counts per account
+                    if delegated_accounts.contains(&t.1 .1) {
+                        return;
                     }
+                    delegated_accounts.insert(t.1 .1.clone());
                 }
-                None
-            })
-            .collect::<Vec<String>>();
-        Ok(delegates)
+            }
+        });
+
+        Ok(delegated_accounts.into_iter().collect())
     }
 }
