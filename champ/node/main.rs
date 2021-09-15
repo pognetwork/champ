@@ -1,7 +1,7 @@
+mod consensus;
 mod http;
 mod rpc;
 mod state;
-mod consensus;
 
 use anyhow::Result;
 use clap::clap_app;
