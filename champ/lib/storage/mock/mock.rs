@@ -87,8 +87,9 @@ impl Database for MockDB {
             // reverse to make it faster for newer blocks
             .rev()
             .find_map(|b| {
-                if matches!(b.1.to_owned().data, Some(block) if block.address == account_id && &block.height == block_height) {
-                    Some(b.1)
+                let (_,block) = b;
+                if matches!(block.to_owned().data, Some(block_data) if block_data.address == account_id && &block_data.height == block_height) {
+                    Some(block)
                 } else {
                     None
                 }
@@ -100,11 +101,11 @@ impl Database for MockDB {
         let delegate = self
             .transactions
             .iter()
-            // rverse since only the newest transaction counts
+            // reverse since only the newest transaction counts
             .rev()
-            .find_map(|t| {
-                if let Some(TxDelegate(delegate_tx)) = &t.1 .0.data {
-                    if t.1 .1 == account_id {
+            .find_map(|(_, (tx, tx_acc))| {
+                if let Some(TxDelegate(delegate_tx)) = &tx.data {
+                    if tx_acc == account_id {
                         return Some(Some(delegate_tx.representative.clone()));
                     }
                 }
@@ -125,18 +126,43 @@ impl Database for MockDB {
         let mut delegated_accounts = HashSet::new();
         let account_hex = hex::decode(account_id).map_err(|_| DatabaseError::Unknown)?;
 
-        self.transactions.iter().rev().for_each(|t| {
-            if let Some(TxDelegate(delegate_tx)) = &t.1 .0.data {
+        self.transactions.iter().rev().for_each(|(_, (tx, tx_acc))| {
+            if let Some(TxDelegate(delegate_tx)) = &tx.data {
                 if delegate_tx.representative == account_hex {
                     // only the latest transaction counts per account
-                    if delegated_accounts.contains(&t.1 .1) {
+                    if delegated_accounts.contains(tx_acc) {
                         return;
                     }
-                    delegated_accounts.insert(t.1 .1.clone());
+                    delegated_accounts.insert(tx_acc.clone());
                 }
             }
         });
 
         Ok(delegated_accounts.into_iter().collect())
+    }
+
+    async fn get_latest_block_by_account_before(
+        &self,
+        account_id: &str,
+        unix_from: u64,
+        unix_limit: u64,
+    ) -> Result<Option<&api::Block>, DatabaseError> {
+        self.blocks
+            .iter()
+            // reverse to make it faster for newer blocks
+            .rev()
+            .find_map(|b| {
+                let block = b.1.to_owned();
+                if matches!(block.data, Some(block_data) if block_data.address == account_id) {
+                    if block.timestamp < unix_limit {
+                        return Some(None);
+                    }
+                    if block.timestamp < unix_from {
+                        return Some(Some(b.1));
+                    }
+                }
+                None
+            })
+            .ok_or(DatabaseError::Unknown)
     }
 }

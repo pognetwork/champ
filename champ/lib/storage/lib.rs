@@ -68,14 +68,28 @@ impl Debug for dyn Database {
 pub trait Database: Send + Sync {
     async fn init(&mut self, config: &DatabaseConfig) -> Result<()>;
 
-    async fn get_block_by_id(&self, _block_id: &str) -> Result<&api::Block, DatabaseError>;
+    async fn get_block_by_id(&self, block_id: &str) -> Result<&api::Block, DatabaseError>;
     async fn get_block_by_height(&self, account_id: &str, block_height: &u64) -> Result<&api::Block, DatabaseError>;
+
     async fn get_transaction_by_id(&self, transaction_id: &str) -> Result<&api::Transaction, DatabaseError>;
 
-    /// Finds the latest block for a givin address
+    /// Finds the latest block for a given address
     ///
     /// Only includes confirmed blocks
     async fn get_latest_block_by_account(&self, acc_id: &str) -> Result<&api::Block, DatabaseError>;
+
+    /// Finds the latest block for a given address before a given date
+    ///
+    /// Set limit to 0 to keep looking until an accounts first transaction
+    async fn get_latest_block_by_account_before(
+        &self,
+        account_id: &str,
+        // go back starting at this timestamp
+        unix_from: u64,
+
+        // don't go further than this timestamp
+        unix_limit: u64,
+    ) -> Result<Option<&api::Block>, DatabaseError>;
 
     // get_account_delegate finds out if an account is delegating their power to someone else
     async fn get_account_delegate(&self, account_id: &str) -> Result<Option<String>, DatabaseError>;
@@ -84,5 +98,5 @@ pub trait Database: Send + Sync {
     async fn get_delegates_by_account(&self, account_id: &str) -> Result<Vec<String>, DatabaseError>;
 
     /// Adds a new block to the database
-    async fn add_block(&mut self, _block: api::Block) -> Result<(), DatabaseError>;
+    async fn add_block(&mut self, block: api::Block) -> Result<(), DatabaseError>;
 }

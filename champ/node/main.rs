@@ -25,7 +25,7 @@ async fn main() -> Result<()> {
     let matches = clap_app!("champ-node" =>
         (version: "0.0.1")
         (author: "The POG Project <contact@pog.network>")
-        (about: "POG's reference implementation in rust")
+        (about: "POGs reference implementation in rust")
         (@arg CONFIG: -c --config +takes_value "Sets a custom config file")
     )
     .get_matches();

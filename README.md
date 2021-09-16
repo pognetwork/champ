@@ -1,6 +1,6 @@
 # PogChamp
 
-> POG's reference implementation in rust
+> POGs reference implementation in rust
 
 <big><pre>
 **champ**

@@ -38,14 +38,14 @@ pub async fn calculate_voting_power(state: &ChampStateMutex, account_id: String)
     Ok(result as u32)
 }
 
-pub fn balance_graph(balance: f64) -> f64 {
+fn balance_graph(balance: f64) -> f64 {
     // base function that is an Asymptote with Balance
     // where x is a balance type (tbd)
     // This tends towards 10, as the balance increases
     NORMALIZED_MAX_POW / (1.0+E.powf((-balance/5.0) + NORMALIZED_MAX_POW))
 }
 
-pub fn tx_graph(block_height: f64, new_block: &Block, old_block: &Block) -> f64 {
+fn tx_graph(block_height: f64, new_block: &Block, old_block: &Block) -> f64 {
     // TODO: dont go back 10 years acc age, only go back 1 month
 
     // to get the time between the first and most recent block 
