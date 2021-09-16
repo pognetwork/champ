@@ -1,6 +1,6 @@
 # RPC API
 
-This document is work in progress and just contains some ideas for required enpoints.
+This document is work in progress and just contains some ideas for required endpoints.
 
 ## Account Service
 
@@ -12,7 +12,7 @@ This document is work in progress and just contains some ideas for required enpo
   - getPower (voting power)
   - getBlockCount
   - getPendingBlocks
-  - getUnacknowledgedTransactions (transactions without a counterpart recive)
+  - getUnacknowledgedTransactions (transactions without a counterpart receive)
 
 - getBlockByID
 - getBlockByNumber

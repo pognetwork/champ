@@ -4,7 +4,7 @@ fn main() {
     let matches = clap_app!("champ-wallet" =>
         (version: "0.0.1")
         (author: "The POG Project <mail@henrygressmann.de>")
-        (about: "POG's reference implementation in rust")
+        (about: "POGs reference implementation in rust")
         (@arg CONFIG: -c --config +takes_value "Sets a custom config file")
     )
     .get_matches();

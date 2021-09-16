@@ -26,7 +26,7 @@ async fn main() -> Result<()> {
     let matches = clap::App::new("champ-node")
         .version("0.0.1")
         .author("The POG Project <contact@pog.network>")
-        .about("POG's reference implementation in rust")
+        .about("POGs reference implementation in rust")
         .arg(Arg::new("web").about("enables web interface"))
         .arg(Arg::new("roughtime").about("enables roughtime server"))
         .arg(
