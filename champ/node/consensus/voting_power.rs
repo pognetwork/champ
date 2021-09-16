@@ -15,7 +15,7 @@ const WEEK_IN_SECONDS: f64 = 86400.0;
 
 #[allow(dead_code)]
 /// Returns ACTUAL voting power
-pub async fn calculate_voting_power(state: ChampStateMutex, account_id: String) -> Result<u64> {
+pub async fn calculate_voting_power(state: &ChampStateMutex, account_id: String) -> Result<u32> {
     let db = &state.lock().await.db;
 
     let block = db.get_latest_block_by_account(&account_id).await?;
@@ -35,7 +35,7 @@ pub async fn calculate_voting_power(state: ChampStateMutex, account_id: String) 
     // Weights to change how much impact each factor should have
     let result = hresult * HEIGHT_WEIGHT + bresult * BALANCE_WEIGHT;
 
-    Ok(result as u64)
+    Ok(result as u32)
 }
 
 pub fn balance_graph(balance: f64) -> f64 {
