@@ -1,0 +1,11 @@
+[package]
+authors = ["henry <mail@henrygressmann.de>"]
+edition = "2018"
+name = "wasm"
+version = "0.1.0"
+
+[dependencies]
+anyhow = "1.0"
+
+[lib]
+path = "lib.rs"
