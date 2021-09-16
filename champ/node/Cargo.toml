@@ -14,6 +14,7 @@ hex = "0.4.3"
 hyper = "0.14"
 pog-proto = {git = "https://github.com/pognetwork/proto"}
 prost = "0.8"
+roughtime = {path = "../lib/roughtime"}
 storage = {path = "../lib/storage"}
 tokio = {version = "1.0", features = ["macros", "rt-multi-thread"]}
 tonic = "0.5"

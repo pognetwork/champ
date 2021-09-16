@@ -514,6 +514,7 @@ dependencies = [
  "hyper",
  "pog-proto",
  "prost",
+ "roughtime",
  "storage",
  "tokio",
  "tonic",
@@ -2991,6 +2992,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "chrono",
+ "hex",
  "roughenough",
  "thiserror",
 ]
