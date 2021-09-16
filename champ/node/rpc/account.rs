@@ -58,7 +58,7 @@ impl Account for AccountService {
         &self,
         _request: Request<VotingPowerRequest>,
     ) -> Result<Response<VotingPowerReply>, Status> {
-        unimplemented!("requires conmsensus module with voting power calculation")
+        unimplemented!("requires consensus module with voting power calculation")
         // let account_address = request.into_inner().address;
 
         // let state = self.state.lock().await;

@@ -72,7 +72,7 @@ pub trait Database: Send + Sync {
     async fn get_block_by_height(&self, account_id: &str, block_height: &u64) -> Result<&api::Block, DatabaseError>;
     async fn get_transaction_by_id(&self, transaction_id: &str) -> Result<&api::Transaction, DatabaseError>;
 
-    /// Finds the latest block for a givin address
+    /// Finds the latest block for a given address
     ///
     /// Only includes confirmed blocks
     async fn get_latest_block_by_account(&self, acc_id: &str) -> Result<&api::Block, DatabaseError>;

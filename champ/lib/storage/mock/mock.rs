@@ -100,7 +100,7 @@ impl Database for MockDB {
         let delegate = self
             .transactions
             .iter()
-            // rverse since only the newest transaction counts
+            // reverse since only the newest transaction counts
             .rev()
             .find_map(|t| {
                 if let Some(TxDelegate(delegate_tx)) = &t.1 .0.data {
