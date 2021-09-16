@@ -4,7 +4,7 @@ This document is work in progress and just contains some ideas for required endp
 
 ## Account Service
 
-- getBalance (is the balance pending? at what block (latest?)?)
+- getBalance (is the balance pending? at what block? latest?)
 - getNextBlockHeight
 - getInfo
 
