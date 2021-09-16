@@ -46,4 +46,13 @@ impl Database for RocksDB {
     async fn get_delegates_by_account(&self, _account_id: &str) -> Result<Vec<&str>, DatabaseError> {
         unimplemented!()
     }
+
+    async fn get_latest_block_by_account_before(
+        &self,
+        _account_id: &str,
+        _unix_from: u64,
+        _unix_limit: u64,
+    ) -> Result<Option<&api::Block>, DatabaseError> {
+        unimplemented!("method unsupported by database backend")
+    }
 }
