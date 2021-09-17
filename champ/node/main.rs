@@ -1,3 +1,4 @@
+mod consensus;
 mod http;
 mod rpc;
 mod state;
