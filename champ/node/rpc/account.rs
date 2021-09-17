@@ -1,4 +1,4 @@
-use crate::consensus::voting_power::calculate_voting_power;
+use crate::consensus::voting_power::get_actual_power;
 use crate::state::ChampStateMutex;
 pub use pog_proto::rpc::account_server::{Account, AccountServer};
 use pog_proto::rpc::{BalanceReply, BalanceRequest, VotingPowerReply, VotingPowerRequest};
@@ -61,7 +61,7 @@ impl Account for AccountService {
     ) -> Result<Response<VotingPowerReply>, Status> {
         let state = &self.state;
         // TODO: Change this return the Actual and Aktive voting power
-        let power_result = calculate_voting_power(state, request.into_inner().address).await;
+        let power_result = get_actual_power(state, request.into_inner().address).await;
         let power = power_result.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
         Ok(Response::new(VotingPowerReply { power: power }))
     }
