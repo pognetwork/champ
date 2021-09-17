@@ -19,7 +19,6 @@ const MAX_LOOKBACK_RANGE: u64 = 60 * 60 * 24 * 30 * 2;
 
 const WEEK_IN_SECONDS: f64 = 60.0 * 60.0 * 24.0 * 7.0;
 
-#[allow(dead_code)]
 /// Returns ACTUAL voting power
 pub async fn calculate_voting_power(state: &ChampStateMutex, account_id: String) -> Result<u32> {
     let db = &state.lock().await.db;
@@ -51,6 +50,22 @@ pub async fn calculate_voting_power(state: &ChampStateMutex, account_id: String)
     let result = hresult * HEIGHT_WEIGHT + bresult * BALANCE_WEIGHT + aresult * AGE_WEIGHT;
 
     Ok(result as u32)
+}
+
+#[allow(dead_code)]
+async fn get_delegated_power(state: &ChampStateMutex, account_id: String) -> Result<u32> {
+    // TODO: Cache this 
+    let mut power = 0;
+    let db = &state.lock().await.db;
+
+    let delegates = db.get_delegates_by_account(&account_id).await?;
+    // TODO: Test Performance and do this concurrently?
+    while let Some(d) = delegates.iter().next() {
+        let p = calculate_voting_power(state, d.to_owned()).await?;
+        power = power + p;
+    }
+
+    Ok(power)
 }
 
 fn balance_graph(balance: u64) -> f64 {
