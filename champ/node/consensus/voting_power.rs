@@ -12,6 +12,9 @@ const HEIGHT_WEIGHT: f64 = 1.0;
 const BALANCE_WEIGHT: f64 = 1.0;
 const AGE_WEIGHT: f64 = 1.0;
 
+// so we can normalize the network affect
+const MAX_NETWORK_POWER: f64 = 0.3;
+
 // Month in Seconds
 const LOOKBACK_RANGE: u64 = 60 * 60 * 24 * 30;
 // 2 Months in Seconds
@@ -19,8 +22,9 @@ const MAX_LOOKBACK_RANGE: u64 = 60 * 60 * 24 * 30 * 2;
 
 const WEEK_IN_SECONDS: f64 = 60.0 * 60.0 * 24.0 * 7.0;
 
-/// Returns ACTUAL voting power
-pub async fn calculate_voting_power(state: &ChampStateMutex, account_id: String) -> Result<u32> {
+/// Returns actual voting power of an account.
+/// Actual voting power is without the delegated power.
+pub async fn get_actual_power(state: &ChampStateMutex, account_id: String) -> Result<u32> {
     let db = &state.lock().await.db;
 
     let block = db.get_latest_block_by_account(&account_id).await?;
@@ -53,6 +57,7 @@ pub async fn calculate_voting_power(state: &ChampStateMutex, account_id: String)
 }
 
 #[allow(dead_code)]
+/// Gets the sum of the power of each delegate of an account
 async fn get_delegated_power(state: &ChampStateMutex, account_id: String) -> Result<u32> {
     // TODO: Cache this 
     let mut power = 0;
@@ -61,11 +66,25 @@ async fn get_delegated_power(state: &ChampStateMutex, account_id: String) -> Res
     let delegates = db.get_delegates_by_account(&account_id).await?;
     // TODO: Test Performance and do this concurrently?
     while let Some(d) = delegates.iter().next() {
-        let p = calculate_voting_power(state, d.to_owned()).await?;
+        let p = get_actual_power(state, d.to_owned()).await?;
         power = power + p;
     }
 
     Ok(power)
+}
+
+#[allow(dead_code)]
+/// Returns the active power of an account that is being used on the network.
+/// Active power is the account power with the delegated power.
+pub async fn get_active_power(state: &ChampStateMutex, account_id: String) -> Result<u32> {
+    let actual_power = get_actual_power(state, account_id.clone()).await?;
+    let delegate_power = get_delegated_power(state, account_id.to_owned()).await?;
+    let total_network_power = max_voting_power();
+    let total_power = actual_power + delegate_power;
+    if total_power > total_network_power {
+        return Ok(total_network_power);
+    }
+    Ok(total_power)
 }
 
 fn balance_graph(balance: u64) -> f64 {
@@ -106,4 +125,10 @@ fn age_graph(account_age: u64) -> f64 {
     // - 4 to shift the start
     let account_age_weeks = (account_age as f64 / WEEK_IN_SECONDS).floor();
     (account_age_weeks + 1.0).log10() + (0.1 * account_age_weeks + 3.0).sqrt() - 4.0
+}
+
+/// Gets the max voting power in the system and sets a limit of a percentage
+fn max_voting_power() -> u32 {
+    //TODO: Get all voting power in the system
+    (100_000_000_f64 * MAX_NETWORK_POWER) as u32
 }
