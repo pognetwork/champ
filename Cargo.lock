@@ -625,6 +625,7 @@ version = "0.1.0"
 dependencies = [
  "ring",
  "sha3",
+ "thiserror",
 ]
 
 [[package]]
