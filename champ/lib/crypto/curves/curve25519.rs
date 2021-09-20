@@ -1,12 +1,12 @@
-use ring::{rand,signature};
 use anyhow::Result;
+use ring::{rand, signature};
 // https://www.youtube.com/watch?v=NF1pwjL9-DE Computerphile Vid
 // increment nr of times watched without understanding: 2
 
 /// Verifiy the signature of some data
 pub fn verify_signature(data: Vec<u8>, public_key: Vec<u8>, signature: Vec<u8>) -> Result<()> {
-    let peer_pk = signature::UnparsedPublicKey::new(&signature::ED25519, public_key);
-    peer_pk.verify(&data, signature.as_ref())?;
+    let peer_public_key = signature::UnparsedPublicKey::new(&signature::ED25519, public_key);
+    peer_public_key.verify(&data, signature.as_ref())?;
     Ok(())
 }
 

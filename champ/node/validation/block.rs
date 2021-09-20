@@ -15,6 +15,4 @@ pub fn get_hash(block: Block) -> Result<Vec<u8>> {
 
 // Validate block
 // block signature
-pub fn signature() {
-    
-}
+pub fn signature() {}
