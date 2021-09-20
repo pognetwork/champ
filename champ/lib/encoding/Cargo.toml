@@ -1,0 +1,13 @@
+[package]
+authors = ["henry <mail@henrygressmann.de>"]
+edition = "2018"
+name = "encoding"
+version = "0.1.0"
+
+[dependencies]
+crypto = {path = "../crypto"}
+sha3 = "0.9"
+thiserror = "1.0"
+
+[lib]
+path = "lib.rs"
