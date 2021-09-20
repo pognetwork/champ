@@ -5,6 +5,7 @@ use roughenough::config::{MemoryConfig, ServerConfig, DEFAULT_BATCH_SIZE, DEFAUL
 use roughenough::key::KmsProtection;
 use roughenough::server::{MioEvents, Server};
 
+#[derive(Default, Debug)]
 pub struct RoughTime {}
 impl RoughTime {
     pub fn new() -> RoughTime {
