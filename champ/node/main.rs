@@ -2,6 +2,7 @@ mod consensus;
 mod http;
 mod rpc;
 mod state;
+mod validation;
 
 use anyhow::Result;
 use clap::Arg;
