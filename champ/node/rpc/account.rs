@@ -1,3 +1,4 @@
+use crate::consensus::voting_power::get_actual_power;
 use crate::state::ChampStateMutex;
 pub use pog_proto::rpc::account_server::{Account, AccountServer};
 use pog_proto::rpc::{BalanceReply, BalanceRequest, VotingPowerReply, VotingPowerRequest};
@@ -56,18 +57,13 @@ impl Account for AccountService {
 
     async fn get_voting_power(
         &self,
-        _request: Request<VotingPowerRequest>,
+        request: Request<VotingPowerRequest>,
     ) -> Result<Response<VotingPowerReply>, Status> {
-        unimplemented!("requires consensus module with voting power calculation")
-        // let account_address = request.into_inner().address;
-
-        // let state = self.state.lock().await;
-        // let db_response = state.db.get_account_by_id(&account_address).await;
-        // let response = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
-
-        // Ok(Response::new(VotingPowerReply {
-        //     power: response.voting_power,
-        // }))
+        let state = &self.state;
+        // TODO: Change this return the Actual and Aktive voting power
+        let power_result = get_actual_power(state, request.into_inner().address).await;
+        let power = power_result.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
+        Ok(Response::new(VotingPowerReply { power: power }))
     }
     async fn get_block_by_id(&self, request: Request<BlockByIdRequest>) -> Result<Response<BlockByIdReply>, Status> {
         let block_hash = request.into_inner().hash;
