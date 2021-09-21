@@ -2384,6 +2384,7 @@ name = "p2p"
 version = "0.1.0"
 dependencies = [
  "libp2p",
+ "tonic",
 ]
 
 [[package]]

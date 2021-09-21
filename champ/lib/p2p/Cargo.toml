@@ -6,6 +6,7 @@ version = "0.1.0"
 
 [dependencies]
 libp2p = "0.39"
+tonic = "0.5"
 
 [lib]
 path = "lib.rs"
