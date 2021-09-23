@@ -24,7 +24,10 @@ impl Database for RocksDB {
     async fn get_block_by_id(&self, _block_id: crate::BlockID) -> Result<&api::Block, DatabaseError> {
         unimplemented!("method unsupported by database backend")
     }
-    async fn get_transaction_by_id(&self, _transaction_id: api::TransactionID) -> Result<&api::Transaction, DatabaseError> {
+    async fn get_transaction_by_id(
+        &self,
+        _transaction_id: api::TransactionID,
+    ) -> Result<&api::Transaction, DatabaseError> {
         unimplemented!("method unsupported by database backend")
     }
 
@@ -36,14 +39,24 @@ impl Database for RocksDB {
         unimplemented!("method unsupported by database backend")
     }
 
-    async fn get_block_by_height(&self, _account_id: crate::AccountID, _block_height: &u64) -> Result<&api::Block, DatabaseError> {
+    async fn get_block_by_height(
+        &self,
+        _account_id: crate::AccountID,
+        _block_height: &u64,
+    ) -> Result<&api::Block, DatabaseError> {
         unimplemented!()
     }
-    async fn get_account_delegate(&self, _account_id: crate::AccountID) -> Result<Option<crate::AccountID>, DatabaseError> {
+    async fn get_account_delegate(
+        &self,
+        _account_id: crate::AccountID,
+    ) -> Result<Option<crate::AccountID>, DatabaseError> {
         unimplemented!()
     }
 
-    async fn get_delegates_by_account(&self, _account_id: crate::AccountID) -> Result<Vec<crate::AccountID>, DatabaseError> {
+    async fn get_delegates_by_account(
+        &self,
+        _account_id: crate::AccountID,
+    ) -> Result<Vec<crate::AccountID>, DatabaseError> {
         unimplemented!()
     }
 
