@@ -59,7 +59,7 @@ impl Account for AccountService {
         request: Request<VotingPowerRequest>,
     ) -> Result<Response<VotingPowerReply>, Status> {
         let state = &self.state;
-        // TODO: Change this return the Actual and Aktive voting power
+        // TODO: Change this return the Actual and active voting power
         let power_result = get_actual_power(state, request.into_inner().address).await;
         let power = power_result.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
         Ok(Response::new(VotingPowerReply { power }))
@@ -68,7 +68,7 @@ impl Account for AccountService {
         let block_hash = request.into_inner().hash;
 
         let state = self.state.lock().await;
-        let db_response = state.db.get_block_by_id(&hex::encode(block_hash)).await;
+        let db_response = state.db.get_block_by_id(&hex::encode()).await;
         let block = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
 
         Ok(Response::new(BlockByIdReply {

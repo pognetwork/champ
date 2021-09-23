@@ -8,6 +8,7 @@ version = "0.1.0"
 anyhow = "1.0"
 async-trait = "0.1"
 crypto = {path = "../../lib/crypto"}
+encoding = {path = "../../lib/encoding"}
 hex = "0.4"
 pog-proto = {git = "https://github.com/pognetwork/proto"}
 rocksdb = {version = "0.16", optional = true}
