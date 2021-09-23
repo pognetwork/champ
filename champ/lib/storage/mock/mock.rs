@@ -68,7 +68,7 @@ impl Database for MockDB {
             self.accounts.get_mut(&account_id).ok_or(DatabaseError::Unknown)?;
 
         self.blocks
-            .insert(block_hash.clone(), (block.clone(), account_id))
+            .insert(block_hash, (block, account_id))
             .ok_or(DatabaseError::Unknown)?;
 
         account_blocks.push(block_hash);
@@ -78,7 +78,7 @@ impl Database for MockDB {
 
             account_transactions.push(tx_id);
             self.transactions
-                .insert(tx_id, (tx, account_id.clone()))
+                .insert(tx_id, (tx, account_id))
                 .ok_or(DatabaseError::Unknown)?;
         }
         Ok(())
@@ -138,7 +138,7 @@ impl Database for MockDB {
                     if delegated_accounts.contains(tx_acc) {
                         return;
                     }
-                    delegated_accounts.insert(tx_acc.clone());
+                    delegated_accounts.insert(*tx_acc);
                 }
             }
         });
