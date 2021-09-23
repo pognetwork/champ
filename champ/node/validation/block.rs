@@ -9,7 +9,7 @@ pub fn get_hash(block: Block) -> Result<Vec<u8>> {
         .data
         .ok_or_else(|| anyhow!("Block data was None"))?
         .encode_to_vec();
-    Ok(crypto::hash::sha3(data))
+    Ok(crypto::hash::sha3(&data).to_vec())
 }
 
 // Validate block
