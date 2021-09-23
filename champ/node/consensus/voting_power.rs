@@ -50,7 +50,6 @@ pub async fn get_actual_power(state: &ChampStateMutex, account_id: String) -> Re
     Ok(result as u32)
 }
 
-#[allow(dead_code)]
 /// Gets the sum of the power of each delegate of an account
 async fn get_delegated_power(state: &ChampStateMutex, account_id: String) -> Result<u32> {
     // TODO: Cache this
@@ -67,7 +66,6 @@ async fn get_delegated_power(state: &ChampStateMutex, account_id: String) -> Res
     Ok(power)
 }
 
-#[allow(dead_code)]
 /// Returns the active power of an account that is being used on the network.
 /// Active power is the account power with the delegated power.
 pub async fn get_active_power(state: &ChampStateMutex, account_id: String) -> Result<u32> {
