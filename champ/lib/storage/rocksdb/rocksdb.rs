@@ -21,14 +21,17 @@ impl Database for RocksDB {
         unimplemented!("a")
     }
 
-    async fn get_block_by_id(&self, _block_id: &str) -> Result<&api::Block, DatabaseError> {
+    async fn get_block_by_id(&self, _block_id: api::BlockID) -> Result<&api::Block, DatabaseError> {
         unimplemented!("method unsupported by database backend")
     }
-    async fn get_transaction_by_id(&self, _transaction_id: &str) -> Result<&api::Transaction, DatabaseError> {
+    async fn get_transaction_by_id(
+        &self,
+        _transaction_id: api::TransactionID,
+    ) -> Result<&api::Transaction, DatabaseError> {
         unimplemented!("method unsupported by database backend")
     }
 
-    async fn get_latest_block_by_account(&self, _account_id: &str) -> Result<&api::Block, DatabaseError> {
+    async fn get_latest_block_by_account(&self, _account_id: api::AccountID) -> Result<&api::Block, DatabaseError> {
         unimplemented!("method unsupported by database backend")
     }
 
@@ -36,20 +39,27 @@ impl Database for RocksDB {
         unimplemented!("method unsupported by database backend")
     }
 
-    async fn get_block_by_height(&self, _account_id: &str, _block_height: &u64) -> Result<&api::Block, DatabaseError> {
+    async fn get_block_by_height(
+        &self,
+        _account_id: api::AccountID,
+        _block_height: &u64,
+    ) -> Result<&api::Block, DatabaseError> {
         unimplemented!()
     }
-    async fn get_account_delegate(&self, _account_id: &str) -> Result<Option<&str>, DatabaseError> {
+    async fn get_account_delegate(&self, _account_id: api::AccountID) -> Result<Option<api::AccountID>, DatabaseError> {
         unimplemented!()
     }
 
-    async fn get_delegates_by_account(&self, _account_id: &str) -> Result<Vec<&str>, DatabaseError> {
+    async fn get_delegates_by_account(
+        &self,
+        _account_id: api::AccountID,
+    ) -> Result<Vec<api::AccountID>, DatabaseError> {
         unimplemented!()
     }
 
     async fn get_latest_block_by_account_before(
         &self,
-        _account_id: &str,
+        _account_id: api::AccountID,
         _unix_from: u64,
         _unix_limit: u64,
     ) -> Result<Option<&api::Block>, DatabaseError> {

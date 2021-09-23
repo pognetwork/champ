@@ -527,6 +527,7 @@ dependencies = [
  "clap 3.0.0-beta.4",
  "crypto",
  "derive-new",
+ "encoding",
  "futures",
  "hex",
  "hyper",
@@ -2553,7 +2554,11 @@ checksum = "3831453b3449ceb48b6d9c7ad7c96d5ea673e9b470a1dc578c2ce6521230884c"
 [[package]]
 name = "pog-proto"
 version = "0.1.0"
+<<<<<<< HEAD
 source = "git+https://github.com/pognetwork/proto#a2731a8e3148b38cd03cb13a65d0bc4debfbb6b1"
+=======
+source = "git+https://github.com/pognetwork/proto#a0e1ed9983d838baff8f80f48dcbf683e1329144"
+>>>>>>> origin/main
 dependencies = [
  "prost",
  "sha3",
@@ -3351,6 +3356,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "crypto",
+ "encoding",
  "hex",
  "pog-proto",
  "rocksdb",

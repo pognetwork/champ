@@ -44,14 +44,14 @@ pub fn encrypt(data: &[u8], password: &[u8]) -> Result<(Vec<u8>, Salt, Nonce), A
 }
 
 fn hash_key(key: &[u8], salt: &[u8]) -> Result<Vec<u8>, AeadError> {
-    let salt = SaltString::b64_encode(&salt).map_err(|_| AeadError::SaltEncodingError)?;
+    let salt = SaltString::b64_encode(salt).map_err(|_| AeadError::SaltEncodingError)?;
 
     let argon2 = Argon2::default();
     Ok(argon2
         .hash_password(key, &salt)
         .map_err(|_| AeadError::PasswordHashError)?
         .hash
-        .ok_or_else(|| AeadError::PasswordHashError)?
+        .ok_or(AeadError::PasswordHashError)?
         .as_bytes()
         .to_owned())
 }
