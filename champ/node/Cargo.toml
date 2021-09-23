@@ -8,7 +8,9 @@ version = "0.1.0"
 [dependencies]
 anyhow = "1.0"
 clap = "3.0.0-beta.2"
+crypto = {path = "../lib/crypto"}
 derive-new = "0.5"
+encoding = {path = "../lib/encoding"}
 futures = "0.3.15"
 hex = "0.4.3"
 hyper = "0.14"
@@ -16,7 +18,6 @@ pog-proto = {git = "https://github.com/pognetwork/proto"}
 prost = "0.8"
 roughtime = {path = "../lib/roughtime"}
 storage = {path = "../lib/storage"}
-crypto = {path = "../lib/crypto"}
 tokio = {version = "1.0", features = ["macros", "rt-multi-thread"]}
 tonic = "0.5"
 tonic-web = "0.1"

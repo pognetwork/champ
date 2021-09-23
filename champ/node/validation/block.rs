@@ -23,7 +23,7 @@ pub fn validate(block: &Block) -> Result<()> {
     let signature = &block.signature;
 
     // signature
-    verify_signature(&data, &public_key, &signature)?;
+    verify_signature(&data, public_key, signature)?;
     // transactions / balance
     // height / previous block
 
