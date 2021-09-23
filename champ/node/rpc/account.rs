@@ -76,4 +76,34 @@ impl Account for AccountService {
             block: Some(block.to_owned()),
         }))
     }
+    async fn get_delegate(
+        &self,
+        request: tonic::Request<pog_proto::rpc::DelegateRequest>,
+    ) -> Result<tonic::Response<pog_proto::rpc::DelegateReply>, tonic::Status> {
+        unimplemented!()
+    }
+    async fn get_pending_blocks(
+        &self,
+        request: tonic::Request<pog_proto::rpc::Empty>,
+    ) -> Result<tonic::Response<pog_proto::rpc::PendingBlockReply>, tonic::Status> {
+        unimplemented!()
+    }
+    async fn get_unacknowledged_tx(
+        &self,
+        request: tonic::Request<pog_proto::rpc::Empty>,
+    ) -> Result<tonic::Response<pog_proto::rpc::UnacknowledgedTxReply>, tonic::Status> {
+        unimplemented!()
+    }
+    async fn get_tx_by_id(
+        &self,
+        request: tonic::Request<pog_proto::rpc::TxByIdRequest>,
+    ) -> Result<tonic::Response<pog_proto::rpc::TxByIdReply>, tonic::Status> {
+        unimplemented!()
+    }
+    async fn get_tx_by_index(
+        &self,
+        request: tonic::Request<pog_proto::rpc::TxByIndexRequest>,
+    ) -> Result<tonic::Response<pog_proto::rpc::TxByIndexReply>, tonic::Status> {
+        unimplemented!()
+    }
 }
