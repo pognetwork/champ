@@ -18,28 +18,34 @@ pub async fn receive_via_udp<T: UdpSerializable>() {
 
 #[tonic::async_trait]
 pub trait TcpSerializable {
-    async fn send() {}
-    async fn receive() {}
+    type Receiver;
+
+    async fn send(&self);
+    async fn receive() -> Self::Receiver;
 }
 
 #[tonic::async_trait]
 pub trait UdpSerializable {
-    async fn send() {}
-    async fn receive() {}
+    type Receiver;
+
+    async fn send(&self);
+    async fn receive() -> Self::Receiver;
 }
 
-struct Test {
+pub struct Test {
     name: String,
     age: i32,
 }
 
 #[tonic::async_trait]
 impl TcpSerializable for Test {
-    async fn send() {
-        //do some Async stuff
+    type Receiver = Test;
+
+    async fn send(&self) {
+        println!("{}", self.age)
     }
 
-    async fn receive() {
-        //do some Async stuff
+    async fn receive() -> Self::Receiver {
+        Test { name: String::from("Hello, World"), age: 42 }
     }
 }
