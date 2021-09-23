@@ -16,6 +16,7 @@ pog-proto = {git = "https://github.com/pognetwork/proto"}
 prost = "0.8"
 roughtime = {path = "../lib/roughtime"}
 storage = {path = "../lib/storage"}
+crypto = {path = "../lib/crypto"}
 tokio = {version = "1.0", features = ["macros", "rt-multi-thread"]}
 tonic = "0.5"
 tonic-web = "0.1"

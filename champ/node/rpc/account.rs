@@ -54,7 +54,6 @@ impl Account for AccountService {
             next_height: height + get_next_block_height,
         }))
     }
-
     async fn get_voting_power(
         &self,
         request: Request<VotingPowerRequest>,
