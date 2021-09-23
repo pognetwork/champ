@@ -2,7 +2,6 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 
 use anyhow::Result;
 use async_trait::async_trait;
-use crypto::hash::sha3;
 use pog_proto::api::{self, transaction::Data::TxDelegate};
 
 use crate::{Database, DatabaseConfig, DatabaseError};
@@ -59,7 +58,8 @@ impl Database for MockDB {
     async fn add_block(&mut self, block: api::Block) -> Result<(), DatabaseError> {
         let block_data = block.data.clone().ok_or(DatabaseError::Unknown)?;
         let account_hash = hex::encode(&block_data.address);
-        let block_hash = hex::encode(&sha3(block.data));
+        //let block_hash = hex::encode(&sha3(block.data));
+        let block_hash = block.get_id();
 
         let (_account, account_blocks, account_transactions) =
             self.accounts.get_mut(&account_hash).ok_or(DatabaseError::Unknown)?;
@@ -71,7 +71,8 @@ impl Database for MockDB {
         account_blocks.push(block_hash);
 
         for tx in block_data.transactions {
-            let tx_id = crypto::hash::sha3([tx.hash.clone(), block_hash.clone()].concat());
+            //let tx_id = crypto::hash::sha3([tx.hash.clone(), block_hash.clone()].concat());
+            let tx_id = tx.get_id(block.get_id());
             let tx_id_str = hex::encode(&tx_id);
 
             account_transactions.push(tx_id_str.clone());

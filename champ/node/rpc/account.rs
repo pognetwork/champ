@@ -79,7 +79,18 @@ impl Account for AccountService {
         &self,
         request: tonic::Request<pog_proto::rpc::DelegateRequest>,
     ) -> Result<tonic::Response<pog_proto::rpc::DelegateReply>, tonic::Status> {
-        unimplemented!()
+        let account_id = request.into_inner().address;
+        let state = &self.state.lock().await;
+        
+        let db_response = state.db.get_account_delegate(state, account_id).await;
+        let response = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
+
+        match &response {
+            Some(address) => Ok(Response::new(DelegateReply {
+                delegate_address: address,
+            })),
+            None => Err(Status::new(tonic::Code::Internal, "missing Block data")),
+        }
     }
     async fn get_pending_blocks(
         &self,
