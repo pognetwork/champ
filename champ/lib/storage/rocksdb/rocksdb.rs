@@ -46,10 +46,7 @@ impl Database for RocksDB {
     ) -> Result<&api::Block, DatabaseError> {
         unimplemented!()
     }
-    async fn get_account_delegate(
-        &self,
-        _account_id: api::AccountID,
-    ) -> Result<Option<api::AccountID>, DatabaseError> {
+    async fn get_account_delegate(&self, _account_id: api::AccountID) -> Result<Option<api::AccountID>, DatabaseError> {
         unimplemented!()
     }
 
