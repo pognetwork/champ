@@ -22,7 +22,7 @@ pub async fn get_actual_power(state: &ChampStateMutex, account_id: String) -> Re
     let db = &state.lock().await.db;
 
     let block = db.get_latest_block_by_account(&account_id).await?;
-    let data = block.data.as_ref().ok_or(anyhow!("block data not found"))?;
+    let data = block.data.as_ref().ok_or_else(|| anyhow!("block data not found"))?;
 
     // Block from between lookback range and max lookback range
     let old_block_result = db
@@ -56,11 +56,11 @@ async fn get_delegated_power(state: &ChampStateMutex, account_id: String) -> Res
     let mut power = 0;
     let db = &state.lock().await.db;
 
-    let delegates = db.get_delegates_by_account(&account_id).await?;
+    let mut delegates = db.get_delegates_by_account(&account_id).await?;
     // TODO: Test Performance and do this concurrently?
-    while let Some(d) = delegates.iter().next() {
+    while let Some(d) = delegates.pop() {
         let p = get_actual_power(state, d.to_owned()).await?;
-        power = power + p;
+        power += p;
     }
 
     Ok(power)

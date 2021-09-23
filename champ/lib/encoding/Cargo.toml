@@ -1,13 +1,12 @@
 [package]
 authors = ["henry <mail@henrygressmann.de>"]
 edition = "2018"
-name = "crypto"
+name = "encoding"
 version = "0.1.0"
 
 [dependencies]
-ring = "0.16.20"
+crypto = {path = "../crypto"}
 sha3 = "0.9"
-anyhow = "1.0"
 thiserror = "1.0"
 
 [lib]

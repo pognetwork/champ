@@ -62,7 +62,7 @@ impl Account for AccountService {
         // TODO: Change this return the Actual and Aktive voting power
         let power_result = get_actual_power(state, request.into_inner().address).await;
         let power = power_result.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
-        Ok(Response::new(VotingPowerReply { power: power }))
+        Ok(Response::new(VotingPowerReply { power }))
     }
     async fn get_block_by_id(&self, request: Request<BlockByIdRequest>) -> Result<Response<BlockByIdReply>, Status> {
         let block_hash = request.into_inner().hash;
