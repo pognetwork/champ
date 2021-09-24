@@ -129,9 +129,19 @@ impl Account for AccountService {
     }
     async fn get_tx_by_id(
         &self,
-        _request: tonic::Request<pog_proto::rpc::TxByIdRequest>,
+        request: tonic::Request<pog_proto::rpc::TxByIdRequest>,
     ) -> Result<tonic::Response<pog_proto::rpc::TxByIdReply>, tonic::Status> {
-        unimplemented!()
+        let tx_id = request.into_inner().transaction_id;
+        let state = self.state.lock().await;
+        let db_response = state.db.get_transaction_by_id(tx_id).await;
+        let response = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
+
+        match &response {
+            Some(tx) => Ok(Response::new(TxByIdReply {
+                transaction: tx,
+            })),
+            None => Err(Status::new(tonic::Code::Internal, "transaction not found")),
+        }
     }
     async fn get_tx_by_index(
         &self,
