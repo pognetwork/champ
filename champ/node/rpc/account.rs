@@ -4,7 +4,7 @@ use crate::consensus::voting_power::get_actual_power;
 use crate::state::ChampStateMutex;
 use pog_proto::api;
 pub use pog_proto::rpc::account_server::{Account, AccountServer};
-use pog_proto::rpc::{BalanceReply, BalanceRequest, DelegateReply, VotingPowerReply, VotingPowerRequest};
+use pog_proto::rpc::{BalanceReply, BalanceRequest, DelegateReply, TxByIdReply, VotingPowerReply, VotingPowerRequest};
 use pog_proto::rpc::{BlockByIdReply, BlockByIdRequest, BlockHeightReply, BlockHeightRequest};
 
 use derive_new::new;
@@ -131,17 +131,17 @@ impl Account for AccountService {
         &self,
         request: tonic::Request<pog_proto::rpc::TxByIdRequest>,
     ) -> Result<tonic::Response<pog_proto::rpc::TxByIdReply>, tonic::Status> {
-        let tx_id = request.into_inner().transaction_id;
+        let transaction_id: api::TransactionID = match request.into_inner().transaction_id.try_into() {
+            Ok(a) => a,
+            Err(_) => return Err(Status::new(tonic::Code::Internal, "Address could not be parsed")),
+        };
         let state = self.state.lock().await;
-        let db_response = state.db.get_transaction_by_id(tx_id).await;
-        let response = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
+        let db_response = state.db.get_transaction_by_id(transaction_id).await;
+        let transaction = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
 
-        match &response {
-            Some(tx) => Ok(Response::new(TxByIdReply {
-                transaction: tx,
-            })),
-            None => Err(Status::new(tonic::Code::Internal, "transaction not found")),
-        }
+        Ok(Response::new(TxByIdReply {
+            transaction: Some(transaction.to_owned()),
+        }))
     }
     async fn get_tx_by_index(
         &self,
