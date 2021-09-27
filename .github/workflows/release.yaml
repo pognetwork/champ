@@ -1,0 +1,32 @@
+name: Create Release
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: "github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'release') && !contains(github.event.head_commit.message, 'ci skip') && !contains(github.event.head_commit.message, 'skip ci')"
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: "install dependencies"
+        run: cargo install convco cargo-release just
+      - run: cargo fetch --locked
+      - name: "Create Release Notes"
+        run: convco changelog v$(convco version) > RELEASE_NOTES.md
+      - name: Create Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          NEXT_VERSION=$(convco version --bump)
+          cargo release $NEXT_VERSION
+      - name: "Create Github Release"
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: RELEASE_NOTES.md
+        env:
+          GITHUB_REPOSITORY: pognetwork/champ

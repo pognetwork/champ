@@ -6,3 +6,5 @@ wallet *FLAGS:
   cargo run --bin champ-wallet -- {{FLAGS}}
 scylla:
   docker-compose -f ./scripts/scylla.docker-compose.yml up -d
+release:
+  cargo release $(convco version --bump)
