@@ -23,6 +23,10 @@ tonic = "0.5"
 tonic-web = "0.1"
 tower = "0.4.8"
 
+[dev-dependencies.cargo-husky]
+features = ["user-hooks"]
+version = "1"
+
 [[bin]]
 name = "champ-node"
 path = "main.rs"
