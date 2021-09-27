@@ -1,5 +1,15 @@
 # Changelog
 
+### [v0.0.2](https://github.com/pognetwork/champ/compare/v0.0.1...v0.0.2) (2021-09-27)
+
+#### Fixes
+
+* fix tagging (#53) ba588a7
+* fix tagging (#52) d82d385
+* fix convco tagging (#51) b85b4df
+* fix github release creation 145d23b
+
+
 ### v0.0.1 (2021-09-27)
 
 #### Features
