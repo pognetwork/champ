@@ -37,5 +37,6 @@ jobs:
           convco changelog v$(convco version --bump) > RELEASE_NOTES.md
           convco changelog > CHANGELOG.md
           git add .
-          git commit -a -m "chore: generate changelog for \`v$(convco version --bump)\` (skip ci)"
+          git commit -a -m "chore: generate changelog for \`v$(convco version --bump)\`"
+          git push
           git push --tags
