@@ -4,13 +4,13 @@ edition = "2018"
 name = "storage"
 
 publish = false
-version = "0.0.1"
+version = "0.0.2"
 
 [dependencies]
 anyhow = "1.0"
 async-trait = "0.1"
-crypto = {path = "../../lib/crypto", version = "0.0.1"}
-encoding = {path = "../../lib/encoding", version = "0.0.1"}
+crypto = {path = "../../lib/crypto", version = "^0.0.2"}
+encoding = {path = "../../lib/encoding", version = "^0.0.2"}
 hex = "0.4"
 pog-proto = {git = "https://github.com/pognetwork/proto"}
 rocksdb = {version = "0.16", optional = true}
