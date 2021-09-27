@@ -16,7 +16,7 @@ jobs:
         with:
           toolchain: stable
           components: clippy
-      - run: cargo fetch --frozen
+      - run: cargo fetch --locked
       - run: cargo clippy
       - run: cargo check
       - run: cargo test
