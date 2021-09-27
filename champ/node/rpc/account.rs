@@ -1,6 +1,6 @@
 use std::convert::TryInto;
 
-use crate::consensus::voting_power::get_actual_power;
+use crate::consensus::voting_power::{get_active_power, get_actual_power};
 use crate::state::ChampStateMutex;
 use pog_proto::api;
 pub use pog_proto::rpc::account_server::{Account, AccountServer};
@@ -64,18 +64,24 @@ impl Account for AccountService {
             next_height: height + get_next_block_height,
         }))
     }
+    /// returns the active voting power (with delegate power)
     async fn get_voting_power(
         &self,
-        request: Request<VotingPowerRequest>,
+        rpc_request: Request<VotingPowerRequest>,
     ) -> Result<Response<VotingPowerReply>, Status> {
         let state = &self.state;
+        let request = rpc_request.into_inner().clone();
 
-        let address: api::AccountID = match request.into_inner().address.try_into() {
+        let address: api::AccountID = match request.address.try_into() {
             Ok(a) => a,
             Err(_) => return Err(Status::new(tonic::Code::Internal, "Address could not be parsed")),
         };
 
-        let power_result = get_actual_power(state, address).await;
+        let power_result = match request.get_active.unwrap_or(false) {
+            true => get_active_power(state, address).await,
+            false => get_actual_power(state, address).await,
+        };
+
         let power = power_result.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
         Ok(Response::new(VotingPowerReply { power }))
     }
@@ -147,6 +153,8 @@ impl Account for AccountService {
         &self,
         _request: tonic::Request<pog_proto::rpc::TxByIndexRequest>,
     ) -> Result<tonic::Response<pog_proto::rpc::TxByIndexReply>, tonic::Status> {
+        // get blocks where type is tx
+        // use index to get tx inside a block
         unimplemented!()
     }
 }
