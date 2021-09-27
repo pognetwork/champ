@@ -37,6 +37,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ./temp/cargo-release release $(convco version --bump) --no-confirm --execute
+          git tag -a "v$(convco version --bump)"
+          git push --tags
       - name: "Create Github Release"
         uses: softprops/action-gh-release@v1
         with:
