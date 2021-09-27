@@ -14,7 +14,14 @@ jobs:
         with:
           toolchain: stable
       - name: "install dependencies"
-        run: cargo install convco cargo-release just
+        run: |
+          mkdir temp
+          cd temp
+          curl -OL https://github.com/convco/convco/releases/download/v0.3.5/convco-deb.zip
+          unzip convco-deb.zip
+          sudo dpkg -i convco*.deb
+          curl -OL https://github.com/crate-ci/cargo-release/releases/download/v0.17.1/cargo-release-v0.17.1-x86_64-unknown-linux-gnu.tar.gz
+          tar -zxvf cargo-release-v0.17.1-x86_64-unknown-linux-gnu.tar.gz ./cargo-release
       - name: "Create Release Notes"
         run: |
           convco changelog v$(convco version) > RELEASE_NOTES.md
@@ -24,7 +31,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           NEXT_VERSION=$(convco version --bump)
-          cargo release $NEXT_VERSION
+          ./temp/cargo-release $NEXT_VERSION
       - name: "Create Github Release"
         uses: softprops/action-gh-release@v1
         with:
