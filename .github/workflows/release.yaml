@@ -26,14 +26,13 @@ jobs:
           tar -zxvf cargo-release-v0.17.1-x86_64-unknown-linux-gnu.tar.gz ./cargo-release
       - name: "Create Release Notes"
         run: |
-          convco changelog v$(convco version) > RELEASE_NOTES.md
+          convco changelog v$(convco version --bump) > RELEASE_NOTES.md
           convco changelog > CHANGELOG.md
       - name: Create Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          NEXT_VERSION=$(convco version --bump)
-          ./temp/cargo-release $NEXT_VERSION
+          ./temp/cargo-release $(convco version --bump)
       - name: "Create Github Release"
         uses: softprops/action-gh-release@v1
         with:
