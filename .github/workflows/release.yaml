@@ -32,7 +32,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ./temp/cargo-release v$(convco version --bump)
+          ./temp/cargo-release $(convco version --bump)
       - name: "Create Github Release"
         uses: softprops/action-gh-release@v1
         with:
