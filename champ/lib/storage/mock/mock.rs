@@ -38,7 +38,7 @@ impl Database for MockDB {
 
     async fn get_block_by_id(&self, block_id: api::BlockID) -> Result<&api::Block, DatabaseError> {
         let (block, _) = self.blocks.get(&block_id).ok_or(DatabaseError::Unknown)?;
-        Ok(&block)
+        Ok(block)
     }
 
     async fn get_transaction_by_id(
