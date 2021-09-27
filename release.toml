@@ -4,4 +4,3 @@ consolidate-pushes = true
 disable-publish = true
 no-dev-version = true
 pre-release-hook = ["convco", "changelog", ">", "CHANGELOG.md"]
-shared-version = true
