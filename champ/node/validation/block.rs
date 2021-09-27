@@ -37,6 +37,11 @@ fn verify_previous_block(new_block: &Block, prev_block: &Block) -> Result<()> {
         .as_ref()
         .ok_or_else(|| anyhow!("block data not found"))?;
 
+    if new_data.height == 0 {
+        // if new_block is the first block in the chain
+        // TODO: add some magic I guess
+        return Ok(())
+    }
     if new_data.height - 1 != prev_data.height {
         return Err(anyhow!("block height not match expected"));
     }
