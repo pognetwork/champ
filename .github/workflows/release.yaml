@@ -15,6 +15,8 @@ jobs:
           toolchain: stable
       - name: "install dependencies"
         run: |
+          mkdir temp
+          cd temp
           curl -OL https://github.com/convco/convco/releases/download/v0.3.5/convco-deb.zip
           unzip convco-deb.zip
           sudo dpkg -i convco*.deb
@@ -29,7 +31,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           NEXT_VERSION=$(convco version --bump)
-          ./cargo-release $NEXT_VERSION
+          ./temp/cargo-release $NEXT_VERSION
       - name: "Create Github Release"
         uses: softprops/action-gh-release@v1
         with:

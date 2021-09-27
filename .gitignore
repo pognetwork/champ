@@ -10,3 +10,4 @@ target/
 *.pdb
 
 release_notes.txt
+temp/
