@@ -15,7 +15,6 @@ jobs:
           toolchain: stable
       - name: "install dependencies"
         run: cargo install convco cargo-release just
-      - run: cargo fetch --locked
       - name: "Create Release Notes"
         run: |
           convco changelog v$(convco version) > RELEASE_NOTES.md
