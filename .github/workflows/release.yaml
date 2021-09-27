@@ -28,11 +28,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
           ./temp/cargo-release release $(convco version --bump) --no-confirm --execute
       - name: "Create Release Notes"
         run: |
-          git config user.email "actions@github.com"
-          git config user.name "GitHub Actions"
           git tag -a v$(convco version --bump) -m "Release v$(convco version --bump)"
           convco changelog v$(convco version --bump) > RELEASE_NOTES.md
           convco changelog > CHANGELOG.md
