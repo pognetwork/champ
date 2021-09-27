@@ -17,7 +17,9 @@ jobs:
         run: cargo install convco cargo-release just
       - run: cargo fetch --locked
       - name: "Create Release Notes"
-        run: convco changelog v$(convco version) > RELEASE_NOTES.md
+        run: |
+          convco changelog v$(convco version) > RELEASE_NOTES.md
+          convco changelog > CHANGELOG.md
       - name: Create Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
