@@ -1,6 +1,27 @@
 # Changelog
 
-## [Unreleased](https://github.com/pognetwork/champ/compare/v0.0.1...HEAD) (2021-09-27)
+### [v0.0.4](https://github.com/pognetwork/champ/compare/v0.0.3...v0.0.4) (2021-09-27)
+
+#### Fixes
+
+* fix tagging (#55) 71315fc
+
+
+### [v0.0.3](https://github.com/pognetwork/champ/compare/v0.0.2...v0.0.3) (2021-09-27)
+
+#### Fixes
+
+* fix tagging (#54) c2a60d4
+
+
+### [v0.0.2](https://github.com/pognetwork/champ/compare/v0.0.1...v0.0.2) (2021-09-27)
+
+#### Fixes
+
+* fix tagging (#53) ba588a7
+* fix tagging (#52) d82d385
+* fix convco tagging (#51) b85b4df
+* fix github release creation 145d23b
 
 
 ### v0.0.1 (2021-09-27)
