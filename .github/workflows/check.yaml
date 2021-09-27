@@ -15,9 +15,11 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-          components: clippy
+          components: rustfmt, clippy
       - run: cargo fetch --locked
-      - run: cargo clippy
+      - uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       - run: cargo check
       - run: cargo test
       - run: cargo fmt --all -- --check
