@@ -32,12 +32,12 @@ jobs:
           convco changelog > CHANGELOG.md
           git add .
           git commit -a -m "chore: generate changelog for \`v$(convco version --bump)\` (skip ci)"
+          git tag -a "v$(convco version --bump)"
       - name: Create Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ./temp/cargo-release release $(convco version --bump) --no-confirm --execute
-          git tag -a "v$(convco version --bump)"
           git push --tags
       - name: "Create Github Release"
         uses: softprops/action-gh-release@v1
