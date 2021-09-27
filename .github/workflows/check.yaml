@@ -1,7 +1,7 @@
 on: push
 name: CI
 jobs:
-  clippy_check:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -16,6 +16,7 @@ jobs:
         with:
           toolchain: stable
           components: clippy
+      - run: cargo fetch --frozen
       - run: cargo clippy
       - run: cargo check
       - run: cargo test
