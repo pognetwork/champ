@@ -1,6 +1,4 @@
 #!/bin/sh
-echo '$ cargo test'
-cargo test
 echo '$ cargo clippy'
 cargo clippy
 echo '$ cargo fmt'

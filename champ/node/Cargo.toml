@@ -2,8 +2,9 @@
 authors = ["The POG Contributors <contact@pog.network>"]
 edition = "2018"
 name = "champ-node"
-version = "0.1.0"
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+publish = false
+version = "0.0.1"
 
 [dependencies]
 anyhow = "1.0"

@@ -1,0 +1,14 @@
+[package]
+authors = ["The POG Contributors <contact@pog.network>"]
+edition = "2018"
+name = "champ-dev"
+
+publish = false
+
+[dev-dependencies]
+cargo-release = "0.17.1"
+convco = "0.3.5"
+
+[dev-dependencies.cargo-husky]
+features = ["user-hooks"]
+version = "1"

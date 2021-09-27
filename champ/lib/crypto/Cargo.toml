@@ -2,14 +2,16 @@
 authors = ["henry <mail@henrygressmann.de>"]
 edition = "2018"
 name = "crypto"
-version = "0.1.0"
+
+publish = false
+version = "0.0.1"
 
 [dependencies]
+anyhow = "1.0"
 argon2 = "0.3.1"
 base64 = "0.13.0"
 ring = "0.16.20"
 sha3 = "0.9"
-anyhow = "1.0"
 thiserror = "1.0"
 
 [lib]
