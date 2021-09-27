@@ -4,4 +4,4 @@ consolidate-pushes = true
 disable-publish = true
 disable-tag = true
 no-dev-version = true
-pre-release-commit-message = "chore: release `{{version}}` (skip ci)"
+pre-release-commit-message = "chore: release {{version}} (skip ci)"

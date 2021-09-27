@@ -39,9 +39,3 @@ jobs:
         run: |
           ./temp/cargo-release release $(convco version --bump) --no-confirm --execute
           git push --tags
-      - name: "Create Github Release"
-        uses: softprops/action-gh-release@v1
-        with:
-          body_path: RELEASE_NOTES.md
-        env:
-          GITHUB_REPOSITORY: pognetwork/champ
