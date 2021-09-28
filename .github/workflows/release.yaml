@@ -15,28 +15,26 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-      - name: "install dependencies"
+      - uses: extractions/setup-just@v1
+      - uses: extractions/setup-crate@v1
+        with:
+          owner: crate-ci
+          name: cargo-release
+          version: 0.17
+      - name: "install convcp"
         run: |
           mkdir temp
           cd temp
           curl -OL https://github.com/convco/convco/releases/download/v0.3.5/convco-deb.zip
           unzip convco-deb.zip
           sudo dpkg -i convco*.deb
-          curl -OL https://github.com/crate-ci/cargo-release/releases/download/v0.17.1/cargo-release-v0.17.1-x86_64-unknown-linux-gnu.tar.gz
-          tar -zxvf cargo-release-v0.17.1-x86_64-unknown-linux-gnu.tar.gz ./cargo-release
       - name: Create Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          NEXT_VERSION=$(just next-version)
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
-          ./temp/cargo-release release $(convco version --bump) --no-confirm --execute
-      - name: "Create Release Notes"
-        run: |
-          git tag -a v$(convco version --bump) -m "Release v$(convco version --bump)"
-          convco changelog v$(convco version --bump) | diff --changed-group-format='%<' --unchanged-group-format='' - CHANGELOG.md > RELEASE_NOTES.md
-          convco changelog > CHANGELOG.md
-          git add .
-          git commit -a -m "chore: generate changelog for \`v$(convco version --bump)\`"
-          git push
+          ./temp/cargo-release release $NEXT_VERSION --no-confirm --execute
+          git tag -a v$NEXT_VERSION -m "Release v$NEXT_VERSION"
           git push --tags
