@@ -527,7 +527,7 @@ dependencies = [
 
 [[package]]
 name = "champ-node"
-version = "0.0.4"
+version = "0.0.5"
 dependencies = [
  "anyhow",
  "cargo-husky",
@@ -704,7 +704,7 @@ checksum = "7a81dae078cea95a014a339291cec439d2f232ebe854a9d672b796c6afafa9b7"
 
 [[package]]
 name = "crypto"
-version = "0.0.4"
+version = "0.0.5"
 dependencies = [
  "anyhow",
  "argon2",
@@ -855,7 +855,7 @@ checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
 
 [[package]]
 name = "encoding"
-version = "0.0.4"
+version = "0.0.5"
 dependencies = [
  "crypto",
  "sha3",
@@ -2014,7 +2014,7 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.0.4"
+version = "0.0.5"
 
 [[package]]
 name = "log"
@@ -2410,7 +2410,7 @@ checksum = "6acbef58a60fe69ab50510a55bc8cdd4d6cf2283d27ad338f54cb52747a9cf2d"
 
 [[package]]
 name = "p2p"
-version = "0.0.4"
+version = "0.0.5"
 dependencies = [
  "libp2p",
 ]
@@ -3038,7 +3038,7 @@ dependencies = [
 
 [[package]]
 name = "roughtime"
-version = "0.0.4"
+version = "0.0.5"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3354,7 +3354,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "storage"
-version = "0.0.4"
+version = "0.0.5"
 dependencies = [
  "anyhow",
  "async-trait",

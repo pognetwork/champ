@@ -4,7 +4,7 @@ edition = "2018"
 name = "champ-node"
 
 publish = false
-version = "0.0.4"
+version = "0.0.5"
 
 [dependencies]
 anyhow = "1.0"
