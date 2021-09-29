@@ -2,7 +2,10 @@ use crate::state::ChampStateMutex;
 use anyhow::{anyhow, Result};
 use crypto::{self, curves::curve25519::verify_signature};
 use encoding::account::generate_account_address;
-use pog_proto::api::{Block, transaction::{TxClaim, TxDelegate, TxOpen}};
+use pog_proto::api::{
+    transaction::{TxClaim, TxDelegate, TxOpen},
+    Block,
+};
 use prost::Message;
 
 // Validate block
@@ -29,15 +32,21 @@ fn verify_transactions(new_block: &Block, prev_block: &Block) -> Result<()> {
     // go through all tx in the block and do math to see new balance
     // check against block balance
     let new_data = new_block.data.as_ref().ok_or_else(|| anyhow!("block data not found"))?;
-    let prev_data = prev_block.data.as_ref().ok_or_else(|| anyhow!("block data not found"))?;
+    let prev_data = prev_block
+        .data
+        .as_ref()
+        .ok_or_else(|| anyhow!("block data not found"))?;
 
     let mut new_balance = 0;
     for transaction in &new_data.transactions {
-        let tx_type = transaction.data.as_ref().ok_or_else(|| anyhow!("transaction data not found"))?;
+        let tx_type = transaction
+            .data
+            .as_ref()
+            .ok_or_else(|| anyhow!("transaction data not found"))?;
         new_balance = match tx_type {
-            TxOpen => 0, //ignore
-            TxSend => -1, // remove money from this balance TODO: validate sender
-            TxClaim => 1, // add money to this balance TODO: validate receiver
+            TxOpen => 0,     //ignore
+            TxSend => -1,    // remove money from this balance TODO: validate sender
+            TxClaim => 1,    // add money to this balance TODO: validate receiver
             TxDelegate => 0, // ignore
         }
     }
