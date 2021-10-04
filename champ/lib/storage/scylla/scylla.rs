@@ -44,7 +44,7 @@ impl Database for Scylla {
         &self,
         _account_id: api::AccountID,
         _block_height: &u64,
-    ) -> Result<&api::Block, DatabaseError> {
+    ) -> Result<Option<&api::Block>, DatabaseError> {
         unimplemented!("method unsupported by database backend")
     }
 
