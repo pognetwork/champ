@@ -1,6 +1,11 @@
+name: Build Binaries
+
 on:
+  push:
+    tags:
+      - "v*"
   release:
-    types: [created]
+    types: [published]
 
 jobs:
   release:

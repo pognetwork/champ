@@ -38,7 +38,7 @@ impl Database for MockDB {
 
     async fn get_block_by_id(&self, block_id: api::BlockID) -> Result<&api::Block, DatabaseError> {
         let (block, _) = self.blocks.get(&block_id).ok_or(DatabaseError::Unknown)?;
-        Ok(&block)
+        Ok(block)
     }
 
     async fn get_transaction_by_id(
@@ -89,14 +89,14 @@ impl Database for MockDB {
         &self,
         account_id: api::AccountID,
         block_height: &u64,
-    ) -> Result<&api::Block, DatabaseError> {
+    ) -> Result<Option<&api::Block>, DatabaseError> {
         self.blocks
             .iter()
             // reverse to make it faster for newer blocks
             .rev()
-            .find_map(|(_, (block, account))| {
+            .find_map(|(_, (block, account))| { //TODO: check this returns none if nothing was found
                 if matches!(block.to_owned().data, Some(block_data) if *account == account_id && &block_data.height == block_height) {
-                    Some(block)
+                    Some(Some(block))
                 } else {
                     None
                 }

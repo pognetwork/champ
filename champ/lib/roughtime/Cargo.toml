@@ -2,7 +2,9 @@
 authors = ["The POG Contributors <contact@pog.network>"]
 edition = "2018"
 name = "roughtime"
-version = "0.1.0"
+
+publish = false
+version = "0.0.5"
 
 [dependencies]
 anyhow = "1.0"

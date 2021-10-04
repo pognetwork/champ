@@ -1,0 +1,40 @@
+name: Create Release
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: "github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'release') && !contains(github.event.head_commit.message, 'ci skip') && !contains(github.event.head_commit.message, 'skip ci')"
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: extractions/setup-just@v1
+      - uses: extractions/setup-crate@v1
+        with:
+          owner: crate-ci
+          name: cargo-release
+          version: 0.17
+      - name: "install convcp"
+        run: |
+          mkdir temp
+          cd temp
+          curl -OL https://github.com/convco/convco/releases/download/v0.3.5/convco-deb.zip
+          unzip convco-deb.zip
+          sudo dpkg -i convco*.deb
+      - name: Create Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          NEXT_VERSION=$(just next-version)
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+          ./temp/cargo-release release $NEXT_VERSION --no-confirm --execute
+          git tag -a v$NEXT_VERSION -m "Release v$NEXT_VERSION"
+          git push --tags

@@ -465,6 +465,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "631ae5198c9be5e753e5cc215e1bd73c2b466a3565173db433f52bb9d3e66dba"
 
 [[package]]
+name = "cargo-husky"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7b02b629252fe8ef6460461409564e2c21d0c8e77e0944f3d189ff06c4e932ad"
+
+[[package]]
 name = "cc"
 version = "1.0.70"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -521,9 +527,10 @@ dependencies = [
 
 [[package]]
 name = "champ-node"
-version = "0.1.0"
+version = "0.0.5"
 dependencies = [
  "anyhow",
+ "cargo-husky",
  "clap 3.0.0-beta.4",
  "crypto",
  "derive-new",
@@ -697,7 +704,7 @@ checksum = "7a81dae078cea95a014a339291cec439d2f232ebe854a9d672b796c6afafa9b7"
 
 [[package]]
 name = "crypto"
-version = "0.1.0"
+version = "0.0.5"
 dependencies = [
  "anyhow",
  "argon2",
@@ -848,7 +855,7 @@ checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
 
 [[package]]
 name = "encoding"
-version = "0.1.0"
+version = "0.0.5"
 dependencies = [
  "crypto",
  "sha3",
@@ -2007,7 +2014,7 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.1.0"
+version = "0.0.5"
 
 [[package]]
 name = "log"
@@ -2403,7 +2410,7 @@ checksum = "6acbef58a60fe69ab50510a55bc8cdd4d6cf2283d27ad338f54cb52747a9cf2d"
 
 [[package]]
 name = "p2p"
-version = "0.1.0"
+version = "0.0.5"
 dependencies = [
  "libp2p",
 ]
@@ -3031,7 +3038,7 @@ dependencies = [
 
 [[package]]
 name = "roughtime"
-version = "0.1.0"
+version = "0.0.5"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3347,7 +3354,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "storage"
-version = "0.1.0"
+version = "0.0.5"
 dependencies = [
  "anyhow",
  "async-trait",

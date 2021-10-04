@@ -1,0 +1,8 @@
+allow-branch = ["main"]
+consolidate-commits = true
+consolidate-pushes = true
+disable-publish = true
+disable-tag = true
+no-dev-version = true
+pre-release-commit-message = "chore: release"
+pre-release-hook = ["just", "generate-next-changelog"]

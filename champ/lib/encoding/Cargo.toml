@@ -2,10 +2,12 @@
 authors = ["henry <mail@henrygressmann.de>"]
 edition = "2018"
 name = "encoding"
-version = "0.1.0"
+
+publish = false
+version = "0.0.5"
 
 [dependencies]
-crypto = {path = "../crypto"}
+crypto = {path = "../crypto", version = "^0.0.5"}
 sha3 = "0.9"
 thiserror = "1.0"
 
