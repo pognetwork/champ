@@ -36,7 +36,7 @@ fn verify_transactions() -> Result<()> {
     unimplemented!()
 }
 
-fn verify_account_genesis_block(block : &Block) -> Result<()> {
+fn verify_account_genesis_block(block: &Block) -> Result<()> {
     unimplemented!()
 }
 
