@@ -73,7 +73,7 @@ pub trait Database: Send + Sync {
         &self,
         account_id: api::AccountID,
         block_height: &u64,
-    ) -> Result<&api::Block, DatabaseError>;
+    ) -> Result<Option<&api::Block>, DatabaseError>;
     async fn get_transaction_by_id(
         &self,
         transaction_id: api::TransactionID,
