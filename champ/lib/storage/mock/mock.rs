@@ -94,7 +94,7 @@ impl Database for MockDB {
             .iter()
             // reverse to make it faster for newer blocks
             .rev()
-            .find_map(|(_, (block, account))| {
+            .find_map(|(_, (block, account))| { //TODO: check this returns none if nothing was found
                 if matches!(block.to_owned().data, Some(block_data) if *account == account_id && &block_data.height == block_height) {
                     Some(Some(block))
                 } else {
