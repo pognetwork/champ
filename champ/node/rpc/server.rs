@@ -18,9 +18,7 @@ impl RpcServer {
         println!("starting rpc server at {}", addr);
 
         // The stack of middleware that our service will be wrapped in
-        let layer = tower::ServiceBuilder::new()
-            .timeout(Duration::from_secs(30))
-            .into_inner();
+        let layer = tower::ServiceBuilder::new().timeout(Duration::from_secs(30)).into_inner();
 
         Server::builder()
             .accept_http1(true)

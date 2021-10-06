@@ -23,9 +23,7 @@ pub enum Ed25519Error {
 /// Verify the signature of some data
 pub fn verify_signature(data: &[u8], public_key: &[u8], data_signature: &[u8]) -> Result<(), Ed25519Error> {
     let peer_public_key = signature::UnparsedPublicKey::new(&signature::ED25519, public_key);
-    peer_public_key
-        .verify(data, data_signature)
-        .map_err(|_| Ed25519Error::VerificationError)?;
+    peer_public_key.verify(data, data_signature).map_err(|_| Ed25519Error::VerificationError)?;
     Ok(())
 }
 

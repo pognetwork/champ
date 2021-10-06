@@ -29,7 +29,9 @@ impl Account for AccountService {
         let response = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
 
         match &response.data {
-            Some(data) => Ok(Response::new(BalanceReply { balance: data.balance })),
+            Some(data) => Ok(Response::new(BalanceReply {
+                balance: data.balance,
+            })),
             None => Err(Status::new(tonic::Code::Internal, "missing Block data")),
         }
     }
@@ -50,11 +52,7 @@ impl Account for AccountService {
 
         let height = match db_response {
             Ok(response) => {
-                response
-                    .data
-                    .as_ref()
-                    .ok_or_else(|| Status::new(tonic::Code::Internal, "missing Block data"))?
-                    .height
+                response.data.as_ref().ok_or_else(|| Status::new(tonic::Code::Internal, "missing Block data"))?.height
             }
             Err(storage::DatabaseError::NoLastBlock) => 0,
             _ => return Err(Status::new(tonic::Code::Internal, "couldn't get last block")),
@@ -83,7 +81,9 @@ impl Account for AccountService {
         };
 
         let power = power_result.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
-        Ok(Response::new(VotingPowerReply { power }))
+        Ok(Response::new(VotingPowerReply {
+            power,
+        }))
     }
     async fn get_block_by_id(&self, request: Request<BlockByIdRequest>) -> Result<Response<BlockByIdReply>, Status> {
         let block_id: api::BlockID = request

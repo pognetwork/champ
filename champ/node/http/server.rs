@@ -20,9 +20,7 @@ impl HttpServer {
 
         println!("starting http server at {}", addr);
 
-        let service = ServiceBuilder::new()
-            .timeout(Duration::from_secs(30))
-            .service(http_service);
+        let service = ServiceBuilder::new().timeout(Duration::from_secs(30)).service(http_service);
 
         Server::bind(&addr).serve(service).await?;
         Ok(())

@@ -69,9 +69,7 @@ pub fn decrypt(data: &[u8], password: &[u8], salt: Salt, nonce: Nonce) -> Result
     let mut buf = Vec::with_capacity(total_len);
     buf.extend_from_slice(data);
 
-    let decrypted = key
-        .open_in_place(nonce, Aad::empty(), &mut buf)
-        .map_err(|_| AeadError::OpenError)?;
+    let decrypted = key.open_in_place(nonce, Aad::empty(), &mut buf).map_err(|_| AeadError::OpenError)?;
 
     Ok(decrypted.to_vec())
 }

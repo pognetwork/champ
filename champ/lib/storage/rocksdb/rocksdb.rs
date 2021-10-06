@@ -11,7 +11,9 @@ pub struct RocksDB {
 
 impl RocksDB {
     pub fn new() -> Self {
-        Self { db: None }
+        Self {
+            db: None,
+        }
     }
 }
 

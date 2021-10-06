@@ -45,10 +45,7 @@ impl Database for MockDB {
         &self,
         transaction_id: api::TransactionID,
     ) -> Result<&api::Transaction, DatabaseError> {
-        self.transactions
-            .get(&transaction_id)
-            .ok_or(DatabaseError::Unknown)
-            .map(|tx| &tx.0)
+        self.transactions.get(&transaction_id).ok_or(DatabaseError::Unknown).map(|tx| &tx.0)
     }
 
     async fn get_latest_block_by_account(&self, account_id: api::AccountID) -> Result<&api::Block, DatabaseError> {
@@ -68,9 +65,7 @@ impl Database for MockDB {
         let (_account, account_blocks, account_transactions) =
             self.accounts.get_mut(&account_id).ok_or(DatabaseError::Unknown)?;
 
-        self.blocks
-            .insert(block_hash, (block, account_id))
-            .ok_or(DatabaseError::Unknown)?;
+        self.blocks.insert(block_hash, (block, account_id)).ok_or(DatabaseError::Unknown)?;
 
         account_blocks.push(block_hash);
 
@@ -78,9 +73,7 @@ impl Database for MockDB {
             let tx_id = tx.get_id(block_hash);
 
             account_transactions.push(tx_id);
-            self.transactions
-                .insert(tx_id, (tx, account_id))
-                .ok_or(DatabaseError::Unknown)?;
+            self.transactions.insert(tx_id, (tx, account_id)).ok_or(DatabaseError::Unknown)?;
         }
         Ok(())
     }

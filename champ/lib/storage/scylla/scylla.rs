@@ -11,7 +11,9 @@ pub struct Scylla {
 
 impl Scylla {
     pub fn new() -> Self {
-        Self { session: None }
+        Self {
+            session: None,
+        }
     }
 }
 
