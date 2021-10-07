@@ -47,12 +47,15 @@ fn verify_transactions(new_block: &Block, prev_block: &Block) -> Result<()> {
     for transaction in &new_data.transactions {
         let tx_type = transaction.data.as_ref().ok_or_else(|| anyhow!("transaction data not found"))?;
         new_balance = match tx_type {
-            Data::TxSend(t) => validate_send(t, new_balance as i64)?, // remove money from this balance TODO: validate sender
+            Data::TxSend(t) => validate_send(t, new_balance as i64)?, // remove money from this balance
             Data::TxCollect(t) => validate_collect(t, new_balance)?,
             _ => new_balance,
         };
     }
-    unimplemented!()
+    if new_data.balance == new_balance && prev_data.balance + new_balance == new_data.balance {
+        return Ok(());
+    }
+    Err(anyhow!("something went wrong in transactions"))
 }
 
 // Verifies the block height and previous block
@@ -83,5 +86,9 @@ fn validate_send(tx: &TxSend, balance: i64) -> Result<u64> {
 }
 
 fn validate_collect(tx: &TxClaim, balance: u64) -> Result<u64> {
+    // check send blocks where receiver = this account_id and tx_id is send block id
+    // check block has not already been claimed
+    // add money to the balance
+
     unimplemented!()
 }
