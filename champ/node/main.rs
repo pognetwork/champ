@@ -23,7 +23,9 @@ async fn main() -> Result<()> {
     })
     .await?;
 
-    let state = Arc::new(Mutex::new(ChampState { db }));
+    let state = Arc::new(Mutex::new(ChampState {
+        db,
+    }));
 
     let matches = clap::App::new("champ-node")
         .version("0.0.1")
