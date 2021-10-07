@@ -16,21 +16,20 @@ pub async fn validate(block: &Block, state: &ChampStateMutex) -> Result<()> {
     let db = &state.lock().await.db;
     let account_id = generate_account_address(public_key.to_vec())?;
 
-    if data.height == 0 {
-        // if new_block is the first block in the chain
-        verify_account_genesis_block(&block)?;
-    }
+    let response = db.get_latest_block_by_account(account_id).await;
+
+    let latest_block = match response {
+        Ok(block) => block,
+        Err(storage::DatabaseError::NoLastBlock) => return verify_account_genesis_block(&block),
+        _ => return Err(anyhow!("could not find last block")),
+    };
 
     // signature
     verify_signature(&data.encode_to_vec(), public_key, signature)?;
     // height / previous block
-    let prev_block_height = data.height - 1;
-    let response = db.get_block_by_height(account_id, &prev_block_height).await;
-    let prev_block_option = response.map_err(|_e| anyhow!("internal db error"))?;
-    let prev_block = prev_block_option.ok_or_else(|| anyhow!("no block found"))?; //TODO: skip this block
-    verify_previous_block(block, prev_block)?;
+    verify_previous_block(block, latest_block)?;
     // transactions / balance
-    verify_transactions(block, prev_block)?;
+    verify_transactions(block, latest_block)?;
 
     Ok(())
 }
@@ -43,18 +42,20 @@ fn verify_transactions(new_block: &Block, prev_block: &Block) -> Result<()> {
     let new_data = new_block.data.as_ref().ok_or_else(|| anyhow!("block data not found"))?;
     let prev_data = prev_block.data.as_ref().ok_or_else(|| anyhow!("block data not found"))?;
 
-    let mut new_balance = prev_data.balance;
+    let mut new_balance: i128 = prev_data.balance as i128;
     for transaction in &new_data.transactions {
         let tx_type = transaction.data.as_ref().ok_or_else(|| anyhow!("transaction data not found"))?;
-        new_balance = match tx_type {
-            Data::TxSend(t) => validate_send(t, new_balance as i64)?, // remove money from this balance
-            Data::TxCollect(t) => validate_collect(t, new_balance)?,
+        new_balance += match tx_type {
+            Data::TxSend(t) => -(t.amount as i128), // remove money from this balance
+            Data::TxCollect(t) => validate_collect(t, new_balance),
             _ => new_balance,
         };
     }
-    if new_data.balance == new_balance && prev_data.balance + new_balance == new_data.balance {
+
+    if new_balance == new_data.balance as i128 && new_balance > 0 {
         return Ok(());
     }
+
     Err(anyhow!("something went wrong in transactions"))
 }
 
@@ -77,15 +78,7 @@ fn verify_account_genesis_block(new_block: &Block) -> Result<()> {
     unimplemented!()
 }
 
-fn validate_send(tx: &TxSend, balance: i64) -> Result<u64> {
-    let result: i64 = balance - tx.amount as i64;
-    if result < 0 {
-        return Err(anyhow!("balance cannot be negative"));
-    }
-    Ok(result as u64)
-}
-
-fn validate_collect(tx: &TxClaim, balance: u64) -> Result<u64> {
+fn validate_collect(tx: &TxClaim, balance: i128) -> i128 {
     // check send blocks where receiver = this account_id and tx_id is send block id
     // check block has not already been claimed
     // add money to the balance
