@@ -1,16 +1,38 @@
 use crate::state::ChampStateMutex;
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use crypto::{self, curves::curve25519::verify_signature};
 use encoding::account::generate_account_address;
 use pog_proto::api::{
-    transaction::{Data, TxClaim, TxSend},
-    AccountID, Block,
+    transaction::{Data, TxClaim},
+    Block,
 };
 use prost::Message;
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum Validation {
+    #[error("transactions could not be validated")]
+    TxValidationError,
+    #[error("invalid block height")]
+    BlockHeightError,
+    #[error("previous block did not match")]
+    PreviousBlockError,
+    #[error("transaction data not found")]
+    TransactionDataNotFound,
+}
+
+#[derive(Error, Debug)]
+pub enum Node {
+    #[error("block data not found")]
+    BlockDataNotFound,
+    #[error("block not found")]
+    BlockNotFound,
+}
 
 // Validate block
+#[allow(dead_code)]
 pub async fn validate(block: &Block, state: &ChampStateMutex) -> Result<()> {
-    let data = block.clone().data.ok_or_else(|| anyhow!("block data not found"))?;
+    let data = block.clone().data.ok_or(Node::BlockDataNotFound)?;
     let public_key = &block.public_key;
     let signature = &block.signature;
     let db = &state.lock().await.db;
@@ -20,8 +42,8 @@ pub async fn validate(block: &Block, state: &ChampStateMutex) -> Result<()> {
 
     let latest_block = match response {
         Ok(block) => block,
-        Err(storage::DatabaseError::NoLastBlock) => return verify_account_genesis_block(&block),
-        _ => return Err(anyhow!("could not find last block")),
+        Err(storage::DatabaseError::NoLastBlock) => return verify_account_genesis_block(),
+        _ => return Err(Node::BlockNotFound.into()),
     };
 
     // signature
@@ -39,15 +61,15 @@ pub async fn validate(block: &Block, state: &ChampStateMutex) -> Result<()> {
 fn verify_transactions(new_block: &Block, prev_block: &Block) -> Result<()> {
     // go through all tx in the block and do math to see new balance
     // check against block balance
-    let new_data = new_block.data.as_ref().ok_or_else(|| anyhow!("block data not found"))?;
-    let prev_data = prev_block.data.as_ref().ok_or_else(|| anyhow!("block data not found"))?;
+    let new_data = new_block.data.as_ref().ok_or(Node::BlockDataNotFound)?;
+    let prev_data = prev_block.data.as_ref().ok_or(Node::BlockDataNotFound)?;
 
     let mut new_balance: i128 = prev_data.balance as i128;
     for transaction in &new_data.transactions {
-        let tx_type = transaction.data.as_ref().ok_or_else(|| anyhow!("transaction data not found"))?;
+        let tx_type = transaction.data.as_ref().ok_or(Validation::TransactionDataNotFound)?;
         new_balance += match tx_type {
             Data::TxSend(t) => -(t.amount as i128), // remove money from this balance
-            Data::TxCollect(t) => validate_collect(t, new_balance),
+            Data::TxCollect(t) => validate_collect(t),
             _ => new_balance,
         };
     }
@@ -56,29 +78,29 @@ fn verify_transactions(new_block: &Block, prev_block: &Block) -> Result<()> {
         return Ok(());
     }
 
-    Err(anyhow!("something went wrong in transactions"))
+    Err(Validation::TxValidationError.into())
 }
 
 // Verifies the block height and previous block
 fn verify_previous_block(new_block: &Block, prev_block: &Block) -> Result<()> {
-    let new_data = new_block.data.as_ref().ok_or_else(|| anyhow!("block data not found"))?;
-    let prev_data = prev_block.data.as_ref().ok_or_else(|| anyhow!("block data not found"))?;
+    let new_data = new_block.data.as_ref().ok_or(Node::BlockDataNotFound)?;
+    let prev_data = prev_block.data.as_ref().ok_or(Node::BlockDataNotFound)?;
 
     if new_data.height - 1 != prev_data.height {
-        return Err(anyhow!("block height not match expected"));
+        return Err(Validation::BlockHeightError.into());
     }
     if new_data.previous != Some(prev_block.get_id()?.to_vec()) {
-        return Err(anyhow!("previous block did not match as expected"));
+        return Err(Validation::PreviousBlockError.into());
     }
     Ok(())
 }
 
 // Verifies the block height and previous block
-fn verify_account_genesis_block(new_block: &Block) -> Result<()> {
+fn verify_account_genesis_block() -> Result<()> {
     unimplemented!()
 }
 
-fn validate_collect(tx: &TxClaim, balance: i128) -> i128 {
+fn validate_collect(_tx: &TxClaim) -> i128 {
     // check send blocks where receiver = this account_id and tx_id is send block id
     // check block has not already been claimed
     // add money to the balance

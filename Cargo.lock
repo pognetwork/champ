@@ -542,6 +542,7 @@ dependencies = [
  "prost",
  "roughtime",
  "storage",
+ "thiserror",
  "tokio",
  "tonic",
  "tonic-web",
