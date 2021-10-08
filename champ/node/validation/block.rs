@@ -32,7 +32,7 @@ pub enum Node {
 // Validate block
 #[allow(dead_code)]
 pub async fn validate(block: &Block, state: &ChampStateMutex) -> Result<()> {
-    let data = block.clone().data.ok_or_else(|| Node::BlockDataNotFound)?;
+    let data = block.clone().data.ok_or(Node::BlockDataNotFound)?;
     let public_key = &block.public_key;
     let signature = &block.signature;
     let db = &state.lock().await.db;
@@ -61,12 +61,12 @@ pub async fn validate(block: &Block, state: &ChampStateMutex) -> Result<()> {
 fn verify_transactions(new_block: &Block, prev_block: &Block) -> Result<()> {
     // go through all tx in the block and do math to see new balance
     // check against block balance
-    let new_data = new_block.data.as_ref().ok_or_else(|| Node::BlockDataNotFound)?;
-    let prev_data = prev_block.data.as_ref().ok_or_else(|| Node::BlockDataNotFound)?;
+    let new_data = new_block.data.as_ref().ok_or(Node::BlockDataNotFound)?;
+    let prev_data = prev_block.data.as_ref().ok_or(Node::BlockDataNotFound)?;
 
     let mut new_balance: i128 = prev_data.balance as i128;
     for transaction in &new_data.transactions {
-        let tx_type = transaction.data.as_ref().ok_or_else(|| Validation::TransactionDataNotFound)?;
+        let tx_type = transaction.data.as_ref().ok_or(Validation::TransactionDataNotFound)?;
         new_balance += match tx_type {
             Data::TxSend(t) => -(t.amount as i128), // remove money from this balance
             Data::TxCollect(t) => validate_collect(t),
@@ -83,8 +83,8 @@ fn verify_transactions(new_block: &Block, prev_block: &Block) -> Result<()> {
 
 // Verifies the block height and previous block
 fn verify_previous_block(new_block: &Block, prev_block: &Block) -> Result<()> {
-    let new_data = new_block.data.as_ref().ok_or_else(|| Node::BlockDataNotFound)?;
-    let prev_data = prev_block.data.as_ref().ok_or_else(|| Node::BlockDataNotFound)?;
+    let new_data = new_block.data.as_ref().ok_or(Node::BlockDataNotFound)?;
+    let prev_data = prev_block.data.as_ref().ok_or(Node::BlockDataNotFound)?;
 
     if new_data.height - 1 != prev_data.height {
         return Err(Validation::BlockHeightError.into());
