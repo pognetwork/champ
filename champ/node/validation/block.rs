@@ -1,5 +1,5 @@
 use crate::state::ChampStateMutex;
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use crypto::{self, curves::curve25519::verify_signature};
 use encoding::account::generate_account_address;
 use pog_proto::api::{
