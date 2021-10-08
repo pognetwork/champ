@@ -107,3 +107,43 @@ fn validate_collect(_tx: &TxClaim) -> i128 {
 
     unimplemented!()
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::validation::block::verify_previous_block;
+    use anyhow::Result;
+    use pog_proto::api::{block::BlockData, Block};
+
+    #[test]
+    fn test_verify_previous_block() -> Result<()> {
+        let prev_block = Block {
+            signature: b"thisIsNewSignature".to_vec(),
+            public_key: b"someOtherKey".to_vec(),
+            timestamp: 1,
+            data: Some(BlockData {
+                version: 1,
+                signature_type: 1,
+                balance: 100,
+                height: 4,
+                previous: Some(b"blockBeforeMe".to_vec()),
+                transactions: [].to_vec(),
+            }),
+        };
+        let new_block = Block {
+            signature: b"signedByMe".to_vec(),
+            public_key: b"someKey".to_vec(),
+            timestamp: 1,
+            data: Some(BlockData {
+                version: 1,
+                signature_type: 1,
+                balance: 100,
+                height: 5,
+                previous: Some(prev_block.get_id()?.to_vec()),
+                transactions: [].to_vec(),
+            }),
+        };
+
+        assert_eq!(verify_previous_block(&new_block, &prev_block)?, ());
+        Ok(())
+    }
+}
