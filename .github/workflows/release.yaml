@@ -1,40 +1,82 @@
 name: Create Release
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
     types: [closed]
 
 jobs:
-  release:
+  publish_new_version:
     runs-on: ubuntu-latest
-    if: "github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'release') && !contains(github.event.head_commit.message, 'ci skip') && !contains(github.event.head_commit.message, 'skip ci')"
+    outputs:
+      NEW_TAG: v${{ steps.release.outputs.NEW_TAG }}
+    if: "contains(github.event.head_commit.message, '[new_release]') || (github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'release') && !contains(github.event.head_commit.message, 'ci skip') && !contains(github.event.head_commit.message, 'skip ci'))"
     steps:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
+
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+
       - uses: extractions/setup-just@v1
-      - uses: extractions/setup-crate@v1
+
+      - name: "install git-cliff"
+        uses: extractions/setup-crate@v1
+        with:
+          owner: orhun
+          name: git-cliff
+          version: 0.4
+
+      - name: "install cargo release"
+        uses: extractions/setup-crate@v1
         with:
           owner: crate-ci
           name: cargo-release
-          version: 0.17
-      - name: "install convcp"
+          version: 0.18
+
+      - name: "install convco"
         run: |
           mkdir temp
           cd temp
           curl -OL https://github.com/convco/convco/releases/download/v0.3.5/convco-deb.zip
           unzip convco-deb.zip
           sudo dpkg -i convco*.deb
-      - name: Create Release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create new Release
+        id: release
         run: |
+          # Calculate next version bump
           NEXT_VERSION=$(just next-version)
+
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
-          ./temp/cargo-release release $NEXT_VERSION --no-confirm --execute
+
+          # Bump versions in all packages
+          cargo release $NEXT_VERSION --no-confirm --execute
+
+          # Generate Changelogs
+          just generate-release-notes $NEXT_VERSION
+          just generate-changelog $NEXT_VERSION
+          git commit -a --amend --no-edit
+
+          # Push new version
           git tag -a v$NEXT_VERSION -m "Release v$NEXT_VERSION"
-          git push --tags
+          git push --follow-tags
+
+          # Set tag version for github release
+          echo "::set-output name=NEW_TAG::$NEXT_VERSION"
+
+  create_github_release:
+    needs: publish_new_version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ needs.publish_new_version.outputs.NEW_TAG }}
+          bodyFile: RELEASE_NOTES.md

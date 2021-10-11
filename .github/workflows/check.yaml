@@ -1,5 +1,10 @@
-on: push
-name: CI
+name: Testing
+
+on:
+  push:
+    paths:
+      - "**/*.rs"
+
 jobs:
   test:
     runs-on: ubuntu-latest
