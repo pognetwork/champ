@@ -16,11 +16,10 @@ next-version:
   echo $([ $(convco version) == $(convco version --bump) ] && convco version --patch || convco version --bump)
 
 generate-changelog version:
-  convco changelog v{{version}} | diff --changed-group-format='%<' --unchanged-group-format='' - CHANGELOG.md > RELEASE_NOTES.md || true
-  convco changelog > CHANGELOG.md
+  git cliff --tag {{version}} --output CHANGELOG.md
 
-generate-next-changelog:
-  just generate-changelog $(just next-version)
+generate-release-notes version:
+  git cliff --unreleased --tag {{version}} --output RELEASE_NOTES.md
 
 release:
   cargo release $(just next-version)
