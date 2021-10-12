@@ -1,3 +1,5 @@
+use std::convert::TryInto;
+
 use crate::state::ChampStateMutex;
 use anyhow::Result;
 use crypto::{self, curves::curve25519::verify_signature};
@@ -19,6 +21,10 @@ pub enum Validation {
     PreviousBlockError,
     #[error("transaction data not found")]
     TransactionDataNotFound,
+    #[error("corresponding send tx not found")]
+    SendTxNotFound,
+    #[error("attempt to claim non send tx")]
+    MissmatchedTx,
 }
 
 #[derive(Error, Debug)]
@@ -27,6 +33,8 @@ pub enum Node {
     BlockDataNotFound,
     #[error("block not found")]
     BlockNotFound,
+    #[error{"tx not found"}]
+    TxNotFound,
 }
 
 // Validate block
@@ -51,14 +59,14 @@ pub async fn validate(block: &Block, state: &ChampStateMutex) -> Result<()> {
     // height / previous block
     verify_previous_block(block, latest_block)?;
     // transactions / balance
-    verify_transactions(block, latest_block)?;
+    verify_transactions(block, latest_block, state).await?;
 
     Ok(())
 }
 
 // TODO: add own error type to not disrupt the program
 // Verifies the transactions and balances
-fn verify_transactions(new_block: &Block, prev_block: &Block) -> Result<()> {
+async fn verify_transactions(new_block: &Block, prev_block: &Block, state: &ChampStateMutex) -> Result<()> {
     // go through all tx in the block and do math to see new balance
     // check against block balance
     let new_data = new_block.data.as_ref().ok_or(Node::BlockDataNotFound)?;
@@ -69,7 +77,7 @@ fn verify_transactions(new_block: &Block, prev_block: &Block) -> Result<()> {
         let tx_type = transaction.data.as_ref().ok_or(Validation::TransactionDataNotFound)?;
         new_balance += match tx_type {
             Data::TxSend(t) => -(t.amount as i128), // remove money from this balance
-            Data::TxCollect(t) => validate_collect(t),
+            Data::TxCollect(t) => validate_collect(t, state).await?,
             _ => new_balance,
         };
     }
@@ -100,23 +108,38 @@ fn verify_account_genesis_block() -> Result<()> {
     unimplemented!()
 }
 
-fn validate_collect(_tx: &TxClaim) -> i128 {
-    // check send blocks where receiver = this account_id and tx_id is send block id
-    // check block has not already been claimed
-    // add money to the balance
+async fn validate_collect(tx: &TxClaim, state: &ChampStateMutex) -> Result<i128> {
+    // check DB for send with id tx_id
+    let db = &state.lock().await.db;
+    let tx_id = match tx.transaction_id.clone().try_into() {
+        Ok(a) => a,
+        Err(_) => return Err(Node::TxNotFound.into()),
+    };
+    let db_response = db.get_transaction_by_id(tx_id).await;
+    let transaction = match db_response {
+        Ok(t) => t,
+        Err(_) => return Err(Validation::TxValidationError.into()),
+    };
 
-    unimplemented!()
+    match &transaction.data {
+        Some(Data::TxSend(t)) => Ok(t.amount.into()),
+        Some(_) => Err(Validation::MissmatchedTx.into()),
+        None => Err(Validation::SendTxNotFound.into()),
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::validation::block::{verify_previous_block, verify_transactions};
+    use crate::ChampState;
     use anyhow::Result;
     use pog_proto::api::{
         block::BlockData,
         transaction::{Data, TxSend},
         Block, Transaction,
     };
+    use std::sync::Arc;
+    use tokio::sync::Mutex;
 
     #[test]
     fn test_verify_previous_block() -> Result<()> {
@@ -151,8 +174,8 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn test_verify_transactions() -> Result<()> {
+    #[tokio::test]
+    async fn test_verify_transactions() -> Result<()> {
         let prev_block = Block {
             signature: b"thisIsNewSignature".to_vec(),
             public_key: b"someOtherKey".to_vec(),
@@ -195,8 +218,19 @@ mod tests {
                 .to_vec(),
             }),
         };
+        let db = storage::new(&storage::DatabaseConfig {
+            kind: storage::Databases::Mock,
+            uri: "",
+        })
+        .await?;
 
-        assert_eq!(verify_transactions(&block, &prev_block)?, ());
+        let state = Arc::new(Mutex::new(ChampState {
+            db,
+        }));
+
+        // TODO: Populate the DB with dummy data
+
+        assert_eq!(verify_transactions(&block, &prev_block, &state).await?, ());
         Ok(())
     }
 }
