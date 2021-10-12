@@ -70,7 +70,7 @@ impl Database for MockDB {
         account_blocks.push(block_hash);
 
         for tx in block_data.transactions {
-            let tx_id = tx.get_id(block_hash);
+            let tx_id = tx.get_id(block_hash).map_err(|_| DatabaseError::Unknown)?;
 
             account_transactions.push(tx_id);
             self.transactions.insert(tx_id, (tx, account_id)).ok_or(DatabaseError::Unknown)?;

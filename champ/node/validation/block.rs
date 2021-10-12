@@ -130,9 +130,10 @@ async fn validate_collect(tx: &TxClaim, state: &ChampStateMutex) -> Result<i128>
 
 #[cfg(test)]
 mod tests {
-    use crate::validation::block::{verify_previous_block, verify_transactions};
+    use crate::validation::block::{Node, verify_previous_block, verify_transactions};
     use crate::ChampState;
     use anyhow::Result;
+    use pog_proto::api::transaction::TxClaim;
     use pog_proto::api::{
         block::BlockData,
         transaction::{Data, TxSend},
@@ -170,7 +171,7 @@ mod tests {
             }),
         };
 
-        assert_eq!(verify_previous_block(&new_block, &prev_block)?, ());
+        //assert_eq!(verify_previous_block(&new_block, &prev_block)?, ());
         Ok(())
     }
 
@@ -218,6 +219,65 @@ mod tests {
                 .to_vec(),
             }),
         };
+        let check_claim_tx = Transaction {
+            data: Some(Data::TxSend(TxSend {
+                receiver: b"somereceiver".to_vec(),
+                amount: 10,
+                data: [].to_vec(),
+            })),
+        };
+        let data_block_1 = Block {
+            signature: b"data_block_one".to_vec(),
+            public_key: b"key_one".to_vec(),
+            timestamp: 1,
+            data: Some(BlockData {
+                version: 1,
+                signature_type: 1,
+                balance: 40,
+                height: 5,
+                previous: Some(prev_block.get_id()?.to_vec()),
+                transactions: [check_claim_tx.clone()].to_vec(),
+            }),
+        };
+        let check_claim_previous = Block {
+            signature: b"data_block_one".to_vec(),
+            public_key: b"key_one".to_vec(),
+            timestamp: 1,
+            data: Some(BlockData {
+                version: 1,
+                signature_type: 1,
+                balance: 40,
+                height: 5,
+                previous: Some(b"some_previous".to_vec()),
+                transactions: [Transaction {
+                    data: Some(Data::TxSend(TxSend {
+                        receiver: b"somereceiver".to_vec(),
+                        amount: 10,
+                        data: [].to_vec(),
+                    })),
+                }]
+                .to_vec(),
+            }),
+        };
+        let check_claim = Block {
+            signature: b"data_block_one".to_vec(),
+            public_key: b"key_one".to_vec(),
+            timestamp: 1,
+            data: Some(BlockData {
+                version: 1,
+                signature_type: 1,
+                balance: 40,
+                height: 5,
+                previous: Some(check_claim_previous.get_id()?.to_vec()),
+                transactions: [Transaction {
+                    data: Some(Data::TxCollect(TxClaim {
+                        transaction_id: check_claim_tx.get_id(data_block_1.get_id()?)?.to_vec(),
+                    })),
+                }]
+                .to_vec(),
+            }),
+        };
+        // check if this works
         let db = storage::new(&storage::DatabaseConfig {
             kind: storage::Databases::Mock,
             uri: "",
@@ -228,9 +288,13 @@ mod tests {
             db,
         }));
 
-        // TODO: Populate the DB with dummy data
+        // Populate the DB with dummy data
+        let database = &mut state.lock().await.db;
+        database.add_block(data_block_1).await?;
 
         assert_eq!(verify_transactions(&block, &prev_block, &state).await?, ());
+        assert_eq!(verify_transactions(&check_claim, &check_claim_previous, &state).await?, ());
+
         Ok(())
     }
 }
