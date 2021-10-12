@@ -9,6 +9,7 @@ use pog_proto::api::{
     Block,
 };
 use prost::Message;
+use storage::Database;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -67,6 +68,7 @@ pub async fn validate(block: &Block, state: &ChampStateMutex) -> Result<()> {
 // TODO: add own error type to not disrupt the program
 // Verifies the transactions and balances
 async fn verify_transactions(new_block: &Block, prev_block: &Block, state: &ChampStateMutex) -> Result<()> {
+    let db = &state.lock().await.db;
     // go through all tx in the block and do math to see new balance
     // check against block balance
     let new_data = new_block.data.as_ref().ok_or(Node::BlockDataNotFound)?;
@@ -77,7 +79,7 @@ async fn verify_transactions(new_block: &Block, prev_block: &Block, state: &Cham
         let tx_type = transaction.data.as_ref().ok_or(Validation::TransactionDataNotFound)?;
         new_balance += match tx_type {
             Data::TxSend(t) => -(t.amount as i128), // remove money from this balance
-            Data::TxCollect(t) => validate_collect(t, state).await?,
+            Data::TxCollect(t) => validate_collect(t, db).await?,
             _ => new_balance,
         };
     }
@@ -108,9 +110,9 @@ fn verify_account_genesis_block() -> Result<()> {
     unimplemented!()
 }
 
-async fn validate_collect(tx: &TxClaim, state: &ChampStateMutex) -> Result<i128> {
+async fn validate_collect(tx: &TxClaim, db: &Box<dyn Database>) -> Result<i128> {
     // check DB for send with id tx_id
-    let db = &state.lock().await.db;
+
     let tx_id = match tx.transaction_id.clone().try_into() {
         Ok(a) => a,
         Err(_) => return Err(Node::TxNotFound.into()),
@@ -130,7 +132,8 @@ async fn validate_collect(tx: &TxClaim, state: &ChampStateMutex) -> Result<i128>
 
 #[cfg(test)]
 mod tests {
-    use crate::validation::block::{Node, verify_previous_block, verify_transactions};
+    use crate::state::ChampStateMutex;
+    use crate::validation::block::{verify_previous_block, verify_transactions};
     use crate::ChampState;
     use anyhow::Result;
     use pog_proto::api::transaction::TxClaim;
@@ -149,8 +152,8 @@ mod tests {
             public_key: b"someOtherKey".to_vec(),
             timestamp: 1,
             data: Some(BlockData {
-                version: 1,
-                signature_type: 1,
+                version: 0,
+                signature_type: 0,
                 balance: 100,
                 height: 4,
                 previous: Some(b"blockBeforeMe".to_vec()),
@@ -162,16 +165,16 @@ mod tests {
             public_key: b"someKey".to_vec(),
             timestamp: 1,
             data: Some(BlockData {
-                version: 1,
-                signature_type: 1,
+                version: 0,
+                signature_type: 0,
                 balance: 100,
                 height: 5,
-                previous: Some(prev_block.get_id()?.to_vec()),
+                previous: Some(prev_block.get_id().expect("get Block ID").to_vec()),
                 transactions: [].to_vec(),
             }),
         };
 
-        //assert_eq!(verify_previous_block(&new_block, &prev_block)?, ());
+        assert_eq!(verify_previous_block(&new_block, &prev_block).expect("previous should be checked"), ());
         Ok(())
     }
 
@@ -182,12 +185,12 @@ mod tests {
             public_key: b"someOtherKey".to_vec(),
             timestamp: 1,
             data: Some(BlockData {
-                version: 1,
-                signature_type: 1,
+                version: 0,
+                signature_type: 0,
                 balance: 100,
                 height: 4,
                 previous: Some(b"blockBeforeMe".to_vec()),
-                transactions: [].to_vec(),
+                transactions: vec![],
             }),
         };
         let block = Block {
@@ -195,12 +198,12 @@ mod tests {
             public_key: b"someKey".to_vec(),
             timestamp: 1,
             data: Some(BlockData {
-                version: 1,
-                signature_type: 1,
+                version: 0,
+                signature_type: 0,
                 balance: 40,
                 height: 5,
-                previous: Some(prev_block.get_id()?.to_vec()),
-                transactions: [
+                previous: Some(prev_block.get_id().expect("get Block ID").to_vec()),
+                transactions: vec![
                     Transaction {
                         data: Some(Data::TxSend(TxSend {
                             receiver: b"somereceiver".to_vec(),
@@ -215,15 +218,14 @@ mod tests {
                             data: [].to_vec(),
                         })),
                     },
-                ]
-                .to_vec(),
+                ],
             }),
         };
         let check_claim_tx = Transaction {
             data: Some(Data::TxSend(TxSend {
                 receiver: b"somereceiver".to_vec(),
                 amount: 10,
-                data: [].to_vec(),
+                data: vec![],
             })),
         };
         let data_block_1 = Block {
@@ -231,12 +233,12 @@ mod tests {
             public_key: b"key_one".to_vec(),
             timestamp: 1,
             data: Some(BlockData {
-                version: 1,
-                signature_type: 1,
+                version: 0,
+                signature_type: 0,
                 balance: 40,
-                height: 5,
-                previous: Some(prev_block.get_id()?.to_vec()),
-                transactions: [check_claim_tx.clone()].to_vec(),
+                height: 0,
+                previous: Some(prev_block.get_id().expect("get Block ID").to_vec()),
+                transactions: vec![check_claim_tx.clone()],
             }),
         };
         let check_claim_previous = Block {
@@ -244,19 +246,12 @@ mod tests {
             public_key: b"key_one".to_vec(),
             timestamp: 1,
             data: Some(BlockData {
-                version: 1,
-                signature_type: 1,
+                version: 0,
+                signature_type: 0,
                 balance: 40,
                 height: 5,
                 previous: Some(b"some_previous".to_vec()),
-                transactions: [Transaction {
-                    data: Some(Data::TxSend(TxSend {
-                        receiver: b"somereceiver".to_vec(),
-                        amount: 10,
-                        data: [].to_vec(),
-                    })),
-                }]
-                .to_vec(),
+                transactions: vec![],
             }),
         };
         let check_claim = Block {
@@ -264,19 +259,40 @@ mod tests {
             public_key: b"key_one".to_vec(),
             timestamp: 1,
             data: Some(BlockData {
-                version: 1,
-                signature_type: 1,
-                balance: 40,
-                height: 5,
-                previous: Some(check_claim_previous.get_id()?.to_vec()),
-                transactions: [Transaction {
+                version: 0,
+                signature_type: 0,
+                balance: 50,
+                height: 6,
+                previous: Some(check_claim_previous.get_id().expect("get block ID").to_vec()),
+                transactions: vec![Transaction {
                     data: Some(Data::TxCollect(TxClaim {
-                        transaction_id: check_claim_tx.get_id(data_block_1.get_id()?)?.to_vec(),
+                        transaction_id: check_claim_tx
+                            .get_id(data_block_1.get_id().expect("get block ID"))
+                            .expect("get Tx ID")
+                            .to_vec(),
                     })),
-                }]
-                .to_vec(),
+                }],
             }),
         };
+
+        let state = create_test_db().await?;
+        state.lock().await.db.add_block(data_block_1).await.expect("block should be added");
+
+        assert_eq!(
+            verify_transactions(&block, &prev_block, &state).await.expect("tx should be verified. Tx Nr: 1"),
+            ()
+        );
+        assert_eq!(
+            verify_transactions(&check_claim, &check_claim_previous, &state)
+                .await
+                .expect("tx should be verified. Tx Nr: 2"),
+            ()
+        );
+
+        Ok(())
+    }
+
+    async fn create_test_db() -> Result<ChampStateMutex> {
         // check if this works
         let db = storage::new(&storage::DatabaseConfig {
             kind: storage::Databases::Mock,
@@ -284,17 +300,8 @@ mod tests {
         })
         .await?;
 
-        let state = Arc::new(Mutex::new(ChampState {
+        Ok(Arc::new(Mutex::new(ChampState {
             db,
-        }));
-
-        // Populate the DB with dummy data
-        let database = &mut state.lock().await.db;
-        database.add_block(data_block_1).await?;
-
-        assert_eq!(verify_transactions(&block, &prev_block, &state).await?, ());
-        assert_eq!(verify_transactions(&check_claim, &check_claim_previous, &state).await?, ());
-
-        Ok(())
+        })))
     }
 }

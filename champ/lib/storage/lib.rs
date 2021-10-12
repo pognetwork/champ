@@ -30,10 +30,18 @@ pub struct DatabaseConfig<'a> {
 pub enum DatabaseError {
     #[error("unknown database error")]
     Unknown,
+    #[error("data not found")]
+    DataNotFound,
+    #[error("fetch ID failed")]
+    GetIDFailed,
     #[error("invalid database kind")]
     InvalidKind,
     #[error("no last block")]
     NoLastBlock,
+    #[error("db insert failed at {0}")]
+    DBInsertFailed(u32),
+    #[error("this Error: {0}")]
+    Specific(String),
 }
 
 pub async fn new(cfg: &DatabaseConfig<'_>) -> Result<Box<dyn Database>, DatabaseError> {
