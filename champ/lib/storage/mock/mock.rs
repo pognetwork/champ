@@ -84,7 +84,7 @@ impl Database for MockDB {
         let (_account, account_blocks, account_transactions) = self
             .accounts
             .get_mut(&account_id)
-            .ok_or(DatabaseError::Specific("account could not be fetched".to_string()))?;
+            .ok_or_else(|| DatabaseError::Specific("account could not be fetched".to_string()))?;
 
         if self.blocks.get(&block_hash).is_some() {
             return Err(DatabaseError::DBInsertFailed(line!()));

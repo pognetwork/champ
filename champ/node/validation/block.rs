@@ -29,6 +29,7 @@ pub enum Validation {
 }
 
 #[derive(Error, Debug)]
+#[allow(clippy::enum_variant_names)]
 pub enum Node {
     #[error("block data not found")]
     BlockDataNotFound,
@@ -110,6 +111,7 @@ fn verify_account_genesis_block() -> Result<()> {
     unimplemented!()
 }
 
+#[allow(clippy::borrowed_box)]
 async fn validate_collect(tx: &TxClaim, db: &Box<dyn Database>) -> Result<i128> {
     // check DB for send with id tx_id
 
