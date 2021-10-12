@@ -2,10 +2,12 @@
 authors = ["The POG Contributors <contact@pog.network>"]
 edition = "2018"
 name = "p2p"
-version = "0.1.0"
+
+publish = false
+version = "0.0.6"
 
 [dependencies]
-libp2p = "0.39.1"
+libp2p = "0.39"
 
 [lib]
 path = "lib.rs"

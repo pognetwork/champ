@@ -1,0 +1,5 @@
+#!/bin/sh
+echo '$ cargo clippy'
+cargo clippy
+echo '$ cargo fmt'
+cargo fmt --all -- --check

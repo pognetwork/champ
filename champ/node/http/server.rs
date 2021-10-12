@@ -11,14 +11,16 @@ use hyper::{Body, Request, Response, Server};
 pub struct HttpServer {}
 
 impl HttpServer {
-    pub async fn start(&self, addr: SocketAddr) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn start(&self, addr: SocketAddr, enable: bool) -> Result<(), Box<dyn std::error::Error>> {
+        if !enable {
+            return Ok(());
+        }
+
         let http_service = make_service_fn(|_conn| async { Ok::<_, Infallible>(service_fn(HttpHandler::handle)) });
 
         println!("starting http server at {}", addr);
 
-        let service = ServiceBuilder::new()
-            .timeout(Duration::from_secs(30))
-            .service(http_service);
+        let service = ServiceBuilder::new().timeout(Duration::from_secs(30)).service(http_service);
 
         Server::bind(&addr).serve(service).await?;
         Ok(())

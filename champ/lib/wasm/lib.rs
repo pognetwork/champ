@@ -18,7 +18,9 @@ pub struct PogWasmRuntime {
 impl PogWasmRuntime {
     pub fn new() -> Self {
         let engine = Engine::default();
-        PogWasmRuntime { engine }
+        PogWasmRuntime {
+            engine,
+        }
     }
 
     pub fn run(self) -> Result<()> {

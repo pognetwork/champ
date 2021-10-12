@@ -1,7 +1,12 @@
-on: push
-name: CI
+name: Testing
+
+on:
+  push:
+    paths:
+      - "**/*.rs"
+
 jobs:
-  clippy_check:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -15,8 +20,11 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-          components: clippy
-      - run: cargo clippy
+          components: rustfmt, clippy
+      - run: cargo fetch --locked
+      - uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       - run: cargo check
       - run: cargo test
       - run: cargo fmt --all -- --check
