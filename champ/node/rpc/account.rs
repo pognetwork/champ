@@ -2,10 +2,14 @@ use std::convert::TryInto;
 
 use crate::consensus::voting_power::{get_active_power, get_actual_power};
 use crate::state::ChampStateMutex;
+
 use pog_proto::api;
-pub use pog_proto::rpc::account_server::{Account, AccountServer};
-use pog_proto::rpc::{BalanceReply, BalanceRequest, DelegateReply, TxByIdReply, VotingPowerReply, VotingPowerRequest};
-use pog_proto::rpc::{BlockByIdReply, BlockByIdRequest, BlockHeightReply, BlockHeightRequest};
+use pog_proto::rpc::account::{
+    BalanceReply, BalanceRequest, BlockByIdReply, BlockByIdRequest, BlockHeightReply, BlockHeightRequest,
+    DelegateReply, TxByIdReply, VotingPowerReply, VotingPowerRequest,
+};
+
+pub use pog_proto::rpc::account::account_server::{Account, AccountServer};
 
 use derive_new::new;
 use tonic::{Request, Response, Status};
@@ -102,8 +106,8 @@ impl Account for AccountService {
     }
     async fn get_delegate(
         &self,
-        request: tonic::Request<pog_proto::rpc::DelegateRequest>,
-    ) -> Result<tonic::Response<pog_proto::rpc::DelegateReply>, tonic::Status> {
+        request: tonic::Request<pog_proto::rpc::account::DelegateRequest>,
+    ) -> Result<tonic::Response<pog_proto::rpc::account::DelegateReply>, tonic::Status> {
         let state = &self.state.lock().await;
 
         let address: api::AccountID = match request.into_inner().address.try_into() {
@@ -123,20 +127,20 @@ impl Account for AccountService {
     }
     async fn get_pending_blocks(
         &self,
-        _request: tonic::Request<pog_proto::rpc::Empty>,
-    ) -> Result<tonic::Response<pog_proto::rpc::PendingBlockReply>, tonic::Status> {
+        _request: tonic::Request<pog_proto::rpc::account::Empty>,
+    ) -> Result<tonic::Response<pog_proto::rpc::account::PendingBlockReply>, tonic::Status> {
         unimplemented!()
     }
     async fn get_unacknowledged_tx(
         &self,
-        _request: tonic::Request<pog_proto::rpc::Empty>,
-    ) -> Result<tonic::Response<pog_proto::rpc::UnacknowledgedTxReply>, tonic::Status> {
+        _request: tonic::Request<pog_proto::rpc::account::Empty>,
+    ) -> Result<tonic::Response<pog_proto::rpc::account::UnacknowledgedTxReply>, tonic::Status> {
         unimplemented!()
     }
     async fn get_tx_by_id(
         &self,
-        request: tonic::Request<pog_proto::rpc::TxByIdRequest>,
-    ) -> Result<tonic::Response<pog_proto::rpc::TxByIdReply>, tonic::Status> {
+        request: tonic::Request<pog_proto::rpc::account::TxByIdRequest>,
+    ) -> Result<tonic::Response<pog_proto::rpc::account::TxByIdReply>, tonic::Status> {
         let transaction_id: api::TransactionID = match request.into_inner().transaction_id.try_into() {
             Ok(a) => a,
             Err(_) => return Err(Status::new(tonic::Code::Internal, "Address could not be parsed")),
@@ -151,8 +155,8 @@ impl Account for AccountService {
     }
     async fn get_tx_by_index(
         &self,
-        _request: tonic::Request<pog_proto::rpc::TxByIndexRequest>,
-    ) -> Result<tonic::Response<pog_proto::rpc::TxByIndexReply>, tonic::Status> {
+        _request: tonic::Request<pog_proto::rpc::account::TxByIndexRequest>,
+    ) -> Result<tonic::Response<pog_proto::rpc::account::TxByIndexReply>, tonic::Status> {
         // get blocks where type is tx
         // use index to get tx inside a block
         unimplemented!()
