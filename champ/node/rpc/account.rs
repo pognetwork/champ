@@ -6,7 +6,8 @@ use crate::state::ChampStateMutex;
 use pog_proto::api;
 use pog_proto::rpc::account::{
     BalanceReply, BalanceRequest, BlockByIdReply, BlockByIdRequest, BlockHeightReply, BlockHeightRequest,
-    DelegateReply, TxByIdReply, VotingPowerReply, VotingPowerRequest,
+    DelegateReply, DelegateRequest, Empty, PendingBlockReply, TxByIdReply, TxByIdRequest, TxByIndexReply,
+    TxByIndexRequest, UnacknowledgedTxReply, VotingPowerReply, VotingPowerRequest,
 };
 
 pub use pog_proto::rpc::account::account_server::{Account, AccountServer};
@@ -39,6 +40,7 @@ impl Account for AccountService {
             None => Err(Status::new(tonic::Code::Internal, "missing Block data")),
         }
     }
+
     async fn get_block_height(
         &self,
         block_height_request: Request<BlockHeightRequest>,
@@ -66,6 +68,7 @@ impl Account for AccountService {
             next_height: height + get_next_block_height,
         }))
     }
+
     /// returns the active voting power (with delegate power)
     async fn get_voting_power(
         &self,
@@ -89,6 +92,7 @@ impl Account for AccountService {
             power,
         }))
     }
+
     async fn get_block_by_id(&self, request: Request<BlockByIdRequest>) -> Result<Response<BlockByIdReply>, Status> {
         let block_id: api::BlockID = request
             .into_inner()
@@ -104,10 +108,11 @@ impl Account for AccountService {
             block: Some(block.to_owned()),
         }))
     }
+
     async fn get_delegate(
         &self,
-        request: tonic::Request<pog_proto::rpc::account::DelegateRequest>,
-    ) -> Result<tonic::Response<pog_proto::rpc::account::DelegateReply>, tonic::Status> {
+        request: tonic::Request<DelegateRequest>,
+    ) -> Result<tonic::Response<DelegateReply>, tonic::Status> {
         let state = &self.state.lock().await;
 
         let address: api::AccountID = match request.into_inner().address.try_into() {
@@ -125,22 +130,25 @@ impl Account for AccountService {
             None => Err(Status::new(tonic::Code::Internal, "missing Block data")),
         }
     }
+
     async fn get_pending_blocks(
         &self,
-        _request: tonic::Request<pog_proto::rpc::account::Empty>,
-    ) -> Result<tonic::Response<pog_proto::rpc::account::PendingBlockReply>, tonic::Status> {
+        _request: tonic::Request<Empty>,
+    ) -> Result<tonic::Response<PendingBlockReply>, tonic::Status> {
         unimplemented!()
     }
+
     async fn get_unacknowledged_tx(
         &self,
-        _request: tonic::Request<pog_proto::rpc::account::Empty>,
-    ) -> Result<tonic::Response<pog_proto::rpc::account::UnacknowledgedTxReply>, tonic::Status> {
+        _request: tonic::Request<Empty>,
+    ) -> Result<tonic::Response<UnacknowledgedTxReply>, tonic::Status> {
         unimplemented!()
     }
+
     async fn get_tx_by_id(
         &self,
-        request: tonic::Request<pog_proto::rpc::account::TxByIdRequest>,
-    ) -> Result<tonic::Response<pog_proto::rpc::account::TxByIdReply>, tonic::Status> {
+        request: tonic::Request<TxByIdRequest>,
+    ) -> Result<tonic::Response<TxByIdReply>, tonic::Status> {
         let transaction_id: api::TransactionID = match request.into_inner().transaction_id.try_into() {
             Ok(a) => a,
             Err(_) => return Err(Status::new(tonic::Code::Internal, "Address could not be parsed")),
@@ -153,10 +161,11 @@ impl Account for AccountService {
             transaction: Some(transaction.to_owned()),
         }))
     }
+
     async fn get_tx_by_index(
         &self,
-        _request: tonic::Request<pog_proto::rpc::account::TxByIndexRequest>,
-    ) -> Result<tonic::Response<pog_proto::rpc::account::TxByIndexReply>, tonic::Status> {
+        _request: tonic::Request<TxByIndexRequest>,
+    ) -> Result<tonic::Response<TxByIndexReply>, tonic::Status> {
         // get blocks where type is tx
         // use index to get tx inside a block
         unimplemented!()
