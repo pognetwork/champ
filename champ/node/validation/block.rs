@@ -75,6 +75,7 @@ async fn verify_transactions(new_block: &Block, prev_block: &Block, state: &Cham
     let new_data = new_block.data.as_ref().ok_or(Node::BlockDataNotFound)?;
     let prev_data = prev_block.data.as_ref().ok_or(Node::BlockDataNotFound)?;
 
+    // TODO: Run concurrently
     let mut new_balance: i128 = prev_data.balance as i128;
     for transaction in &new_data.transactions {
         let tx_type = transaction.data.as_ref().ok_or(Validation::TransactionDataNotFound)?;
