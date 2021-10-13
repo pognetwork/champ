@@ -15,7 +15,7 @@ encoding = {path = "../lib/encoding"}
 futures = "0.3.15"
 hyper = "0.14"
 pog-proto = {git = "https://github.com/pognetwork/proto"}
-prost = "0.9"
+prost = "0.8"
 roughtime = {path = "../lib/roughtime"}
 storage = {path = "../lib/storage"}
 thiserror = "1.0"
