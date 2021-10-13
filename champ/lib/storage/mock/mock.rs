@@ -45,7 +45,7 @@ impl Database for MockDB {
         &self,
         transaction_id: api::TransactionID,
     ) -> Result<&api::Transaction, DatabaseError> {
-        self.transactions.get(&transaction_id).ok_or(DatabaseError::Unknown).map(|tx| &tx.0)
+        self.transactions.get(&transaction_id).ok_or(DatabaseError::Unknown).map(|(tx, _)| tx)
     }
 
     async fn get_latest_block_by_account(&self, account_id: api::AccountID) -> Result<&api::Block, DatabaseError> {
@@ -56,24 +56,51 @@ impl Database for MockDB {
     }
 
     async fn add_block(&mut self, block: api::Block) -> Result<(), DatabaseError> {
-        let block_data = block.data.clone().ok_or(DatabaseError::Unknown)?;
+        let block_data = block.data.clone().ok_or(DatabaseError::DataNotFound)?;
 
         let account_id = encoding::account::generate_account_address(block.public_key.clone())
-            .map_err(|_| DatabaseError::Unknown)?;
-        let block_hash = block.get_id().map_err(|_| DatabaseError::Unknown)?;
+            .map_err(|_| DatabaseError::Specific("account ID could not be generated".to_string()))?;
+        let block_hash = block.get_id().map_err(|_| DatabaseError::GetIDFailed)?;
 
-        let (_account, account_blocks, account_transactions) =
-            self.accounts.get_mut(&account_id).ok_or(DatabaseError::Unknown)?;
+        if block_data.height == 0 {
+            // create new account
+            if self.accounts.get(&account_id).is_some() {
+                return Err(DatabaseError::Specific("account already exists but block height == 0".to_string()));
+            }
+            self.accounts.insert(
+                account_id,
+                (
+                    api::PublicAccount {
+                        r#type: 0,
+                        address: account_id.to_vec(),
+                        voting_power: 0,
+                    },
+                    vec![],
+                    vec![],
+                ),
+            );
+        }
 
-        self.blocks.insert(block_hash, (block, account_id)).ok_or(DatabaseError::Unknown)?;
+        let (_account, account_blocks, account_transactions) = self
+            .accounts
+            .get_mut(&account_id)
+            .ok_or_else(|| DatabaseError::Specific("account could not be fetched".to_string()))?;
+
+        if self.blocks.get(&block_hash).is_some() {
+            return Err(DatabaseError::DBInsertFailed(line!()));
+        };
+        self.blocks.insert(block_hash, (block, account_id));
 
         account_blocks.push(block_hash);
 
         for tx in block_data.transactions {
-            let tx_id = tx.get_id(block_hash);
+            let tx_id = tx.get_id(block_hash).map_err(|_| DatabaseError::GetIDFailed)?;
 
+            if self.transactions.get(&tx_id).is_some() {
+                return Err(DatabaseError::DBInsertFailed(line!()));
+            }
             account_transactions.push(tx_id);
-            self.transactions.insert(tx_id, (tx, account_id)).ok_or(DatabaseError::Unknown)?;
+            self.transactions.insert(tx_id, (tx, account_id));
         }
         Ok(())
     }
