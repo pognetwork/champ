@@ -1,10 +1,11 @@
+mod cli;
 mod consensus;
 mod http;
 mod rpc;
 mod state;
 mod validation;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use clap::Arg;
 use futures::try_join;
 use http::server::HttpServer;
@@ -27,6 +28,9 @@ async fn main() -> Result<()> {
         db,
     }));
 
+    // cargo run --bin champ-node -- --help
+    // champ-node --help
+
     let matches = clap::App::new("champ-node")
         .version("0.0.1")
         .author("The POG Project <contact@pog.network>")
@@ -41,10 +45,24 @@ async fn main() -> Result<()> {
                 .about("Sets a custom config file")
                 .takes_value(true),
         )
+        .subcommand(
+            clap::App::new("create-user")
+                .about("creates a user for the web api")
+                .version("0.0.1")
+                .arg(Arg::new("username").short('u').about("new username"))
+                .arg(Arg::new("password").short('p').about("new username")),
+        )
         .get_matches();
 
     if let Some(c) = matches.value_of("config") {
         println!("Value for config: {}", c);
+    }
+
+    if let Some(ref matches) = matches.subcommand_matches("create-user") {
+        let user = matches.value_of("username").ok_or(anyhow!("username cannot be empty"))?;
+        let password = matches.value_of("password").ok_or(anyhow!("username cannot be empty"))?;
+        cli::create_user::run(&state, user, password).await;
+        return Ok(());
     }
 
     let rpc_server = RpcServer::new(state.clone());
