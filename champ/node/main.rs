@@ -6,12 +6,12 @@ mod validation;
 
 use anyhow::Result;
 use clap::Arg;
-use futures::try_join;
 use http::server::HttpServer;
 use roughtime::server::RoughTime;
 use rpc::server::RpcServer;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use tokio::try_join;
 
 use crate::state::ChampState;
 

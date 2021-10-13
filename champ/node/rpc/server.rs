@@ -1,4 +1,3 @@
-use derive_new::new;
 use std::{net::SocketAddr, time::Duration};
 
 use crate::{
@@ -7,12 +6,18 @@ use crate::{
 };
 use tonic::transport::Server;
 
-#[derive(Debug, new)]
+#[derive(Debug)]
 pub struct RpcServer {
     state: ChampStateMutex,
 }
 
 impl RpcServer {
+    pub fn new(state: ChampStateMutex) -> Self {
+        Self {
+            state,
+        }
+    }
+
     pub async fn start(&self, addr: SocketAddr) -> Result<(), Box<dyn std::error::Error>> {
         let account_server = AccountServer::new(AccountService::new(self.state.clone()));
         println!("starting rpc server at {}", addr);

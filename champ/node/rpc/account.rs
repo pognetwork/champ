@@ -7,12 +7,19 @@ pub use pog_proto::rpc::account_server::{Account, AccountServer};
 use pog_proto::rpc::{BalanceReply, BalanceRequest, DelegateReply, TxByIdReply, VotingPowerReply, VotingPowerRequest};
 use pog_proto::rpc::{BlockByIdReply, BlockByIdRequest, BlockHeightReply, BlockHeightRequest};
 
-use derive_new::new;
 use tonic::{Request, Response, Status};
 
-#[derive(Debug, new)]
+#[derive(Debug)]
 pub struct AccountService {
     pub state: ChampStateMutex,
+}
+
+impl AccountService {
+    pub fn new(state: ChampStateMutex) -> Self {
+        Self {
+            state,
+        }
+    }
 }
 
 #[tonic::async_trait]

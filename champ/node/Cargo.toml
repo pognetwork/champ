@@ -7,21 +7,21 @@ publish = false
 version = "0.0.6"
 
 [dependencies]
-thiserror = "1.0"
 anyhow = "1.0"
-clap = "3.0.0-beta.2"
+clap = "3.0.0-beta.4"
 crypto = {path = "../lib/crypto"}
-derive-new = "0.5"
+directories = "4.0"
 encoding = {path = "../lib/encoding"}
 futures = "0.3.15"
-hex = "0.4.3"
 hyper = "0.14"
 pog-proto = {git = "https://github.com/pognetwork/proto"}
-prost = "0.8"
+prost = "0.9"
 roughtime = {path = "../lib/roughtime"}
 storage = {path = "../lib/storage"}
+thiserror = "1.0"
 tokio = {version = "1.0", features = ["macros", "rt-multi-thread"]}
-tonic = "0.5"
+toml = "0.5"
+tonic = {version = "0.5", features = ["transport", "prost"]}
 tonic-web = "0.1"
 tower = "0.4.8"
 
