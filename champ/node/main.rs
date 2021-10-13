@@ -1,3 +1,4 @@
+mod config;
 mod consensus;
 mod http;
 mod rpc;
@@ -9,24 +10,12 @@ use clap::Arg;
 use http::server::HttpServer;
 use roughtime::server::RoughTime;
 use rpc::server::RpcServer;
-use std::sync::Arc;
-use tokio::sync::Mutex;
 use tokio::try_join;
 
 use crate::state::ChampState;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let db = storage::new(&storage::DatabaseConfig {
-        kind: storage::Databases::Mock,
-        uri: "",
-    })
-    .await?;
-
-    let state = Arc::new(Mutex::new(ChampState {
-        db,
-    }));
-
     let matches = clap::App::new("champ-node")
         .version("0.0.1")
         .author("The POG Project <contact@pog.network>")
@@ -43,9 +32,13 @@ async fn main() -> Result<()> {
         )
         .get_matches();
 
-    if let Some(c) = matches.value_of("config") {
-        println!("Value for config: {}", c);
-    }
+    let config = config::new(matches.clone())?;
+    let db = storage::new(&storage::DatabaseConfig {
+        kind: storage::Databases::Mock,
+        uri: "",
+    })
+    .await?;
+    let state = ChampState::new(db, config);
 
     let rpc_server = RpcServer::new(state.clone());
     let http_server = HttpServer::new();

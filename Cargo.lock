@@ -293,6 +293,7 @@ dependencies = [
  "pog-proto",
  "prost",
  "roughtime",
+ "serde",
  "storage",
  "thiserror",
  "tokio",
