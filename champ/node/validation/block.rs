@@ -45,7 +45,7 @@ pub async fn validate(block: &Block, state: &ChampStateMutex) -> Result<()> {
     let data = block.clone().data.ok_or(Node::BlockDataNotFound)?;
     let public_key = &block.public_key;
     let signature = &block.signature;
-    let db = &state.lock().await.db;
+    let db = &state.db.lock().await;
     let account_id = generate_account_address(public_key.to_vec())?;
 
     let response = db.get_latest_block_by_account(account_id).await;
@@ -69,7 +69,7 @@ pub async fn validate(block: &Block, state: &ChampStateMutex) -> Result<()> {
 // TODO: add own error type to not disrupt the program
 // Verifies the transactions and balances
 async fn verify_transactions(new_block: &Block, prev_block: &Block, state: &ChampStateMutex) -> Result<()> {
-    let db = &state.lock().await.db;
+    let db = &state.db.lock().await;
     // go through all tx in the block and do math to see new balance
     // check against block balance
     let new_data = new_block.data.as_ref().ok_or(Node::BlockDataNotFound)?;
@@ -135,7 +135,6 @@ async fn validate_collect(tx: &TxClaim, db: &Box<dyn Database>) -> Result<i128> 
 
 #[cfg(test)]
 mod tests {
-    use crate::state::ChampStateMutex;
     use crate::validation::block::{verify_previous_block, verify_transactions};
     use crate::ChampState;
     use anyhow::Result;
@@ -145,8 +144,6 @@ mod tests {
         transaction::{Data, TxSend},
         Block, Transaction,
     };
-    use std::sync::Arc;
-    use tokio::sync::Mutex;
 
     #[test]
     fn test_verify_previous_block() -> Result<()> {
@@ -278,8 +275,8 @@ mod tests {
             }),
         };
 
-        let state = create_test_db().await?;
-        state.lock().await.db.add_block(data_block_1).await.expect("block should be added");
+        let state = ChampState::mock().await;
+        state.db.lock().await.add_block(data_block_1).await.expect("block should be added");
 
         assert_eq!(
             verify_transactions(&block, &prev_block, &state).await.expect("tx should be verified. Tx Nr: 1"),
@@ -293,18 +290,5 @@ mod tests {
         );
 
         Ok(())
-    }
-
-    async fn create_test_db() -> Result<ChampStateMutex> {
-        // check if this works
-        let db = storage::new(&storage::DatabaseConfig {
-            kind: storage::Databases::Mock,
-            uri: "",
-        })
-        .await?;
-
-        Ok(Arc::new(Mutex::new(ChampState {
-            db,
-        })))
     }
 }

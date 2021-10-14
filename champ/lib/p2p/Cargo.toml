@@ -7,7 +7,6 @@ publish = false
 version = "0.0.6"
 
 [dependencies]
-libp2p = "0.39"
 
 [lib]
 path = "lib.rs"

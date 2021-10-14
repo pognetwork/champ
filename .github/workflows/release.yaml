@@ -52,6 +52,11 @@ jobs:
           # Calculate next version bump
           NEXT_VERSION=$(just next-version)
 
+          echo "Version: $(convco version)"
+          echo "Bump Version: $(convco version --bump)"
+          echo "Patch Version: $(convco version --patch)"
+          echo "Next Version: $NEXT_VERSION"
+
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
 
@@ -75,8 +80,113 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+        with:
+          ref: ${{ needs.publish_new_version.outputs.NEW_TAG }}
       - name: Release
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ needs.publish_new_version.outputs.NEW_TAG }}
           bodyFile: RELEASE_NOTES.md
+
+  build_binaries:
+    needs: [publish_new_version, create_github_release]
+    name: release ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+          - target: x86_64-apple-darwin
+            os: macos-latest
+          # - target: aarch64-apple-darwin
+          #   os: macos-latest
+          # - target: aarch64-unknown-linux-musl
+          #   os: ubuntu-latest
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+    runs-on: ${{matrix.os}}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ needs.publish_new_version.outputs.NEW_TAG }}
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install Macos Dependencies
+        if: ${{ matrix.os == 'macos-latest' }}
+        run: |
+          brew install gnu-tar
+          echo /usr/local/opt/gnu-tar/libexec/gnubin > "$GITHUB_PATH"
+
+      - name: Install Windows Dependencies
+        if: ${{ matrix.os == 'windows-latest' }}
+        uses: KyleMayes/install-llvm-action@v1
+        with:
+          version: "11.0"
+          directory: ${{ runner.temp }}/llvm
+      - name: Set LIBCLANG_PATH
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: echo "LIBCLANG_PATH=$((gcm clang).source -replace "clang.exe")" >> $env:GITHUB_ENV
+
+      - name: Install Linux musl Dependencies
+        if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
+        run: |
+          sudo apt-get install musl musl-dev musl-tools
+          sudo ln -s /bin/g++ /bin/musl-g++
+
+      - name: Install AArch64 Dependencies
+        if: ${{ matrix.target == 'aarch64-unknown-linux-musl' }}
+        run: |
+          sudo apt-get install musl musl-dev musl-tools gcc
+          sudo ln -s /bin/g++ /bin/musl-g++
+          mkdir -p /tmp/musl
+          cd /tmp/musl
+          curl -O https://more.musl.cc/10.2.1/x86_64-linux-musl/aarch64-linux-musl-cross.tgz
+          echo "0f18a885b161815520bbb5757a4b4ab40d0898c29bebee58d0cddd6112e59cc6 aarch64-linux-musl-cross.tgz" | sha256sum --check
+          tar xzf aarch64-linux-musl-cross.tgz
+          mv ./aarch64-linux-musl-cross/bin/* /tmp/musl
+          echo "/tmp/musl" >> $GITHUB_PATH
+
+      - name: Build
+        shell: bash
+        run: |
+          if ${{ contains(matrix.target, 'musl') }}; then
+            cargo build --workspace --release --target ${{ matrix.target }}
+          else
+            cargo build --workspace --release --all-features --target ${{ matrix.target }}
+          fi
+
+      - name: Archive
+        id: archive
+        shell: bash
+        run: |
+          ARCHIVE=champ-${{ needs.publish_new_version.outputs.NEW_TAG }}-${{ matrix.target }}
+          mkdir /tmp/$ARCHIVE
+          mv target/${{ matrix.target }}/release/* /tmp/$ARCHIVE
+          cd /tmp
+
+          if ${{ !contains(matrix.target, 'windows') }}; then
+            tar cfJ $ARCHIVE.tar.xz $ARCHIVE
+            echo "::set-output name=archive::/tmp/$ARCHIVE.tar.xz";
+          else
+            7z a $ARCHIVE.zip $ARCHIVE
+            echo "::set-output name=archive::/tmp/$ARCHIVE.zip";
+          fi
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ needs.publish_new_version.outputs.NEW_TAG }}
+          files: ${{ steps.archive.outputs.archive }}

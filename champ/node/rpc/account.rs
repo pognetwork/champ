@@ -12,12 +12,18 @@ use pog_proto::rpc::account::{
 
 pub use pog_proto::rpc::account::account_server::{Account, AccountServer};
 
-use derive_new::new;
 use tonic::{Request, Response, Status};
-
-#[derive(Debug, new)]
+#[derive(Debug)]
 pub struct AccountService {
     pub state: ChampStateMutex,
+}
+
+impl AccountService {
+    pub fn new(state: ChampStateMutex) -> Self {
+        Self {
+            state,
+        }
+    }
 }
 
 #[tonic::async_trait]
@@ -29,8 +35,8 @@ impl Account for AccountService {
             Err(_) => return Err(Status::new(tonic::Code::Internal, "Address could not be parsed")),
         };
 
-        let state = self.state.lock().await;
-        let db_response = state.db.get_latest_block_by_account(address).await;
+        let db = self.state.db.lock().await;
+        let db_response = db.get_latest_block_by_account(address).await;
         let response = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
 
         match &response.data {
@@ -53,8 +59,8 @@ impl Account for AccountService {
             Err(_) => return Err(Status::new(tonic::Code::Internal, "Address could not be parsed")),
         };
 
-        let state = self.state.lock().await;
-        let db_response = state.db.get_latest_block_by_account(address).await;
+        let db = self.state.db.lock().await;
+        let db_response = db.get_latest_block_by_account(address).await;
 
         let height = match db_response {
             Ok(response) => {
@@ -100,8 +106,8 @@ impl Account for AccountService {
             .try_into()
             .map_err(|_| Status::new(tonic::Code::Internal, "couldn't parse address"))?;
 
-        let state = self.state.lock().await;
-        let db_response = state.db.get_block_by_id(block_id).await;
+        let db = self.state.db.lock().await;
+        let db_response = db.get_block_by_id(block_id).await;
         let block = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
 
         Ok(Response::new(BlockByIdReply {
@@ -113,14 +119,14 @@ impl Account for AccountService {
         &self,
         request: tonic::Request<DelegateRequest>,
     ) -> Result<tonic::Response<DelegateReply>, tonic::Status> {
-        let state = &self.state.lock().await;
+        let db = self.state.db.lock().await;
 
         let address: api::AccountID = match request.into_inner().address.try_into() {
             Ok(a) => a,
             Err(_) => return Err(Status::new(tonic::Code::Internal, "Address could not be parsed")),
         };
 
-        let db_response = state.db.get_account_delegate(address).await;
+        let db_response = db.get_account_delegate(address).await;
         let response = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
 
         match &response {
@@ -153,8 +159,8 @@ impl Account for AccountService {
             Ok(a) => a,
             Err(_) => return Err(Status::new(tonic::Code::Internal, "Address could not be parsed")),
         };
-        let state = self.state.lock().await;
-        let db_response = state.db.get_transaction_by_id(transaction_id).await;
+        let db = self.state.db.lock().await;
+        let db_response = db.get_transaction_by_id(transaction_id).await;
         let transaction = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
 
         Ok(Response::new(TxByIdReply {
