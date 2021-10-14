@@ -48,10 +48,8 @@ impl Config {
         let config_path = self.get_path()?;
         let config_file = read_or_create_file(config_path)?;
         let config = toml::from_str::<Config>(&config_file)?;
-        Config {
-            config_path: self.config_path.clone(),
-            ..config
-        };
+
+        self.accounts = config.accounts;
         Ok(())
     }
 
@@ -71,6 +69,6 @@ pub fn read_or_create_file(path: PathBuf) -> Result<String> {
 
 pub fn write_file(path: PathBuf, data: &str) -> Result<()> {
     let mut file = OpenOptions::new().write(true).create(true).open(path)?;
-    file.write(data.as_bytes())?;
+    file.write_all(data.as_bytes())?;
     Ok(())
 }
