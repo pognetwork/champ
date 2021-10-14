@@ -20,7 +20,7 @@ const MAX_LOOKBACK_RANGE: u64 = 60 * 60 * 24 * 30 * 2;
 /// Returns actual voting power of an account.
 /// Actual voting power is without the delegated power.
 pub async fn get_actual_power(state: &ChampStateMutex, account_id: api::AccountID) -> Result<u32> {
-    let db = &state.lock().await.db;
+    let db = &state.db.lock().await;
 
     let block = db.get_latest_block_by_account(account_id).await?;
     let data = block.data.as_ref().ok_or_else(|| anyhow!("block data not found"))?;
@@ -55,7 +55,7 @@ pub async fn get_actual_power(state: &ChampStateMutex, account_id: api::AccountI
 async fn get_delegated_power(state: &ChampStateMutex, account_id: api::AccountID) -> Result<u32> {
     // TODO: Cache this
     let mut power = 0;
-    let db = &state.lock().await.db;
+    let db = &state.db.lock().await;
 
     let mut delegates = db.get_delegates_by_account(account_id).await?;
     // TODO: Test Performance and do this concurrently?
