@@ -6,4 +6,6 @@ pub enum CLIError {
     Unknown(String),
     #[error("error generating salt")]
     Salt,
+    #[error("user already exists")]
+    UserExists,
 }

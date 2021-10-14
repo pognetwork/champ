@@ -1,6 +1,7 @@
 use anyhow::Result;
 use clap::ArgMatches;
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 use std::fs::OpenOptions;
 use std::io::Read;
 use std::io::Write;
@@ -8,7 +9,7 @@ use std::path::PathBuf;
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Config {
-    accounts: Vec<UserAccount>,
+    pub accounts: BTreeMap<String, UserAccount>,
 
     #[serde(skip_serializing)]
     config_path: Option<String>,
@@ -16,8 +17,7 @@ pub struct Config {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UserAccount {
-    username: String,
-    password_hash: String,
+    pub password_hash: String,
 }
 
 impl Config {
@@ -55,7 +55,7 @@ impl Config {
 
     pub fn write(&self) -> Result<()> {
         let config_path = self.get_path()?;
-        let config = toml::to_string_pretty::<Config>(&self)?;
+        let config = toml::to_string_pretty::<Config>(self)?;
         write_file(config_path, &config)?;
         Ok(())
     }
@@ -63,12 +63,15 @@ impl Config {
 
 pub fn read_or_create_file(path: PathBuf) -> Result<String> {
     let mut file = String::new();
-    OpenOptions::new().write(true).create(true).open(path)?.read_to_string(&mut file)?;
+    let mut f = OpenOptions::new().write(true).create(true).open(path)?;
+    f.read_to_string(&mut file).expect("should read file to string");
+    drop(f);
     Ok(file)
 }
 
 pub fn write_file(path: PathBuf, data: &str) -> Result<()> {
     let mut file = OpenOptions::new().write(true).create(true).open(path)?;
     file.write_all(data.as_bytes())?;
+    drop(file);
     Ok(())
 }
