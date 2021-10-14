@@ -29,13 +29,13 @@ pub fn hash_digest(password: &[u8], salt: &[u8]) -> Result<Vec<u8>, PasswordErro
     let salt_str = SaltString::b64_encode(salt).map_err(|_| PasswordError::Hash("error encoding salt".to_string()))?;
     let argon2 = Argon2::default();
     let hash = argon2.hash_password(password, &salt_str).map_err(|e| PasswordError::Hash(e.to_string()))?.hash;
-    Ok(hash.ok_or(PasswordError::Hash("no hash".to_string()))?.as_bytes().to_owned())
+    Ok(hash.ok_or_else(|| PasswordError::Hash("no hash".to_string()))?.as_bytes().to_owned())
 }
 
 pub fn verify(password: &[u8], hash: &str) -> Result<(), PasswordError> {
     let argon2 = Argon2::default();
     let parsed_hash = PasswordHash::new(hash).map_err(|_| PasswordError::PwHash)?;
-    Ok(argon2.verify_password(password, &parsed_hash).map_err(|_| PasswordError::Verify)?)
+    argon2.verify_password(password, &parsed_hash).map_err(|_| PasswordError::Verify)
 }
 
 pub fn generate_salt() -> Result<[u8; 16], PasswordError> {

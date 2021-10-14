@@ -73,9 +73,9 @@ async fn main() -> Result<()> {
         println!("Value for config: {}", c);
     }
 
-    if let Some(ref matches) = matches.subcommand_matches("create-user") {
-        let user = matches.value_of("username").ok_or(anyhow!("username cannot be empty"))?;
-        let password = matches.value_of("password").ok_or(anyhow!("password cannot be empty"))?;
+    if let Some(matches) = matches.subcommand_matches("create-user") {
+        let user = matches.value_of("username").ok_or_else(|| anyhow!("username cannot be empty"))?;
+        let password = matches.value_of("password").ok_or_else(|| anyhow!("password cannot be empty"))?;
         cli::create_user::run(&state, user, password).await?;
         return Ok(());
     }
