@@ -7,8 +7,13 @@ use std::io::Read;
 use std::io::Write;
 use std::path::PathBuf;
 
+fn default_accounts() -> BTreeMap<String, UserAccount> {
+    BTreeMap::new()
+}
+
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Config {
+    #[serde(default = "default_accounts")]
     pub accounts: BTreeMap<String, UserAccount>,
 
     #[serde(skip_serializing)]
@@ -63,7 +68,7 @@ impl Config {
 
 pub fn read_or_create_file(path: PathBuf) -> Result<String> {
     let mut file = String::new();
-    let mut f = OpenOptions::new().write(true).create(true).open(path)?;
+    let mut f = OpenOptions::new().read(true).write(true).create(true).open(path)?;
     f.read_to_string(&mut file).expect("should read file to string");
     drop(f);
     Ok(file)
