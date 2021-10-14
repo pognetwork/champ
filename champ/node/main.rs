@@ -48,9 +48,24 @@ async fn main() -> Result<()> {
         .subcommand(
             clap::App::new("create-user")
                 .about("creates a user for the web api")
+                .after_help("Format: [username] [password]")
                 .version("0.0.1")
-                .arg(Arg::new("username").short('u').about("new username"))
-                .arg(Arg::new("password").short('p').about("new username")),
+                .arg(
+                    Arg::new("username")
+                        .short('u')
+                        .about("new username")
+                        .takes_value(true)
+                        .value_name("USERNAME")
+                        .forbid_empty_values(true),
+                )
+                .arg(
+                    Arg::new("password")
+                        .short('p')
+                        .about("new password")
+                        .takes_value(true)
+                        .value_name("PASSWORD")
+                        .forbid_empty_values(true),
+                ),
         )
         .get_matches();
 
@@ -61,7 +76,7 @@ async fn main() -> Result<()> {
     if let Some(ref matches) = matches.subcommand_matches("create-user") {
         let user = matches.value_of("username").ok_or(anyhow!("username cannot be empty"))?;
         let password = matches.value_of("password").ok_or(anyhow!("username cannot be empty"))?;
-        cli::create_user::run(&state, user, password).await;
+        cli::create_user::run(&state, user, password).await?;
         return Ok(());
     }
 

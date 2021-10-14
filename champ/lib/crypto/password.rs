@@ -3,6 +3,7 @@ use argon2::{
     password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
 };
+use ring::rand::{SecureRandom, SystemRandom};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -13,6 +14,8 @@ pub enum PasswordError {
     Verify,
     #[error("error hashing password")]
     PwHash,
+    #[error("error getting enough random data")]
+    RandomFillError,
 }
 
 pub fn hash(password: &[u8], salt: &[u8]) -> Result<String, PasswordError> {
@@ -33,6 +36,14 @@ pub fn verify(password: &[u8], hash: &str) -> Result<(), PasswordError> {
     let argon2 = Argon2::default();
     let parsed_hash = PasswordHash::new(hash).expect("idk");
     Ok(argon2.verify_password(password, &parsed_hash).map_err(|_| PasswordError::Verify)?)
+}
+
+pub fn generate_salt() -> Result<[u8; 16], PasswordError> {
+    let rand = SystemRandom::new();
+
+    let mut salt: [u8; 16] = [0; 16];
+    rand.fill(&mut salt).map_err(|_| PasswordError::RandomFillError)?;
+    Ok(salt)
 }
 
 #[cfg(test)]
