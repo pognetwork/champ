@@ -48,7 +48,7 @@ async fn main() -> Result<()> {
         .subcommand(
             clap::App::new("create-user")
                 .about("creates a user for the web api")
-                .after_help("Format: [username] [password]")
+                .after_help("Format: -u [username] -p [password]")
                 .version("0.0.1")
                 .arg(
                     Arg::new("username")
@@ -75,7 +75,7 @@ async fn main() -> Result<()> {
 
     if let Some(ref matches) = matches.subcommand_matches("create-user") {
         let user = matches.value_of("username").ok_or(anyhow!("username cannot be empty"))?;
-        let password = matches.value_of("password").ok_or(anyhow!("username cannot be empty"))?;
+        let password = matches.value_of("password").ok_or(anyhow!("password cannot be empty"))?;
         cli::create_user::run(&state, user, password).await?;
         return Ok(());
     }

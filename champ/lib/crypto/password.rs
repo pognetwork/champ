@@ -34,7 +34,7 @@ pub fn hash_digest(password: &[u8], salt: &[u8]) -> Result<Vec<u8>, PasswordErro
 
 pub fn verify(password: &[u8], hash: &str) -> Result<(), PasswordError> {
     let argon2 = Argon2::default();
-    let parsed_hash = PasswordHash::new(hash).expect("idk");
+    let parsed_hash = PasswordHash::new(hash).map_err(|_| PasswordError::PwHash)?;
     Ok(argon2.verify_password(password, &parsed_hash).map_err(|_| PasswordError::Verify)?)
 }
 
