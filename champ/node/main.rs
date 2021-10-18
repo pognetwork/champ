@@ -1,3 +1,4 @@
+mod blockpool;
 mod config;
 mod consensus;
 mod http;
@@ -7,12 +8,13 @@ mod validation;
 
 use anyhow::Result;
 use clap::Arg;
+use futures::TryFutureExt;
 use http::server::HttpServer;
 use roughtime::server::RoughTime;
 use rpc::server::RpcServer;
 use tokio::try_join;
 
-use crate::state::ChampState;
+use crate::{blockpool::Blockpool, state::ChampState};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -38,7 +40,8 @@ async fn main() -> Result<()> {
         uri: "",
     })
     .await?;
-    let state = ChampState::new(db, config);
+    let mut blockpool = Blockpool::new();
+    let state = ChampState::new(db, config, blockpool.get_client());
 
     let rpc_server = RpcServer::new(state.clone());
     let http_server = HttpServer::new();
@@ -51,7 +54,8 @@ async fn main() -> Result<()> {
     let _ = try_join!(
         rpc_server.start(addr),
         http_server.start(addr2, matches.value_of("web").is_some()),
-        rough_time_server.start(addr3, matches.value_of("roughtime").is_some())
+        rough_time_server.start(addr3, matches.value_of("roughtime").is_some()),
+        blockpool.start(),
     );
 
     Ok(())

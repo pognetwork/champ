@@ -2,24 +2,32 @@ use std::sync::Arc;
 use storage::Database;
 use tokio::sync::{Mutex, RwLock};
 
-use crate::config::Config;
+use crate::{blockpool::BlockpoolClient, config::Config};
 
 #[derive(Debug)]
 pub struct ChampState {
     pub db: Mutex<Box<dyn Database>>,
     pub config: RwLock<Config>,
+    pub blockpool_client: BlockpoolClient,
 }
 
 impl ChampState {
-    pub fn new(db: Box<dyn Database>, config: Config) -> Arc<Self> {
+    pub fn new(db: Box<dyn Database>, config: Config, blockpool_client: BlockpoolClient) -> Arc<Self> {
         Arc::new(Self {
             db: Mutex::new(db),
             config: RwLock::new(config),
+            blockpool_client: blockpool_client,
         })
     }
 
     #[cfg(test)]
     pub async fn mock() -> Arc<Self> {
+        use crate::blockpool::Blockpool;
+
+        let mut pool = Blockpool::new();
+        let blockpool_client = pool.get_client();
+        tokio::spawn(async move { pool.start().await });
+
         Arc::new(Self {
             db: Mutex::new(
                 storage::new(&storage::DatabaseConfig {
@@ -30,6 +38,7 @@ impl ChampState {
                 .unwrap(),
             ),
             config: RwLock::new(Config::default()),
+            blockpool_client: blockpool_client,
         })
     }
 }
