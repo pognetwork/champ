@@ -1,4 +1,5 @@
 use crate::{cli::error::CLIError, state::ChampStateMutex};
+use crypto::id::generate;
 use crypto::password::{generate_salt, hash};
 
 pub async fn run(state: &ChampStateMutex, user: &str, password: &str) -> Result<(), CLIError> {
@@ -17,6 +18,7 @@ pub async fn run(state: &ChampStateMutex, user: &str, password: &str) -> Result<
     config.accounts.insert(
         user.to_string(),
         crate::config::UserAccount {
+            user_id: generate().expect("insufficient randomness"),
             password_hash: hash,
         },
     );

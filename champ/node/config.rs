@@ -22,6 +22,7 @@ pub struct Config {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UserAccount {
+    pub user_id: String,
     pub password_hash: String,
 }
 
