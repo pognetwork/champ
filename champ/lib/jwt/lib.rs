@@ -5,7 +5,7 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum JWTError {
-    #[error("unknown error")]
+    #[error("{0}")]
     Unknown(String),
 }
 
