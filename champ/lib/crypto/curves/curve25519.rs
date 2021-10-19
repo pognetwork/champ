@@ -3,6 +3,8 @@ use ring::{
     signature::{self, KeyPair},
 };
 
+pub use ring::signature::Ed25519KeyPair;
+
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -37,8 +39,8 @@ pub fn create_signature(data: &[u8], private_key: &[u8]) -> Result<Vec<u8>, Ed25
 /// create new private key
 pub fn generate_private_key() -> Result<Vec<u8>, Ed25519Error> {
     let rng = rand::SystemRandom::new();
-    let key = signature::Ed25519KeyPair::generate_pkcs8(&rng).map_err(|_| Ed25519Error::KeyPairError)?;
-    Ok(key.as_ref().to_vec())
+    let private_key = signature::Ed25519KeyPair::generate_pkcs8(&rng).map_err(|_| Ed25519Error::KeyPairError)?;
+    Ok(private_key.as_ref().to_vec())
 }
 
 /// create a key pair from a private key

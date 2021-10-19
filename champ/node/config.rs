@@ -1,14 +1,30 @@
+use anyhow::Context;
 use anyhow::Result;
 use clap::ArgMatches;
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 use std::fs::OpenOptions;
 use std::io::Read;
 use std::io::Write;
 use std::path::PathBuf;
 
+fn default_accounts() -> BTreeMap<String, UserAccount> {
+    BTreeMap::new()
+}
+
+fn default_admin() -> Admin {
+    Admin {
+        ..Default::default()
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Config {
-    accounts: Vec<UserAccount>,
+    #[serde(default = "default_admin")]
+    pub admin: Admin,
+
+    #[serde(default = "default_accounts", serialize_with = "toml::ser::tables_last")]
+    pub admin_accounts: BTreeMap<String, UserAccount>,
 
     #[serde(skip_serializing)]
     config_path: Option<String>,
@@ -16,8 +32,14 @@ pub struct Config {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UserAccount {
-    username: String,
-    password_hash: String,
+    pub user_id: String,
+    pub password_hash: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Default)]
+pub struct Admin {
+    pub jwt_private_key: String,
+    pub jwt_public_key: String,
 }
 
 impl Config {
@@ -46,16 +68,18 @@ impl Config {
 
     pub fn read(&mut self) -> Result<()> {
         let config_path = self.get_path()?;
-        let config_file = read_or_create_file(config_path)?;
-        let config = toml::from_str::<Config>(&config_file)?;
+        let config_file = read_or_create_file(config_path).with_context(|| "failed to read file")?;
+        let config = toml::from_str::<Config>(&config_file).with_context(|| "failed to parse file")?;
 
-        self.accounts = config.accounts;
+        self.admin = config.admin;
+        self.admin_accounts = config.admin_accounts;
+
         Ok(())
     }
 
     pub fn write(&self) -> Result<()> {
         let config_path = self.get_path()?;
-        let config = toml::to_string_pretty::<Config>(&self)?;
+        let config = toml::to_string_pretty::<Config>(self)?;
         write_file(config_path, &config)?;
         Ok(())
     }
@@ -63,12 +87,15 @@ impl Config {
 
 pub fn read_or_create_file(path: PathBuf) -> Result<String> {
     let mut file = String::new();
-    OpenOptions::new().write(true).create(true).open(path)?.read_to_string(&mut file)?;
+    let mut f = OpenOptions::new().read(true).write(true).create(true).open(path)?;
+    f.read_to_string(&mut file).expect("should read file to string");
+    drop(f);
     Ok(file)
 }
 
 pub fn write_file(path: PathBuf, data: &str) -> Result<()> {
     let mut file = OpenOptions::new().write(true).create(true).open(path)?;
     file.write_all(data.as_bytes())?;
+    drop(file);
     Ok(())
 }

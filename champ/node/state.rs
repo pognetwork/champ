@@ -12,7 +12,7 @@ pub struct ChampState {
 }
 
 impl ChampState {
-    pub fn new(db: Box<dyn Database>, config: Config, blockpool_client: BlockpoolClient) -> Arc<Self> {
+    pub fn new(db: Box<dyn Database>, config: Config, blockpool_client: BlockpoolClient) -> ChampStateArc {
         Arc::new(Self {
             db: Mutex::new(db),
             config: RwLock::new(config),
@@ -21,7 +21,7 @@ impl ChampState {
     }
 
     #[cfg(test)]
-    pub async fn mock() -> Arc<Self> {
+    pub async fn mock() -> ChampStateArc {
         use crate::blockpool::Blockpool;
 
         let mut pool = Blockpool::new();
@@ -45,4 +45,4 @@ impl ChampState {
     }
 }
 
-pub type ChampStateMutex = Arc<ChampState>;
+pub type ChampStateArc = Arc<ChampState>;

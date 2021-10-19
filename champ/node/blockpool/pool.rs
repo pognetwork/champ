@@ -1,13 +1,12 @@
 use anyhow::{Context, Result};
-use storage::Database;
 use tokio::sync::{
     mpsc::{self, Receiver, Sender},
-    oneshot, Mutex,
+    oneshot,
 };
 
 use std::collections::VecDeque;
 
-use crate::state::ChampStateMutex;
+use crate::state::ChampStateArc;
 
 #[derive(Debug)]
 struct QueueItem {
@@ -19,7 +18,7 @@ pub struct Blockpool {
     pub tx: Sender<Command>,
     rx: Receiver<Command>,
     block_queue: VecDeque<QueueItem>,
-    state: Option<ChampStateMutex>,
+    state: Option<ChampStateArc>,
 }
 
 #[derive(Debug)]
@@ -74,7 +73,7 @@ impl Blockpool {
         }
     }
 
-    pub fn add_state(&mut self, state: ChampStateMutex) {
+    pub fn add_state(&mut self, state: ChampStateArc) {
         self.state = Some(state);
     }
 
