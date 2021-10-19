@@ -16,7 +16,7 @@ impl ChampState {
         Arc::new(Self {
             db: Mutex::new(db),
             config: RwLock::new(config),
-            blockpool_client: blockpool_client,
+            blockpool_client,
         })
     }
 

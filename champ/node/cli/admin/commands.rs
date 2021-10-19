@@ -1,4 +1,8 @@
-use crate::{cli::error::CLIError, state::ChampStateArc};
+use crate::{
+    cli::{admin::create_user, error::CLIError},
+    state::ChampStateArc,
+};
+
 use clap::ArgMatches;
 use crypto::curves::ecdsa;
 
@@ -7,7 +11,7 @@ pub async fn run(matches: &ArgMatches, state: &ChampStateArc) -> Result<(), CLIE
         {
             let config = state.config.read().await;
 
-            if config.admin.jwt_private_key == "" || config.admin.jwt_public_key == "" {
+            if config.admin.jwt_private_key.is_empty() || config.admin.jwt_public_key.is_empty() {
                 return Err(CLIError::NoKeyPair);
             }
         }
@@ -15,7 +19,7 @@ pub async fn run(matches: &ArgMatches, state: &ChampStateArc) -> Result<(), CLIE
         let user = matches.value_of("username").ok_or_else(|| CLIError::Unknown("no user name given".to_string()))?;
         let password =
             matches.value_of("password").ok_or_else(|| CLIError::Unknown("no password given".to_string()))?;
-        crate::cli::admin::create_user::run(&state, user, password).await?;
+        create_user::run(state, user, password).await?;
         println!("Successfully created user '{}'", user);
 
         return Ok(());

@@ -42,7 +42,7 @@ pub fn verify(token: &str, public_key: &[u8]) -> Result<(), JWTError> {
     let validation = Validation::new(Algorithm::ES256);
 
     jsonwebtoken::decode::<Claims>(
-        &token,
+        token,
         &DecodingKey::from_ec_pem(public_key).map_err(|e| JWTError::Unknown(e.to_string()))?,
         &validation,
     )

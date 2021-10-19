@@ -21,6 +21,12 @@ pub struct Blockpool {
     state: Option<ChampStateArc>,
 }
 
+impl Default for Blockpool {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Debug)]
 pub struct BlockpoolClient {
     tx: Sender<Command>,
@@ -31,7 +37,7 @@ impl BlockpoolClient {
         let (resp_tx, resp_rx) = oneshot::channel();
         self.tx
             .send(Command::ProcessBlock {
-                block: block,
+                block,
                 resp: resp_tx,
             })
             .await
