@@ -1,8 +1,8 @@
-use crate::{cli::error::CLIError, state::ChampStateMutex};
+use crate::{cli::error::CLIError, state::ChampStateArc};
 use crypto::id::generate;
 use crypto::password::{generate_salt, hash};
 
-pub async fn run(state: &ChampStateMutex, user: &str, password: &str) -> Result<(), CLIError> {
+pub async fn run(state: &ChampStateArc, user: &str, password: &str) -> Result<(), CLIError> {
     let salt = generate_salt().map_err(|_| CLIError::Salt)?;
 
     let hash = hash(password.as_bytes(), &salt)

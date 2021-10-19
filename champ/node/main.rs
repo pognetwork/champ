@@ -1,3 +1,4 @@
+pub mod blockpool;
 mod cli;
 mod config;
 mod consensus;
@@ -13,7 +14,7 @@ use roughtime::server::RoughTime;
 use rpc::server::RpcServer;
 use tokio::try_join;
 
-use crate::state::ChampState;
+use crate::{blockpool::Blockpool, state::ChampState};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -65,7 +66,9 @@ async fn main() -> Result<()> {
         uri: "",
     })
     .await?;
-    let state = ChampState::new(db, config);
+    let mut blockpool = Blockpool::new();
+    let state = ChampState::new(db, config, blockpool.get_client());
+    blockpool.add_state(state.clone());
 
     if let Some(matches) = matches.subcommand_matches("admin") {
         cli::admin::run(matches, &state).await?;
@@ -83,7 +86,8 @@ async fn main() -> Result<()> {
     let _ = try_join!(
         rpc_server.start(addr),
         http_server.start(addr2, matches.value_of("web").is_some()),
-        rough_time_server.start(addr3, matches.value_of("roughtime").is_some())
+        rough_time_server.start(addr3, matches.value_of("roughtime").is_some()),
+        blockpool.start(),
     );
 
     Ok(())

@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 
 use crate::consensus::graphs;
-use crate::state::ChampStateMutex;
+use crate::state::ChampStateArc;
 use pog_proto::api;
 
 // To balance each graph
@@ -19,7 +19,7 @@ const MAX_LOOKBACK_RANGE: u64 = 60 * 60 * 24 * 30 * 2;
 
 /// Returns actual voting power of an account.
 /// Actual voting power is without the delegated power.
-pub async fn get_actual_power(state: &ChampStateMutex, account_id: api::AccountID) -> Result<u32> {
+pub async fn get_actual_power(state: &ChampStateArc, account_id: api::AccountID) -> Result<u32> {
     let db = &state.db.lock().await;
 
     let block = db.get_latest_block_by_account(account_id).await?;
@@ -52,7 +52,7 @@ pub async fn get_actual_power(state: &ChampStateMutex, account_id: api::AccountI
 }
 
 /// Gets the sum of the power of each delegate of an account
-async fn get_delegated_power(state: &ChampStateMutex, account_id: api::AccountID) -> Result<u32> {
+async fn get_delegated_power(state: &ChampStateArc, account_id: api::AccountID) -> Result<u32> {
     // TODO: Cache this
     let mut power = 0;
     let db = &state.db.lock().await;
@@ -69,7 +69,7 @@ async fn get_delegated_power(state: &ChampStateMutex, account_id: api::AccountID
 
 /// Returns the active power of an account that is being used on the network.
 /// Active power is the account power with the delegated power.
-pub async fn get_active_power(state: &ChampStateMutex, account_id: api::AccountID) -> Result<u32> {
+pub async fn get_active_power(state: &ChampStateArc, account_id: api::AccountID) -> Result<u32> {
     let actual_power = get_actual_power(state, account_id).await?;
     let delegate_power = get_delegated_power(state, account_id).await?;
     let total_network_power = get_max_voting_power();

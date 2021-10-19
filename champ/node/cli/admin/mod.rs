@@ -1,3 +1,3 @@
-mod admin;
+mod commands;
 mod create_user;
-pub use admin::*;
+pub use commands::*;
