@@ -3,9 +3,6 @@ use serde::{Deserialize, Serialize};
 use std::time::SystemTime;
 use thiserror::Error;
 
-// create token
-// verify token
-
 #[derive(Error, Debug)]
 pub enum JWTError {
     #[error("unknown error")]

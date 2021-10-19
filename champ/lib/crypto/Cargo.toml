@@ -13,6 +13,7 @@ ring = "0.16.20"
 sha3 = "0.9"
 thiserror = "1.0"
 base64 = "0.13"
+pem = "0.8"
 
 [lib]
 path = "lib.rs"
