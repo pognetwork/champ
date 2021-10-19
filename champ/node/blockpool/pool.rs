@@ -4,10 +4,18 @@ use tokio::sync::{
     oneshot,
 };
 
+use std::collections::VecDeque;
+
+#[derive(Debug)]
+struct QueueItem {
+    block: pog_proto::api::Block,
+}
+
 #[derive(Debug)]
 pub struct Blockpool {
-    tx: Sender<Command>,
+    pub tx: Sender<Command>,
     rx: Receiver<Command>,
+    block_queue: VecDeque<QueueItem>,
 }
 
 #[derive(Debug)]
@@ -21,6 +29,7 @@ impl Blockpool {
         Self {
             tx,
             rx,
+            block_queue: VecDeque::with_capacity(10_000),
         }
     }
 
@@ -34,18 +43,21 @@ impl Blockpool {
         while let Some(cmd) = self.rx.recv().await {
             use Command::*;
             match cmd {
-                Get {
-                    key,
+                ProcessBlock {
+                    block: _,
                     resp,
                 } => {
                     let _ = resp.send(Ok(()));
                 }
-                Set {
-                    key,
-                    val,
+                ProcessVote {
                     resp,
                 } => {
                     let _ = resp.send(Ok(()));
+                }
+                GetQueueSize {
+                    resp,
+                } => {
+                    let _ = resp.send(Ok(0));
                 }
             }
         }
@@ -56,14 +68,15 @@ impl Blockpool {
 type Responder<T> = oneshot::Sender<Result<T>>;
 
 #[derive(Debug)]
-enum Command {
-    Get {
-        key: String,
+pub enum Command {
+    ProcessBlock {
+        block: pog_proto::api::Block,
         resp: Responder<()>,
     },
-    Set {
-        key: String,
-        val: Vec<u8>,
+    ProcessVote {
         resp: Responder<()>,
+    },
+    GetQueueSize {
+        resp: Responder<u64>,
     },
 }
