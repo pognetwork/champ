@@ -1,3 +1,4 @@
+use anyhow::Context;
 use anyhow::Result;
 use clap::ArgMatches;
 use serde::{Deserialize, Serialize};
@@ -11,10 +12,19 @@ fn default_accounts() -> BTreeMap<String, UserAccount> {
     BTreeMap::new()
 }
 
+fn default_admin() -> Admin {
+    Admin {
+        ..Default::default()
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Config {
-    #[serde(default = "default_accounts")]
-    pub accounts: BTreeMap<String, UserAccount>,
+    #[serde(default = "default_admin")]
+    pub admin: Admin,
+
+    #[serde(default = "default_accounts", serialize_with = "toml::ser::tables_last")]
+    pub admin_accounts: BTreeMap<String, UserAccount>,
 
     #[serde(skip_serializing)]
     config_path: Option<String>,
@@ -24,6 +34,12 @@ pub struct Config {
 pub struct UserAccount {
     pub user_id: String,
     pub password_hash: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Default)]
+pub struct Admin {
+    pub jwt_private_key: String,
+    pub jwt_public_key: String,
 }
 
 impl Config {
@@ -52,10 +68,12 @@ impl Config {
 
     pub fn read(&mut self) -> Result<()> {
         let config_path = self.get_path()?;
-        let config_file = read_or_create_file(config_path)?;
-        let config = toml::from_str::<Config>(&config_file)?;
+        let config_file = read_or_create_file(config_path).with_context(|| "failed to read file")?;
+        let config = toml::from_str::<Config>(&config_file).with_context(|| "failed to parse file")?;
 
-        self.accounts = config.accounts;
+        self.admin = config.admin;
+        self.admin_accounts = config.admin_accounts;
+
         Ok(())
     }
 

@@ -8,11 +8,16 @@ pub use ring::signature::EcdsaKeyPair;
 
 #[derive(Error, Debug)]
 pub enum ECDSAError {
-    #[error("unknown error")]
+    #[error("Error creating key pair")]
     KeyPairError,
 }
 
-pub fn generate_key_pair() -> Result<(String, String), ECDSAError> {
+pub struct PEMKeyPair {
+    pub public_key: String,
+    pub private_key: String,
+}
+
+pub fn generate_key_pair() -> Result<PEMKeyPair, ECDSAError> {
     let rng = rand::SystemRandom::new();
     let key_bytes = signature::EcdsaKeyPair::generate_pkcs8(&signature::ECDSA_P256_SHA256_FIXED_SIGNING, &rng)
         .map_err(|_| ECDSAError::KeyPairError)?;
@@ -26,7 +31,11 @@ pub fn generate_key_pair() -> Result<(String, String), ECDSAError> {
         tag: "PUBLIC KEY".to_string(),
         contents: key_pair.public_key().as_ref().to_vec(),
     });
-    Ok((private_key, public_key))
+
+    Ok(PEMKeyPair {
+        public_key,
+        private_key,
+    })
 }
 
 #[cfg(test)]
@@ -35,6 +44,6 @@ mod test {
 
     #[test]
     fn it_works() {
-        println!("{:?}", generate_key_pair().expect("good key generation"));
+        generate_key_pair().expect("good key generation");
     }
 }

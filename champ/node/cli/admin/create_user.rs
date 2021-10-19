@@ -11,11 +11,11 @@ pub async fn run(state: &ChampStateMutex, user: &str, password: &str) -> Result<
     // check username exists
     let mut config = state.config.write().await;
 
-    if config.accounts.contains_key(&user.to_string()) {
+    if config.admin_accounts.contains_key(&user.to_string()) {
         return Err(CLIError::UserExists);
     }
 
-    config.accounts.insert(
+    config.admin_accounts.insert(
         user.to_string(),
         crate::config::UserAccount {
             user_id: generate().expect("insufficient randomness"),

@@ -6,7 +6,7 @@ mod rpc;
 mod state;
 mod validation;
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use clap::Arg;
 use http::server::HttpServer;
 use roughtime::server::RoughTime;
@@ -32,26 +32,30 @@ async fn main() -> Result<()> {
                 .takes_value(true),
         )
         .subcommand(
-            clap::App::new("create-user")
-                .about("creates a user for the web api")
-                .after_help("Format: -u [username] -p [password]")
-                .version("0.0.1")
-                .arg(
-                    Arg::new("username")
-                        .short('u')
-                        .about("new username")
-                        .takes_value(true)
-                        .value_name("USERNAME")
-                        .forbid_empty_values(true),
+            clap::App::new("admin")
+                .about("access to the admin interface")
+                .subcommand(
+                    clap::App::new("create-user")
+                        .about("creates a user for the web api")
+                        .after_help("Format: -u [username] -p [password]")
+                        .arg(
+                            Arg::new("username")
+                                .short('u')
+                                .about("new username")
+                                .takes_value(true)
+                                .value_name("USERNAME")
+                                .forbid_empty_values(true),
+                        )
+                        .arg(
+                            Arg::new("password")
+                                .short('p')
+                                .about("new password")
+                                .takes_value(true)
+                                .value_name("PASSWORD")
+                                .forbid_empty_values(true),
+                        ),
                 )
-                .arg(
-                    Arg::new("password")
-                        .short('p')
-                        .about("new password")
-                        .takes_value(true)
-                        .value_name("PASSWORD")
-                        .forbid_empty_values(true),
-                ),
+                .subcommand(clap::App::new("generate-key").about("generates a node private key used for JWTs")),
         )
         .get_matches();
 
@@ -63,10 +67,8 @@ async fn main() -> Result<()> {
     .await?;
     let state = ChampState::new(db, config);
 
-    if let Some(matches) = matches.subcommand_matches("create-user") {
-        let user = matches.value_of("username").ok_or_else(|| anyhow!("username cannot be empty"))?;
-        let password = matches.value_of("password").ok_or_else(|| anyhow!("password cannot be empty"))?;
-        cli::create_user::run(&state, user, password).await?;
+    if let Some(matches) = matches.subcommand_matches("admin") {
+        cli::admin::run(matches, &state).await?;
         return Ok(());
     }
 

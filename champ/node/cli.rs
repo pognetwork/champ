@@ -1,2 +1,2 @@
-pub mod create_user;
+pub mod admin;
 pub mod error;
