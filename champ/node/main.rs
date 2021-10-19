@@ -8,7 +8,6 @@ mod validation;
 
 use anyhow::Result;
 use clap::Arg;
-use futures::TryFutureExt;
 use http::server::HttpServer;
 use roughtime::server::RoughTime;
 use rpc::server::RpcServer;
@@ -42,6 +41,7 @@ async fn main() -> Result<()> {
     .await?;
     let mut blockpool = Blockpool::new();
     let state = ChampState::new(db, config, blockpool.get_client());
+    blockpool.add_state(state.clone());
 
     let rpc_server = RpcServer::new(state.clone());
     let http_server = HttpServer::new();

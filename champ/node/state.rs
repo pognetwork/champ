@@ -28,15 +28,17 @@ impl ChampState {
         let blockpool_client = pool.get_client();
         tokio::spawn(async move { pool.start().await });
 
+        let db = Mutex::new(
+            storage::new(&storage::DatabaseConfig {
+                kind: storage::Databases::Mock,
+                uri: "",
+            })
+            .await
+            .unwrap(),
+        );
+
         Arc::new(Self {
-            db: Mutex::new(
-                storage::new(&storage::DatabaseConfig {
-                    kind: storage::Databases::Mock,
-                    uri: "",
-                })
-                .await
-                .unwrap(),
-            ),
+            db,
             config: RwLock::new(Config::default()),
             blockpool_client: blockpool_client,
         })
