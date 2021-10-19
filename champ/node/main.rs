@@ -1,3 +1,4 @@
+mod cli;
 mod config;
 mod consensus;
 mod http;
@@ -30,6 +31,32 @@ async fn main() -> Result<()> {
                 .about("Sets a custom config file")
                 .takes_value(true),
         )
+        .subcommand(
+            clap::App::new("admin")
+                .about("access to the admin interface")
+                .subcommand(
+                    clap::App::new("create-user")
+                        .about("creates a user for the web api")
+                        .after_help("Format: -u [username] -p [password]")
+                        .arg(
+                            Arg::new("username")
+                                .short('u')
+                                .about("new username")
+                                .takes_value(true)
+                                .value_name("USERNAME")
+                                .forbid_empty_values(true),
+                        )
+                        .arg(
+                            Arg::new("password")
+                                .short('p')
+                                .about("new password")
+                                .takes_value(true)
+                                .value_name("PASSWORD")
+                                .forbid_empty_values(true),
+                        ),
+                )
+                .subcommand(clap::App::new("generate-key").about("generates a node private key used for JWTs")),
+        )
         .get_matches();
 
     let config = config::Config::new(Some(matches.clone()))?;
@@ -39,6 +66,11 @@ async fn main() -> Result<()> {
     })
     .await?;
     let state = ChampState::new(db, config);
+
+    if let Some(matches) = matches.subcommand_matches("admin") {
+        cli::admin::run(matches, &state).await?;
+        return Ok(());
+    }
 
     let rpc_server = RpcServer::new(state.clone());
     let http_server = HttpServer::new();

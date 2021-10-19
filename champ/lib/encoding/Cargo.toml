@@ -1,5 +1,5 @@
 [package]
-authors = ["henry <mail@henrygressmann.de>"]
+authors = ["The POG Contributors <contact@pog.network>"]
 edition = "2018"
 name = "encoding"
 
