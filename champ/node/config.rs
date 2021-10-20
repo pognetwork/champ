@@ -103,7 +103,12 @@ impl Config {
 
         self.data_path = if let Some(path) = config.database.path {
             let path = path.parse::<PathBuf>()?;
-            Some(path.absolutize_from(&config_path)?.to_str().ok_or(anyhow!("unknown database path"))?.to_string())
+            Some(
+                path.absolutize_from(config_path)?
+                    .to_str()
+                    .ok_or_else(|| anyhow!("unknown database path"))?
+                    .to_string(),
+            )
         } else {
             Config::get_default_data_path()?.to_str().map(|p| p.to_string())
         };
