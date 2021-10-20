@@ -1,7 +1,7 @@
 use std::convert::TryInto;
 
 use crate::consensus::voting_power::{get_active_power, get_actual_power};
-use crate::state::ChampStateMutex;
+use crate::state::ChampStateArc;
 
 use pog_proto::api;
 use pog_proto::rpc::account::{
@@ -15,11 +15,11 @@ pub use pog_proto::rpc::account::account_server::{Account, AccountServer};
 use tonic::{Request, Response, Status};
 #[derive(Debug)]
 pub struct AccountService {
-    pub state: ChampStateMutex,
+    pub state: ChampStateArc,
 }
 
 impl AccountService {
-    pub fn new(state: ChampStateMutex) -> Self {
+    pub fn new(state: ChampStateArc) -> Self {
         Self {
             state,
         }

@@ -2,17 +2,17 @@ use std::{net::SocketAddr, time::Duration};
 
 use crate::{
     rpc::account::{AccountServer, AccountService},
-    state::ChampStateMutex,
+    state::ChampStateArc,
 };
 use tonic::transport::Server;
 
 #[derive(Debug)]
 pub struct RpcServer {
-    state: ChampStateMutex,
+    state: ChampStateArc,
 }
 
 impl RpcServer {
-    pub fn new(state: ChampStateMutex) -> Self {
+    pub fn new(state: ChampStateArc) -> Self {
         Self {
             state,
         }

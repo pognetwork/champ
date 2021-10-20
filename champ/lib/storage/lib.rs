@@ -85,7 +85,7 @@ impl Debug for dyn Database {
 #[async_trait]
 // Send and sync are added because of async traits: https://github.com/dtolnay/async-trait#dyn-traits
 pub trait Database: Send + Sync {
-    async fn init(&mut self, config: &DatabaseConfig) -> Result<()> {
+    async fn init(&mut self, _config: &DatabaseConfig) -> Result<()> {
         Ok(())
     }
 

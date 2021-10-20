@@ -1,6 +1,6 @@
 use std::convert::TryInto;
 
-use crate::state::ChampStateMutex;
+use crate::state::ChampStateArc;
 use anyhow::Result;
 use crypto::{self, curves::curve25519::verify_signature};
 use encoding::account::generate_account_address;
@@ -41,7 +41,7 @@ pub enum Node {
 
 // Validate block
 #[allow(dead_code)]
-pub async fn validate(block: &Block, state: &ChampStateMutex) -> Result<()> {
+pub async fn validate(block: &Block, state: &ChampStateArc) -> Result<()> {
     let data = block.clone().data.ok_or(Node::BlockDataNotFound)?;
     let public_key = &block.public_key;
     let signature = &block.signature;
@@ -68,7 +68,7 @@ pub async fn validate(block: &Block, state: &ChampStateMutex) -> Result<()> {
 
 // TODO: add own error type to not disrupt the program
 // Verifies the transactions and balances
-async fn verify_transactions(new_block: &Block, prev_block: &Block, state: &ChampStateMutex) -> Result<()> {
+async fn verify_transactions(new_block: &Block, prev_block: &Block, state: &ChampStateArc) -> Result<()> {
     let db = &state.db.lock().await;
     // go through all tx in the block and do math to see new balance
     // check against block balance
