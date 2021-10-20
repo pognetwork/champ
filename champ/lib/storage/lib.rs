@@ -3,6 +3,7 @@ use std::fmt::Debug;
 use anyhow::Result;
 use async_trait::async_trait;
 use pog_proto::api;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 pub mod mock;
@@ -14,6 +15,7 @@ pub mod scylla;
 pub mod sled;
 
 /// Represents a generic storage backend
+#[derive(Debug, Serialize, Deserialize)]
 #[non_exhaustive]
 pub enum Databases {
     Mock,
@@ -25,10 +27,23 @@ pub enum Databases {
     Sled,
 }
 
-pub struct DatabaseConfig<'a> {
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DatabaseConfig {
     pub kind: Databases,
-    pub uri: Option<&'a str>,
-    pub path: Option<&'a str>,
+    pub uri: Option<String>,
+
+    /// absolute path or relative path (relative to the config file location)
+    pub path: Option<String>,
+}
+
+impl Default for DatabaseConfig {
+    fn default() -> Self {
+        Self {
+            kind: Databases::Mock,
+            path: None,
+            uri: None,
+        }
+    }
 }
 
 #[derive(Error, Debug)]
@@ -49,7 +64,7 @@ pub enum DatabaseError {
     Specific(String),
 }
 
-pub async fn new(cfg: &DatabaseConfig<'_>) -> Result<Box<dyn Database>, DatabaseError> {
+pub async fn new(cfg: &DatabaseConfig) -> Result<Box<dyn Database>, DatabaseError> {
     let mut db: Box<dyn Database>;
     match cfg.kind {
         #[cfg(feature = "backend-rocksdb")]
@@ -64,7 +79,7 @@ pub async fn new(cfg: &DatabaseConfig<'_>) -> Result<Box<dyn Database>, Database
         }
         #[cfg(feature = "backend-sled")]
         Databases::Sled => {
-            db = Box::new(sled::SledDB::new(cfg));
+            db = Box::new(sled::SledDB::new(cfg).expect("should find sled files"));
         }
         Databases::Mock => {
             db = Box::new(mock::MockDB::new());

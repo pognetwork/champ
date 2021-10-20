@@ -15,6 +15,7 @@ hex = "0.4"
 pog-proto = {git = "https://github.com/pognetwork/proto"}
 rocksdb = {version = "0.17", optional = true}
 scylla = {version = "0.2", optional = true}
+serde = "1"
 sled = {version = "0.34", optional = true}
 thiserror = "1.0"
 

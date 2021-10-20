@@ -8,21 +8,39 @@ use sled;
 #[derive(Debug)]
 pub struct SledDB {
     db: sled::Db,
+    pending_blocks: sled::Tree,
+    blocks: sled::Tree,
+    accounts: sled::Tree,
+    transactions: sled::Tree,
+    meta: sled::Tree,
 }
 
 impl SledDB {
-    pub fn new(cfg: &DatabaseConfig) -> Self {
-        let db: sled::Db = sled::open(cfg.path.expect("sled db path needs to be specified")).unwrap();
-        Self {
+    pub fn new(cfg: &DatabaseConfig) -> Result<Self> {
+        let db: sled::Db = sled::open(cfg.path.as_ref().expect("sled db path needs to be specified"))?;
+
+        let pending_blocks = db.open_tree("pending_blocks")?;
+        let blocks = db.open_tree("blocks")?;
+        let accounts = db.open_tree("accounts")?;
+        let transactions = db.open_tree("blocks")?;
+
+        let meta = db.open_tree("meta")?;
+
+        Ok(Self {
             db,
-        }
+            pending_blocks,
+            blocks,
+            accounts,
+            transactions,
+            meta,
+        })
     }
 }
 
 #[async_trait]
 impl Database for SledDB {
     async fn get_block_by_id(&self, _block_id: api::BlockID) -> Result<&api::Block, DatabaseError> {
-        unimplemented!("method unsupported by database backend")
+        unimplemented!("")
     }
 
     async fn get_transaction_by_id(

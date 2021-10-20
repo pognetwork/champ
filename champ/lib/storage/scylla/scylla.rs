@@ -41,18 +41,13 @@ impl Database for Scylla {
     async fn init(&mut self, cfg: &DatabaseConfig) -> Result<()> {
         self.session = Some(
             SessionBuilder::new()
-                .known_node(&cfg.uri.expect("uri needs to be set for database of type scylla"))
+                .known_node(&cfg.uri.as_ref().expect("uri needs to be set for database of type scylla"))
                 .schema_agreement_interval(Duration::from_secs(10))
                 .build()
                 .await?,
         );
 
-        match self.create_schema().await {
-            Err(e) => println!("{}", e),
-            _ => {}
-        }
-
-        Ok(())
+        self.create_schema().await
     }
 
     async fn get_block_by_id(&self, _block_id: api::BlockID) -> Result<&api::Block, DatabaseError> {

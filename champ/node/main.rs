@@ -61,10 +61,13 @@ async fn main() -> Result<()> {
         .get_matches();
 
     let config = config::Config::new(Some(matches.clone()))?;
+
+    println!("{:?}", config);
+
     let db = storage::new(&storage::DatabaseConfig {
         kind: storage::Databases::Sled,
         uri: None,
-        path: Some(""),
+        path: Some("".to_string()),
     })
     .await?;
     let mut blockpool = Blockpool::new();
