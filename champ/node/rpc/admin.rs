@@ -1,4 +1,3 @@
-use hyper::http::request;
 use pog_proto::rpc::admin::{
     admin_server::Admin, Empty, GetBlockPoolSizeReply, GetChainReply, GetChainRequest, GetLogsReply, GetLogsRequest,
     GetModeReply, GetModeRequest, GetNodeNameReply, GetNodeStatusReply, GetNodeStatusRequest, GetPeersRequest,
@@ -22,7 +21,7 @@ impl AdminService {
     }
 }
 
-const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[tonic::async_trait]
 impl Admin for AdminService {
