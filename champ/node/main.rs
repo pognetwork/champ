@@ -61,8 +61,9 @@ async fn main() -> Result<()> {
 
     let config = config::Config::new(Some(matches.clone()))?;
     let db = storage::new(&storage::DatabaseConfig {
-        kind: storage::Databases::Mock,
-        uri: "",
+        kind: storage::Databases::Sled,
+        uri: None,
+        path: Some(""),
     })
     .await?;
     let state = ChampState::new(db, config);

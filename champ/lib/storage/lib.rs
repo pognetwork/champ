@@ -10,6 +10,8 @@ pub mod mock;
 pub mod rocksdb;
 #[cfg(feature = "backend-scylla")]
 pub mod scylla;
+#[cfg(feature = "backend-sled")]
+pub mod sled;
 
 /// Represents a generic storage backend
 #[non_exhaustive]
@@ -19,11 +21,14 @@ pub enum Databases {
     RocksDB,
     #[cfg(feature = "backend-scylla")]
     Scylla,
+    #[cfg(feature = "backend-sled")]
+    Sled,
 }
 
 pub struct DatabaseConfig<'a> {
     pub kind: Databases,
-    pub uri: &'a str,
+    pub uri: Option<&'a str>,
+    pub path: Option<&'a str>,
 }
 
 #[derive(Error, Debug)]
@@ -57,10 +62,16 @@ pub async fn new(cfg: &DatabaseConfig<'_>) -> Result<Box<dyn Database>, Database
             db = Box::new(scylla::Scylla::new());
             db.init(cfg).await.map_err(|_e| DatabaseError::Unknown)?;
         }
+        #[cfg(feature = "backend-sled")]
+        Databases::Sled => {
+            db = Box::new(sled::SledDB::new(cfg));
+        }
         Databases::Mock => {
             db = Box::new(mock::MockDB::new());
             db.init(cfg).await.map_err(|_e| DatabaseError::Unknown)?;
-        } // _ => return Err(DatabaseError::InvalidKind),
+        }
+        #[allow(unreachable_patterns)]
+        _ => return Err(DatabaseError::InvalidKind),
     }
     Ok(db)
 }
@@ -74,7 +85,9 @@ impl Debug for dyn Database {
 #[async_trait]
 // Send and sync are added because of async traits: https://github.com/dtolnay/async-trait#dyn-traits
 pub trait Database: Send + Sync {
-    async fn init(&mut self, config: &DatabaseConfig) -> Result<()>;
+    async fn init(&mut self, config: &DatabaseConfig) -> Result<()> {
+        Ok(())
+    }
 
     async fn get_block_by_id(&self, block_id: api::BlockID) -> Result<&api::Block, DatabaseError>;
     async fn get_block_by_height(

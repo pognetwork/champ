@@ -15,6 +15,7 @@ hex = "0.4"
 pog-proto = {git = "https://github.com/pognetwork/proto"}
 rocksdb = {version = "0.17", optional = true}
 scylla = {version = "0.2", optional = true}
+sled = {version = "0.34", optional = true}
 thiserror = "1.0"
 
 [lib]
@@ -23,4 +24,5 @@ path = "lib.rs"
 [features]
 backend-rocksdb = ["rocksdb"]
 backend-scylla = ["scylla"]
-default = ["backend-scylla"]
+backend-sled = ["sled"]
+default = ["backend-sled", "backend-scylla"]

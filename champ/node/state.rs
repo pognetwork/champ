@@ -24,7 +24,8 @@ impl ChampState {
             db: Mutex::new(
                 storage::new(&storage::DatabaseConfig {
                     kind: storage::Databases::Mock,
-                    uri: "",
+                    uri: None,
+                    path: None,
                 })
                 .await
                 .unwrap(),
