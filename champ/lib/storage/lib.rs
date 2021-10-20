@@ -15,7 +15,7 @@ pub mod scylla;
 pub mod sled;
 
 /// Represents a generic storage backend
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[non_exhaustive]
 pub enum Databases {
     Mock,
@@ -27,13 +27,16 @@ pub enum Databases {
     Sled,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DatabaseConfig {
     pub kind: Databases,
     pub uri: Option<String>,
 
     /// absolute path or relative path (relative to the config file location)
     pub path: Option<String>,
+
+    #[serde(skip_serializing)]
+    pub data_path: Option<String>,
 }
 
 impl Default for DatabaseConfig {
@@ -42,6 +45,7 @@ impl Default for DatabaseConfig {
             kind: Databases::Mock,
             path: None,
             uri: None,
+            data_path: None,
         }
     }
 }

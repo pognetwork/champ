@@ -62,15 +62,10 @@ async fn main() -> Result<()> {
 
     let config = config::Config::new(Some(matches.clone()))?;
 
-    println!("{:?}", config);
+    let db = storage::new(&config.database).await?;
 
-    let db = storage::new(&storage::DatabaseConfig {
-        kind: storage::Databases::Sled,
-        uri: None,
-        path: Some("".to_string()),
-    })
-    .await?;
     let mut blockpool = Blockpool::new();
+
     let state = ChampState::new(db, config, blockpool.get_client());
     blockpool.add_state(state.clone());
 

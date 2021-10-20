@@ -17,12 +17,38 @@ pub struct SledDB {
 
 impl SledDB {
     pub fn new(cfg: &DatabaseConfig) -> Result<Self> {
-        let db: sled::Db = sled::open(cfg.path.as_ref().expect("sled db path needs to be specified"))?;
+        let db: sled::Db = sled::open(cfg.data_path.as_ref().expect("sled db path needs to be specified"))?;
 
         let pending_blocks = db.open_tree("pending_blocks")?;
-        let blocks = db.open_tree("blocks")?;
+        // pending_blocks contain:
+        //
+        // key: generate_id
+        // val: block proto
+        // // this is used after e.g a server crash to recover the pending log
+        // // these are atomically moved to blocks once accepted
+
+        // accounts provides some convenient pointers to data relevant to an account
         let accounts = db.open_tree("accounts")?;
-        let transactions = db.open_tree("blocks")?;
+        // accounts contain:
+        //
+        // key: account_id + "_lastblk"
+        // val: latest block id
+
+        let blocks = db.open_tree("blocks")?;
+        // blocks contain:
+        //
+        // key: "blk_" + account_id + "_" + block_height
+        // val: block proto
+
+        // transactions provides a list of transactions as a fast way to get transactions by their transaction id
+        let transactions = db.open_tree("transactions")?;
+        // transactions contain:
+        //
+        // key: "byid_" + transaction_id
+        // val: transaction proto
+        //
+        // key: "byblk_" + block_id + "block_index"
+        // val: transaction proto
 
         let meta = db.open_tree("meta")?;
 

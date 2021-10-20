@@ -8,7 +8,7 @@ use std::fs::OpenOptions;
 use std::io::Read;
 use std::io::Write;
 use std::path::PathBuf;
-use storage::DatabaseConfig;
+use storage::{DatabaseConfig, Databases};
 
 fn default_accounts() -> BTreeMap<String, UserAccount> {
     BTreeMap::new()
@@ -23,6 +23,7 @@ fn default_admin() -> Admin {
 
 fn default_database() -> DatabaseConfig {
     DatabaseConfig {
+        kind: Databases::Sled,
         ..Default::default()
     }
 }
@@ -36,7 +37,7 @@ pub struct Config {
     pub admin_accounts: BTreeMap<String, UserAccount>,
 
     #[serde(default = "default_database")]
-    database: DatabaseConfig,
+    pub database: DatabaseConfig,
 
     #[serde(skip_serializing)]
     config_path_override: Option<String>,
@@ -89,6 +90,7 @@ impl Config {
             config_path_override: cli_args.map_or_else(|| None, |a| a.value_of("config").map(|x| x.to_string())),
             ..Default::default()
         };
+
         config.read()?;
         config.write()?;
         Ok(config)
@@ -99,7 +101,12 @@ impl Config {
         let config_file = read_or_create_file(config_path.clone()).with_context(|| "failed to read file")?;
         let config = toml::from_str::<Config>(&config_file).with_context(|| "failed to parse file")?;
         let config_path = config_path.as_path();
+
+        // Update config
         self.config_path = config_path.to_str().map(|p| p.to_string());
+        self.database = config.database.clone();
+        self.admin = config.admin;
+        self.admin_accounts = config.admin_accounts;
 
         self.data_path = if let Some(path) = config.database.path {
             let path = path.parse::<PathBuf>()?;
@@ -112,10 +119,7 @@ impl Config {
         } else {
             Config::get_default_data_path()?.to_str().map(|p| p.to_string())
         };
-
-        self.admin = config.admin;
-        self.admin_accounts = config.admin_accounts;
-
+        self.database.data_path = self.data_path.clone();
         Ok(())
     }
 
