@@ -1246,6 +1246,14 @@ dependencies = [
 [[package]]
 name = "lulw"
 version = "0.0.6"
+dependencies = [
+ "base64 0.13.0",
+ "crypto",
+ "encoding",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
 
 [[package]]
 name = "mach"
