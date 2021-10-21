@@ -1,8 +1,7 @@
+use crate::storage::{Database, DatabaseConfig, DatabaseError};
 use anyhow::Result;
 use async_trait::async_trait;
 use pog_proto::api;
-
-use crate::{Database, DatabaseConfig};
 
 #[derive(Default, Debug)]
 pub struct RocksDB {
@@ -45,7 +44,7 @@ impl Database for RocksDB {
         &self,
         _account_id: api::AccountID,
         _block_height: &u64,
-    ) -> Result<&api::Block, DatabaseError> {
+    ) -> Result<Option<&api::Block>, DatabaseError> {
         unimplemented!()
     }
     async fn get_account_delegate(&self, _account_id: api::AccountID) -> Result<Option<api::AccountID>, DatabaseError> {

@@ -1,10 +1,11 @@
-pub mod blockpool;
+mod blockpool;
 mod cli;
 mod config;
 mod consensus;
 mod http;
 mod rpc;
 mod state;
+pub mod storage;
 mod validation;
 
 use anyhow::Result;

@@ -1,3 +1,4 @@
+use crate::storage::{DatabaseConfig, Databases};
 use anyhow::Result;
 use anyhow::{anyhow, Context};
 use clap::ArgMatches;
@@ -8,7 +9,6 @@ use std::fs::OpenOptions;
 use std::io::Read;
 use std::io::Write;
 use std::path::PathBuf;
-use storage::{DatabaseConfig, Databases};
 
 fn default_accounts() -> BTreeMap<String, UserAccount> {
     BTreeMap::new()

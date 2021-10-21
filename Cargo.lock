@@ -289,6 +289,7 @@ name = "champ-node"
 version = "0.0.6"
 dependencies = [
  "anyhow",
+ "async-trait",
  "cargo-husky",
  "clap 3.0.0-beta.5",
  "crypto",
@@ -299,9 +300,11 @@ dependencies = [
  "path-absolutize",
  "pog-proto",
  "prost",
+ "rocksdb",
  "roughtime",
+ "scylla",
  "serde",
- "storage",
+ "sled",
  "thiserror",
  "tokio",
  "toml",
@@ -1239,6 +1242,10 @@ checksum = "51b9bbe6c47d51fc3e1a9b945965946b4c44142ab8792c50835a980d362c2710"
 dependencies = [
  "cfg-if 1.0.0",
 ]
+
+[[package]]
+name = "lulw"
+version = "0.0.6"
 
 [[package]]
 name = "mach"
@@ -2403,23 +2410,6 @@ name = "stable_deref_trait"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
-
-[[package]]
-name = "storage"
-version = "0.0.6"
-dependencies = [
- "anyhow",
- "async-trait",
- "crypto",
- "encoding",
- "hex",
- "pog-proto",
- "rocksdb",
- "scylla",
- "serde",
- "sled",
- "thiserror",
-]
 
 [[package]]
 name = "strsim"

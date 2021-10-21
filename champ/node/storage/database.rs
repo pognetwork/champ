@@ -6,13 +6,13 @@ use pog_proto::api;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-pub mod mock;
+use super::mock;
 #[cfg(feature = "backend-rocksdb")]
-pub mod rocksdb;
+use super::rocksdb;
 #[cfg(feature = "backend-scylla")]
-pub mod scylla;
+use super::scylla;
 #[cfg(feature = "backend-sled")]
-pub mod sled;
+use super::sled;
 
 /// Represents a generic storage backend
 #[derive(Debug, Serialize, Deserialize, Clone)]

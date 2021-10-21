@@ -1,8 +1,7 @@
-use crate::{Database, DatabaseConfig, DatabaseError};
+use crate::storage::{Database, DatabaseConfig, DatabaseError};
 use anyhow::Result;
 use async_trait::async_trait;
 use pog_proto::api;
-
 use sled;
 
 #[derive(Debug)]

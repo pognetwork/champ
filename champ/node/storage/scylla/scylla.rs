@@ -1,10 +1,9 @@
-use std::time::Duration;
-
-use crate::{Database, DatabaseConfig, DatabaseError};
+use crate::storage::{Database, DatabaseConfig, DatabaseError};
 use anyhow::Result;
 use async_trait::async_trait;
 use pog_proto::api;
 use scylla::{Session, SessionBuilder};
+use std::time::Duration;
 
 #[derive(Default)]
 pub struct Scylla {

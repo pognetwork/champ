@@ -2,6 +2,7 @@ use std::convert::TryInto;
 
 use crate::consensus::voting_power::{get_active_power, get_actual_power};
 use crate::state::ChampStateArc;
+use crate::storage;
 
 use pog_proto::api;
 use pog_proto::rpc::account::{

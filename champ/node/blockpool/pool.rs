@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use anyhow::{Context, Result};
 use tokio::sync::{
     mpsc::{self, Receiver, Sender},

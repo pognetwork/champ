@@ -1,0 +1,10 @@
+[package]
+authors = ["The POG Contributors <contact@pog.network>"]
+edition = "2018"
+name = "lulw"
+
+publish = false
+version = "0.0.6"
+
+[lib]
+path = "lib.rs"
