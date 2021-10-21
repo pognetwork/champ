@@ -1,57 +1,72 @@
-use std::time::Duration;
-
 use crate::{Database, DatabaseConfig, DatabaseError};
 use anyhow::Result;
 use async_trait::async_trait;
 use pog_proto::api;
-use scylla::{Session, SessionBuilder};
 
-#[derive(Default)]
-pub struct Scylla {
-    session: Option<Session>,
+use sled;
+
+#[derive(Debug)]
+pub struct SledDB {
+    db: sled::Db,
+    pending_blocks: sled::Tree,
+    blocks: sled::Tree,
+    accounts: sled::Tree,
+    transactions: sled::Tree,
+    meta: sled::Tree,
 }
 
-impl Scylla {
-    pub fn new() -> Self {
-        Self {
-            session: None,
-        }
-    }
+impl SledDB {
+    pub fn new(cfg: &DatabaseConfig) -> Result<Self> {
+        let db: sled::Db = sled::open(cfg.data_path.as_ref().expect("sled db path needs to be specified"))?;
 
-    fn get_session(&self) -> &Session {
-        self.session.as_ref().expect("database needs to be initialized")
-    }
+        let pending_blocks = db.open_tree("pending_blocks")?;
+        // pending_blocks contain:
+        //
+        // key: generate_id
+        // val: block proto
+        // // this is used after e.g a server crash to recover the pending log
+        // // these are atomically moved to blocks once accepted
 
-    async fn create_schema(&self) -> Result<()> {
-        let session = self.get_session();
+        // accounts provides some convenient pointers to data relevant to an account
+        let accounts = db.open_tree("accounts")?;
+        // accounts contain:
+        //
+        // key: account_id + "_lastblk"
+        // val: latest block id
 
-        let schema_version = session.fetch_schema_version().await?;
-        println!("Schema version: {}", schema_version);
+        let blocks = db.open_tree("blocks")?;
+        // blocks contain:
+        //
+        // key: "blk_" + account_id + "_" + block_height
+        // val: block proto
 
-        session.await_schema_agreement().await?;
-        session.query("CREATE KEYSPACE IF NOT EXISTS champ_admin WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 1}", &[]).await?;
-        session.query("CREATE KEYSPACE IF NOT EXISTS champ_chain WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 1}", &[]).await?;
+        // transactions provides a list of transactions as a fast way to get transactions by their transaction id
+        let transactions = db.open_tree("transactions")?;
+        // transactions contain:
+        //
+        // key: "byid_" + transaction_id
+        // val: transaction proto
+        //
+        // key: "byblk_" + block_id + "block_index"
+        // val: transaction proto
 
-        Ok(())
+        let meta = db.open_tree("meta")?;
+
+        Ok(Self {
+            db,
+            pending_blocks,
+            blocks,
+            accounts,
+            transactions,
+            meta,
+        })
     }
 }
 
 #[async_trait]
-impl Database for Scylla {
-    async fn init(&mut self, cfg: &DatabaseConfig) -> Result<()> {
-        self.session = Some(
-            SessionBuilder::new()
-                .known_node(&cfg.uri.as_ref().expect("uri needs to be set for database of type scylla"))
-                .schema_agreement_interval(Duration::from_secs(10))
-                .build()
-                .await?,
-        );
-
-        self.create_schema().await
-    }
-
+impl Database for SledDB {
     async fn get_block_by_id(&self, _block_id: api::BlockID) -> Result<&api::Block, DatabaseError> {
-        unimplemented!("method unsupported by database backend")
+        unimplemented!("")
     }
 
     async fn get_transaction_by_id(

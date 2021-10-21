@@ -61,12 +61,11 @@ async fn main() -> Result<()> {
         .get_matches();
 
     let config = config::Config::new(Some(matches.clone()))?;
-    let db = storage::new(&storage::DatabaseConfig {
-        kind: storage::Databases::Mock,
-        uri: "",
-    })
-    .await?;
+
+    let db = storage::new(&config.database).await?;
+
     let mut blockpool = Blockpool::new();
+
     let state = ChampState::new(db, config, blockpool.get_client());
     blockpool.add_state(state.clone());
 
