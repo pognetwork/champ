@@ -18,6 +18,10 @@ fn default_admin() -> Admin {
     }
 }
 
+fn default_node_name() -> String {
+    "PogNetwork Node".to_string()
+}
+
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Config {
     #[serde(default = "default_admin")]
@@ -40,6 +44,7 @@ pub struct UserAccount {
 pub struct Admin {
     pub jwt_private_key: String,
     pub jwt_public_key: String,
+    #[serde(default = "default_node_name")]
     pub node_name: String,
 }
 

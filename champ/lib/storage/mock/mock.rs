@@ -12,7 +12,7 @@ use crate::{Database, DatabaseConfig, DatabaseError};
 #[derive(Default, Debug)]
 pub struct MockDB {
     blocks: BTreeMap<api::BlockID, (api::Block, api::AccountID)>,
-    accounts: HashMap<api::AccountID, (api::PublicAccount, Vec<api::BlockID>, Vec<api::TransactionID>)>,
+    accounts: HashMap<api::AccountID, (api::Account, Vec<api::BlockID>, Vec<api::TransactionID>)>,
     transactions: BTreeMap<api::TransactionID, (api::Transaction, api::AccountID)>,
 }
 
@@ -70,10 +70,12 @@ impl Database for MockDB {
             self.accounts.insert(
                 account_id,
                 (
-                    api::PublicAccount {
+                    api::Account {
                         r#type: 0,
                         address: account_id.to_vec(),
                         voting_power: 0,
+                        public_key: vec![],
+                        private_key: vec![],
                     },
                     vec![],
                     vec![],
