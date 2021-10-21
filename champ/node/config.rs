@@ -40,6 +40,7 @@ pub struct UserAccount {
 pub struct Admin {
     pub jwt_private_key: String,
     pub jwt_public_key: String,
+    pub node_name: String,
 }
 
 impl Config {
