@@ -197,14 +197,17 @@ jobs:
         run: |
           ARCHIVE=champ-${{ needs.publish_new_version.outputs.NEW_TAG }}-${{ matrix.target }}
           mkdir /tmp/$ARCHIVE
-          sudo mv target/${{ matrix.target }}/release/champ-node /tmp/$ARCHIVE
-
-          cd /tmp
 
           if ${{ !contains(matrix.target, 'windows') }}; then
+            sudo mv target/${{ matrix.target }}/release/champ-node /tmp/$ARCHIVE
+            cd /tmp
+
             tar cfJ $ARCHIVE.tar.xz $ARCHIVE
             echo "::set-output name=archive::/tmp/$ARCHIVE.tar.xz";
           else
+            mv target/${{ matrix.target }}/release/champ-node /tmp/$ARCHIVE
+            cd /tmp
+
             7z a $ARCHIVE.zip $ARCHIVE
             echo "::set-output name=archive::/tmp/$ARCHIVE.zip";
           fi
