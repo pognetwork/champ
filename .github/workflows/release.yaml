@@ -163,9 +163,9 @@ jobs:
         shell: bash
         run: |
           if ${{ contains(matrix.target, 'musl') }}; then
-            cargo build --workspace --release --target ${{ matrix.target }}
+            cargo build --bin champ-node --release --target ${{ matrix.target }}
           else
-            cargo build --workspace --release --all-features --target ${{ matrix.target }}
+            cargo build --bin champ-node --release --all-features --target ${{ matrix.target }}
           fi
 
       - name: Archive

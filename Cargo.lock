@@ -1256,6 +1256,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "lulw-wasm"
+version = "0.0.6"
+dependencies = [
+ "base64 0.13.0",
+ "lulw",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "mach"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -7,7 +7,7 @@ use thiserror::Error;
 use versions::v0::{Cipher, CipherParams, CryptoOptions, KDFParams, Lulw, KDF};
 
 #[derive(Error, Debug)]
-pub enum WalletError<'a> {
+pub enum WalletError {
     #[error("error calculating public key: {0}")]
     CreatePublicKeyError(String),
     #[error("error generating private key: {0}")]
@@ -15,13 +15,13 @@ pub enum WalletError<'a> {
     #[error("error encrypting private key: {0}")]
     EncryptionError(String),
     #[error("error encrypting private key: {0}")]
-    EncodingError(&'a str),
+    EncodingError(String),
     #[error("failed to serialize wallet: {0}")]
     SerializationError(String),
     #[error("failed to deserialize wallet: {0}")]
     DeserializationError(String),
     #[error("failed to decode base64: {0}")]
-    DecodeError(&'a str),
+    DecodeError(String),
     #[error("invalid wallet format")]
     InvalidWalletFormat,
     #[error("invalid wallet kdf params")]
@@ -30,7 +30,7 @@ pub enum WalletError<'a> {
     DecryptionError(String),
 }
 
-pub fn generate_wallet(password: &str) -> Result<String, WalletError> {
+pub fn generate_wallet(password: String) -> Result<String, WalletError> {
     let (ciphertext, salt, nonce) = {
         let private_key: Vec<u8> = crypto::curves::curve25519::generate_private_key()
             .map_err(|e| WalletError::GeneratePrivateKeyError(e.to_string()))?;
@@ -85,17 +85,17 @@ pub fn unlock_wallet(wallet: &str, password: String) -> Result<Vec<u8>, WalletEr
         return Err(WalletError::InvalidKDFParams);
     }
 
-    let data = decode(wallet.crypto.ciphertext).map_err(|_| WalletError::DecodeError("ciphertext"))?;
+    let data = decode(wallet.crypto.ciphertext).map_err(|_| WalletError::DecodeError("ciphertext".to_string()))?;
 
     let salt: [u8; 16] = decode(wallet.crypto.kdfparams.salt)
-        .map_err(|_| WalletError::DecodeError("salt"))?
+        .map_err(|_| WalletError::DecodeError("salt".to_string()))?
         .try_into()
-        .map_err(|_| WalletError::DecodeError("salt"))?;
+        .map_err(|_| WalletError::DecodeError("salt".to_string()))?;
 
     let nonce: [u8; 12] = decode(wallet.crypto.cipherparams.nonce)
-        .map_err(|_| WalletError::DecodeError("nonce"))?
+        .map_err(|_| WalletError::DecodeError("nonce".to_string()))?
         .try_into()
-        .map_err(|_| WalletError::DecodeError("nonce"))?;
+        .map_err(|_| WalletError::DecodeError("nonce".to_string()))?;
 
     let private_key =
         decrypt(&data, password.as_bytes(), salt, nonce).map_err(|e| WalletError::DecryptionError(e.to_string()))?;
