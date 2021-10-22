@@ -54,8 +54,7 @@ jobs:
         shell: bash
         run: |
           # Calculate next version bump
-          NEXT_VERSION=$(just next-version)
-
+          NEXT_VERSION=$([ $(convco version) == $(convco version --bump) ] && convco version --patch || convco version --bump)
           echo "Version: $(convco version)"
           echo "Bump Version: $(convco version --bump)"
           echo "Patch Version: $(convco version --patch)"
