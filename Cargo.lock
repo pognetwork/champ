@@ -286,7 +286,7 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "champ-node"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -315,7 +315,7 @@ dependencies = [
 
 [[package]]
 name = "champ-wasm"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "base64 0.13.0",
  "lulw",
@@ -598,7 +598,7 @@ dependencies = [
 
 [[package]]
 name = "crypto"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "anyhow",
  "argon2",
@@ -698,7 +698,7 @@ checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
 
 [[package]]
 name = "encoding"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "crypto",
  "sha3",
@@ -1252,7 +1252,7 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.0.7"
+version = "0.0.8"
 
 [[package]]
 name = "log"
@@ -1265,7 +1265,7 @@ dependencies = [
 
 [[package]]
 name = "lulw"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "base64 0.13.0",
  "crypto",
@@ -1584,7 +1584,7 @@ dependencies = [
 
 [[package]]
 name = "p2p"
-version = "0.0.7"
+version = "0.0.8"
 
 [[package]]
 name = "parking_lot"
@@ -1713,7 +1713,7 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
 name = "pog-jwt"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "base64 0.13.0",
  "jsonwebtoken",
@@ -1735,7 +1735,7 @@ dependencies = [
 
 [[package]]
 name = "pog-wapi"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "anyhow",
 ]
@@ -2219,7 +2219,7 @@ dependencies = [
 
 [[package]]
 name = "roughtime"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2845,7 +2845,7 @@ checksum = "fd6fbd9a79829dd1ad0cc20627bf1ed606756a7f77edff7b66b7064f9cb327c6"
 
 [[package]]
 name = "wasm"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "anyhow",
  "wasmtime",

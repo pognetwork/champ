@@ -1,4 +1,12 @@
 # Changelog
+## [0.0.8] - 2021-10-22
+
+### Build
+
+- Add missing dev-dependency [new_release]
+- Fix ci/cd release [new_release]
+- Fix ci/cd release [new_release]
+
 ## [0.0.7] - 2021-10-22
 
 ### Documentation
