@@ -1256,15 +1256,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lulw-wasm"
-version = "0.0.6"
-dependencies = [
- "base64 0.13.0",
- "lulw",
- "wasm-bindgen",
-]
-
-[[package]]
 name = "mach"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1733,8 +1724,9 @@ dependencies = [
 name = "pog-wasm"
 version = "0.0.6"
 dependencies = [
- "anyhow",
- "wasmtime",
+ "base64 0.13.0",
+ "lulw",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -2833,6 +2825,14 @@ name = "wasi"
 version = "0.10.2+wasi-snapshot-preview1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fd6fbd9a79829dd1ad0cc20627bf1ed606756a7f77edff7b66b7064f9cb327c6"
+
+[[package]]
+name = "wasm"
+version = "0.0.6"
+dependencies = [
+ "anyhow",
+ "wasmtime",
+]
 
 [[package]]
 name = "wasm-bindgen"
