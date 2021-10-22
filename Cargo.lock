@@ -314,6 +314,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "champ-wasm"
+version = "0.0.6"
+dependencies = [
+ "base64 0.13.0",
+ "lulw",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "chrono"
 version = "0.4.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1718,15 +1727,6 @@ name = "pog-wapi"
 version = "0.0.6"
 dependencies = [
  "anyhow",
-]
-
-[[package]]
-name = "pog-wasm"
-version = "0.0.6"
-dependencies = [
- "base64 0.13.0",
- "lulw",
- "wasm-bindgen",
 ]
 
 [[package]]
