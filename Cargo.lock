@@ -2383,8 +2383,13 @@ checksum = "6acbef58a60fe69ab50510a55bc8cdd4d6cf2283d27ad338f54cb52747a9cf2d"
 name = "p2p"
 version = "0.1.0"
 dependencies = [
+ "bytes 1.1.0",
  "libp2p",
+ "tokio",
+ "tokio-stream",
+ "tokio-util",
  "tonic",
+ "zerocopy",
 ]
 
 [[package]]
@@ -4117,6 +4122,27 @@ dependencies = [
  "parking_lot",
  "rand 0.8.4",
  "static_assertions",
+]
+
+[[package]]
+name = "zerocopy"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ae0f717764196a220d8c58500e3a3595e2c9054f95d66267f9fd5f6e74ad0fec"
+dependencies = [
+ "byteorder",
+ "zerocopy-derive",
+]
+
+[[package]]
+name = "zerocopy-derive"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0af017aca1fa6181f5dd7a802456fe6f7666ecdcc18d0910431f0fc89d474e51"
+dependencies = [
+ "proc-macro2",
+ "syn",
+ "synstructure",
 ]
 
 [[package]]

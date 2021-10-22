@@ -1,51 +1,51 @@
+mod main;
+
+use tokio_util::codec::{Framed, LengthDelimitedCodec, FramedWrite, FramedRead};
+use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
+
+use libp2p::futures::SinkExt;
+use bytes::{Bytes, BytesMut};
+
+use tokio_stream::StreamExt;
+use tokio::net::tcp::{OwnedWriteHalf, OwnedReadHalf};
 
 
-pub async fn send_via_tcp<T: TcpSerializable>() {
-    //Not Implemented
+struct Connection {
+    framed_write: FramedWrite<OwnedWriteHalf, LengthDelimitedCodec>,
+    framed_read: FramedRead<OwnedReadHalf, LengthDelimitedCodec>
 }
 
-pub async fn receive_via_tcp<T: TcpSerializable>() {
-    //Not Implemented
-}
-
-pub async fn send_via_udp<T: UdpSerializable>() {
-    //Not Implemented
-}
-
-pub async fn receive_via_udp<T: UdpSerializable>() {
-    //Not Implemented
-}
-
-#[tonic::async_trait]
-pub trait TcpSerializable {
-    type Receiver;
-
-    async fn send(&self);
-    async fn receive() -> Self::Receiver;
-}
-
-#[tonic::async_trait]
-pub trait UdpSerializable {
-    type Receiver;
-
-    async fn send(&self);
-    async fn receive() -> Self::Receiver;
-}
-
-pub struct Test {
-    name: String,
-    age: i32,
-}
-
-#[tonic::async_trait]
-impl TcpSerializable for Test {
-    type Receiver = Test;
-
-    async fn send(&self) {
-        println!("{}", self.age)
+impl Connection {
+    //waits for a connection on that address
+    pub async fn new<T: ToSocketAddrs>(address: T) -> Result<Connection, Box<dyn std::error::Error>> {
+        let stream = Connection::connect_lol(address).await?;
+        let (mut read_half, mut write_half) = stream.into_split();
+        let connection = Connection {
+            framed_read: FramedRead::new(read_half, LengthDelimitedCodec::new()),
+            framed_write: FramedWrite::new(write_half, LengthDelimitedCodec::new())
+        };
+        Ok(connection)
     }
 
-    async fn receive() -> Self::Receiver {
-        Test { name: String::from("Hello, World"), age: 42 }
+    async fn connect_lol<T: ToSocketAddrs>(address: T) -> Result<TcpStream, Box<dyn std::error::Error>> {
+        let listener = TcpListener::bind(address).await?;
+        // The second item contains the IP and port of the new connection.
+        let (stream, _) = listener.accept().await?;
+        Ok(stream)
+    }
+
+    pub async fn write(&mut self, bytes: &'static [u8]) -> Result<(), Box<dyn std::error::Error + '_>> { //idk what this anonymous lifetimes does
+        //put Codec in own function / have as shared state?
+        self.framed_write.send(Bytes::from(bytes)).await?; //use feed/ send all batch requests more efficient into the Sink
+        Ok(())
+    }
+
+    pub async fn read(&mut self) -> BytesMut { //
+        let mut buffer: BytesMut = Default::default(); //fix this
+        while let Some(Ok(bytes)) = self.framed_read.next().await { //decide on how to actually do this
+            buffer = bytes
+        };
+        buffer
     }
 }
+
