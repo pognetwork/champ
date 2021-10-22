@@ -1,4 +1,3 @@
-use derive_new::new;
 use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::time::Duration;
@@ -7,10 +6,14 @@ use tower::ServiceBuilder;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Request, Response, Server};
 
-#[derive(Debug, new)]
+#[derive(Debug)]
 pub struct HttpServer {}
 
 impl HttpServer {
+    pub fn new() -> Self {
+        HttpServer {}
+    }
+
     pub async fn start(&self, addr: SocketAddr, enable: bool) -> Result<(), Box<dyn std::error::Error>> {
         if !enable {
             return Ok(());
@@ -20,9 +23,7 @@ impl HttpServer {
 
         println!("starting http server at {}", addr);
 
-        let service = ServiceBuilder::new()
-            .timeout(Duration::from_secs(30))
-            .service(http_service);
+        let service = ServiceBuilder::new().timeout(Duration::from_secs(30)).service(http_service);
 
         Server::bind(&addr).serve(service).await?;
         Ok(())

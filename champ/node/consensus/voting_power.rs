@@ -1,7 +1,8 @@
 use anyhow::{anyhow, Result};
 
 use crate::consensus::graphs;
-use crate::state::ChampStateMutex;
+use crate::state::ChampStateArc;
+use pog_proto::api;
 
 // To balance each graph
 const HEIGHT_WEIGHT: f64 = 1.0;
@@ -18,23 +19,23 @@ const MAX_LOOKBACK_RANGE: u64 = 60 * 60 * 24 * 30 * 2;
 
 /// Returns actual voting power of an account.
 /// Actual voting power is without the delegated power.
-pub async fn get_actual_power(state: &ChampStateMutex, account_id: String) -> Result<u32> {
-    let db = &state.lock().await.db;
+pub async fn get_actual_power(state: &ChampStateArc, account_id: api::AccountID) -> Result<u32> {
+    let db = &state.db.lock().await;
 
-    let block = db.get_latest_block_by_account(&account_id).await?;
+    let block = db.get_latest_block_by_account(account_id).await?;
     let data = block.data.as_ref().ok_or_else(|| anyhow!("block data not found"))?;
 
     // Block from between lookback range and max lookback range
     let old_block_result = db
         .get_latest_block_by_account_before(
-            &account_id,
+            account_id,
             block.timestamp - LOOKBACK_RANGE,
             block.timestamp - MAX_LOOKBACK_RANGE,
         )
         .await?;
 
     // First Block from an account
-    let first_block = db.get_block_by_height(&account_id, &0).await?;
+    let first_block = db.get_block_by_height(account_id, &0).await?.ok_or_else(|| anyhow!("no block found"))?;
 
     let bresult = graphs::balance_graph(data.balance);
     let hresult = graphs::tx_graph(data.height, block, old_block_result);
@@ -50,14 +51,13 @@ pub async fn get_actual_power(state: &ChampStateMutex, account_id: String) -> Re
     Ok(result as u32)
 }
 
-#[allow(dead_code)]
 /// Gets the sum of the power of each delegate of an account
-async fn get_delegated_power(state: &ChampStateMutex, account_id: String) -> Result<u32> {
+async fn get_delegated_power(state: &ChampStateArc, account_id: api::AccountID) -> Result<u32> {
     // TODO: Cache this
     let mut power = 0;
-    let db = &state.lock().await.db;
+    let db = &state.db.lock().await;
 
-    let mut delegates = db.get_delegates_by_account(&account_id).await?;
+    let mut delegates = db.get_delegates_by_account(account_id).await?;
     // TODO: Test Performance and do this concurrently?
     while let Some(d) = delegates.pop() {
         let p = get_actual_power(state, d.to_owned()).await?;
@@ -67,12 +67,11 @@ async fn get_delegated_power(state: &ChampStateMutex, account_id: String) -> Res
     Ok(power)
 }
 
-#[allow(dead_code)]
 /// Returns the active power of an account that is being used on the network.
 /// Active power is the account power with the delegated power.
-pub async fn get_active_power(state: &ChampStateMutex, account_id: String) -> Result<u32> {
-    let actual_power = get_actual_power(state, account_id.clone()).await?;
-    let delegate_power = get_delegated_power(state, account_id.to_owned()).await?;
+pub async fn get_active_power(state: &ChampStateArc, account_id: api::AccountID) -> Result<u32> {
+    let actual_power = get_actual_power(state, account_id).await?;
+    let delegate_power = get_delegated_power(state, account_id).await?;
     let total_network_power = get_max_voting_power();
     let total_power = actual_power + delegate_power;
     if total_power > total_network_power {

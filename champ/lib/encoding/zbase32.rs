@@ -42,7 +42,9 @@ pub enum ZbaseError {
     #[error("invalid digit")]
     InvalidDigit,
     #[error("utf8 error")]
-    Utf8Err { err: FromUtf8Error },
+    Utf8Err {
+        err: FromUtf8Error,
+    },
 }
 
 pub trait ToZbase {
@@ -97,7 +99,9 @@ fn encode_internal<T: AsRef<[u8]>>(input: T, alphabet: &[u8; 32]) -> Result<Stri
     for _ in 0..(result.len() - expected_len) {
         result.pop();
     }
-    String::from_utf8(result).map_err(|err| ZbaseError::Utf8Err { err })
+    String::from_utf8(result).map_err(|err| ZbaseError::Utf8Err {
+        err,
+    })
 }
 
 pub fn encode<T: AsRef<[u8]>>(input: T) -> Result<String, ZbaseError> {

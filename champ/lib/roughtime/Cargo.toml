@@ -2,12 +2,13 @@
 authors = ["The POG Contributors <contact@pog.network>"]
 edition = "2018"
 name = "roughtime"
-version = "0.1.0"
+
+publish = false
+version = "0.0.8"
 
 [dependencies]
 anyhow = "1.0"
 async-trait = "0.1"
-chrono = "0.4"
 hex = "0.4"
 roughenough = {git = "https://github.com/pognetwork/roughenough"}
 thiserror = "1.0"

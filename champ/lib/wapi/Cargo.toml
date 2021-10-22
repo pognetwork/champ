@@ -1,0 +1,11 @@
+[package]
+authors = ["The POG Contributors <contact@pog.network>"]
+edition = "2018"
+name = "pog-wapi"
+version = "0.0.8"
+
+[dependencies]
+anyhow = "1.0"
+
+[lib]
+path = "lib.rs"

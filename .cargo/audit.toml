@@ -1,0 +1,4 @@
+[advisories]
+ignore = ["RUSTSEC-2020-0071", "RUSTSEC-2020-0159"] # advisory IDs to ignore e.g. ["RUSTSEC-2019-0001", ...]
+informational_warnings = []
+severity_threshold = "medium"

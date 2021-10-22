@@ -17,22 +17,35 @@ This document is work in progress and just contains some ideas for required endp
 - getBlockByID
 - getBlockByNumber
 - getTransactionByID
-- getTransactionByNumber (per account)
+- getTransactions (multiple query options)
 - sendBlock
+- getTotalTransactionCount
 
 ## Private Service
 
 - getAccounts
+- getAccount
+- getDefaultAccount
+- setDefaultAccount
+- addAccount
+- removeAccount
 - signMessage
 - signBlock
-- newAccount
-- removeAccount
+- verifySignature
 - encryptMessage
 - decryptMessage
 
 ## Admin Service
 
-- getPeerCount
+- getPeers
 - getVersion
+- upgradeNode
 - getPendingBlocks
-- getTotalBlockCount
+- setPendingBlockLimit
+- getNodeStatus
+- getMode
+- setMode
+- getNodeName
+- setNodeName
+- getChain
+- getLogs

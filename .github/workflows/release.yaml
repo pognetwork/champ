@@ -1,0 +1,219 @@
+name: Create Release
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [closed]
+
+jobs:
+  publish_new_version:
+    name: Build & Publish a new Version
+    runs-on: ubuntu-latest
+    outputs:
+      NEW_TAG: v${{ steps.release.outputs.NEW_TAG }}
+    if: "contains(github.event.head_commit.message, '[new_release]') || (github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'release') && !contains(github.event.head_commit.message, 'ci skip') && !contains(github.event.head_commit.message, 'skip ci'))"
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - uses: Swatinem/rust-cache@v1
+
+      - uses: extractions/setup-just@v1
+
+      - name: "install git-cliff"
+        uses: extractions/setup-crate@v1
+        with:
+          owner: orhun
+          name: git-cliff
+          version: 0.4
+
+      - name: "install cargo release"
+        uses: extractions/setup-crate@v1
+        with:
+          owner: crate-ci
+          name: cargo-release
+          version: 0.18
+
+      - name: "install convco"
+        run: |
+          mkdir temp
+          cd temp
+          curl -OL https://github.com/convco/convco/releases/download/v0.3.5/convco-deb.zip
+          unzip convco-deb.zip
+          sudo dpkg -i convco*.deb
+
+      - name: Create new Release
+        id: release
+        shell: bash
+        run: |
+          # Calculate next version bump
+          NEXT_VERSION=$([ $(convco version) == $(convco version --bump) ] && convco version --patch || convco version --bump)
+          echo "Version: $(convco version)"
+          echo "Bump Version: $(convco version --bump)"
+          echo "Patch Version: $(convco version --patch)"
+          echo "Next Version: $NEXT_VERSION"
+
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+
+          # Bump versions in all packages
+          cargo release $NEXT_VERSION --no-confirm --execute
+
+          # Generate Changelogs
+          just generate-release-notes $NEXT_VERSION
+          just generate-changelog $NEXT_VERSION
+          git commit -a --amend --no-edit
+
+          # Push new version
+          git tag -a v$NEXT_VERSION -m "Release v$NEXT_VERSION"
+          git push --follow-tags
+
+          # Set tag version for github release
+          echo "::set-output name=NEW_TAG::$NEXT_VERSION"
+
+  create_github_release:
+    name: Create Github Release
+    needs: publish_new_version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ needs.publish_new_version.outputs.NEW_TAG }}
+      - name: Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ needs.publish_new_version.outputs.NEW_TAG }}
+          bodyFile: RELEASE_NOTES.md
+
+  build_and_release_wasm:
+    needs: [publish_new_version, create_github_release]
+    runs-on: ubuntu-latest
+    name: Build and release WASM libraries
+    steps:
+      # Setup .npmrc file to publish to npm
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "16.x"
+          registry-url: "https://registry.npmjs.org"
+
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ needs.publish_new_version.outputs.NEW_TAG }}
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - uses: Swatinem/rust-cache@v1
+
+      - uses: extractions/setup-just@v1
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Test wasm
+        working-directory: ./champ/lib/champ-wasm
+        run: wasm-pack test --headless --chrome
+
+      - name: Build wasm
+        working-directory: ./champ/lib/champ-wasm
+        run: wasm-pack build --scope pognetwork --release
+
+      - name: Publish wasm
+        working-directory: ./champ/lib/champ-wasm
+        run: wasm-pack publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  build_and_release_binaries:
+    needs: [publish_new_version, create_github_release]
+    name: Build and release ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+          - target: x86_64-apple-darwin
+            os: macos-latest
+          # # - target: aarch64-apple-darwin
+          # #   os: macos-latest
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-latest
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+    runs-on: ${{matrix.os}}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ needs.publish_new_version.outputs.NEW_TAG }}
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v1
+
+      - name: Install Dependencies (Macos)
+        if: ${{ matrix.os == 'macos-latest' }}
+        run: |
+          brew install gnu-tar
+          echo /usr/local/opt/gnu-tar/libexec/gnubin > "$GITHUB_PATH"
+
+      - name: Install LLVM (Windows only)
+        uses: KyleMayes/install-llvm-action@v1
+        if: ${{ matrix.os == 'windows-latest' }}
+        with:
+          version: "11.0"
+          directory: ${{ runner.temp }}/llvm
+
+      - name: Set LIBCLANG_PATH (Windows only)
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: echo "LIBCLANG_PATH=$((gcm clang).source -replace "clang.exe")" >> $env:GITHUB_ENV
+
+      - name: Build
+        shell: bash
+        run: |
+          if ${{ matrix.target == 'x86_64-unknown-linux-musl' }}; then
+            docker run --rm -v "$(pwd)":/home/rust/src messense/rust-musl-cross:x86_64-musl cargo build --bin champ-node --release --target ${{ matrix.target }}
+          elif ${{ matrix.target == 'aarch64-unknown-linux-musl' }}; then
+            docker run --rm -v "$(pwd)":/home/rust/src messense/rust-musl-cross:aarch64-musl cargo build --bin champ-node --release --target ${{ matrix.target }}
+          else
+            cargo build --bin champ-node --release --target ${{ matrix.target }}
+          fi
+
+      - name: Archive
+        id: archive
+        shell: bash
+        run: |
+          ARCHIVE=champ-${{ needs.publish_new_version.outputs.NEW_TAG }}-${{ matrix.target }}
+          mkdir /tmp/$ARCHIVE
+
+          if ${{ !contains(matrix.target, 'windows') }}; then
+            sudo mv target/${{ matrix.target }}/release/champ-node /tmp/$ARCHIVE
+            cd /tmp
+
+            tar cfJ $ARCHIVE.tar.xz $ARCHIVE
+            echo "::set-output name=archive::/tmp/$ARCHIVE.tar.xz";
+          else
+            mv target/${{ matrix.target }}/release/champ-node /tmp/$ARCHIVE
+            cd /tmp
+
+            7z a $ARCHIVE.zip $ARCHIVE
+            echo "::set-output name=archive::/tmp/$ARCHIVE.zip";
+          fi
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ needs.publish_new_version.outputs.NEW_TAG }}
+          files: ${{ steps.archive.outputs.archive }}
