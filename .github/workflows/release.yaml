@@ -51,6 +51,7 @@ jobs:
 
       - name: Create new Release
         id: release
+        shell: bash
         run: |
           # Calculate next version bump
           NEXT_VERSION=$(just next-version)
@@ -197,7 +198,7 @@ jobs:
         run: |
           ARCHIVE=champ-${{ needs.publish_new_version.outputs.NEW_TAG }}-${{ matrix.target }}
           mkdir /tmp/$ARCHIVE
-          mv target/${{ matrix.target }}/release/champ-node /tmp/$ARCHIVE
+          sudo mv target/${{ matrix.target }}/release/champ-node /tmp/$ARCHIVE
 
           cd /tmp
 
