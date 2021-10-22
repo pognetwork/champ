@@ -1,7 +1,7 @@
 [package]
 authors = ["The POG Contributors <contact@pog.network>"]
 edition = "2018"
-name = "pog-wasm"
+name = "wasm"
 version = "0.0.6"
 
 [dependencies]
