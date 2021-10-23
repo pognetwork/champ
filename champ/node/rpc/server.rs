@@ -1,14 +1,9 @@
 use crate::state::ChampStateArc;
 use std::{net::SocketAddr, time::Duration};
 
-use pog_proto::rpc::{
-    node_admin::node_admin_server::NodeAdminServer,
-    node_wallet_manager::node_wallet_manager_server::NodeWalletManagerServer,
-};
-
 use crate::rpc::block::{BlockServer, BlockService};
-use crate::rpc::node_admin::NodeAdminService;
-use crate::rpc::node_wallet_manager::NodeWalletManagerService;
+use crate::rpc::node_admin::{NodeAdminServer, NodeAdminService};
+use crate::rpc::node_wallet_manager::{NodeWalletManagerServer, NodeWalletManagerService};
 
 use tonic::transport::Server;
 

@@ -1,4 +1,3 @@
-use pog_proto::rpc::node_admin::node_admin_server::NodeAdmin;
 use pog_proto::rpc::node_admin::{
     Empty, GetBlockPoolSizeReply, GetChainReply, GetChainRequest, GetLogsReply, GetLogsRequest, GetModeReply,
     GetModeRequest, GetNodeNameReply, GetNodeStatusReply, GetNodeStatusRequest, GetPeersRequest, GetPeersResponse,
@@ -8,6 +7,8 @@ use pog_proto::rpc::node_admin::{
 use tonic::{Response, Status};
 
 use crate::state::ChampStateArc;
+
+pub use pog_proto::rpc::node_admin::node_admin_server::{NodeAdmin, NodeAdminServer};
 
 #[derive(Debug)]
 pub struct NodeAdminService {
