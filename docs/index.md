@@ -33,9 +33,8 @@ $ git clone https://github.com/pognetwork/champ.git && cd champ
 $ just
 ```
 
-### Run node/wallet
+### Run node
 
 ```
 $ just node
-$ just wallet
 ```
