@@ -5,21 +5,21 @@ use crate::state::ChampStateArc;
 use crate::storage;
 
 use pog_proto::api;
-use pog_proto::rpc::account::{
+use pog_proto::rpc::block::{
     BalanceReply, BalanceRequest, BlockByIdReply, BlockByIdRequest, BlockHeightReply, BlockHeightRequest,
     DelegateReply, DelegateRequest, Empty, PendingBlockReply, TxByIdReply, TxByIdRequest, TxByIndexReply,
     TxByIndexRequest, UnacknowledgedTxReply, VotingPowerReply, VotingPowerRequest,
 };
 
-pub use pog_proto::rpc::account::account_server::{Account, AccountServer};
+pub use pog_proto::rpc::block::block_server::{Block, BlockServer};
 
 use tonic::{Request, Response, Status};
 #[derive(Debug)]
-pub struct AccountService {
+pub struct BlockService {
     pub state: ChampStateArc,
 }
 
-impl AccountService {
+impl BlockService {
     pub fn new(state: ChampStateArc) -> Self {
         Self {
             state,
@@ -28,7 +28,7 @@ impl AccountService {
 }
 
 #[tonic::async_trait]
-impl Account for AccountService {
+impl Block for BlockService {
     async fn get_balance(&self, request: Request<BalanceRequest>) -> Result<Response<BalanceReply>, Status> {
         // We must use .into_inner() as the fields of gRPC requests and responses are private
         let address: api::AccountID = match request.into_inner().address.try_into() {

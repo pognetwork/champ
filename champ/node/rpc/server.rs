@@ -1,14 +1,15 @@
+use crate::state::ChampStateArc;
 use std::{net::SocketAddr, time::Duration};
 
-use crate::{
-    rpc::{
-        account::{AccountServer, AccountService},
-        admin::AdminService,
-        private::PrivateService,
-    },
-    state::ChampStateArc,
+use pog_proto::rpc::{
+    node_admin::node_admin_server::NodeAdminServer,
+    node_wallet_manager::node_wallet_manager_server::NodeWalletManagerServer,
 };
-use pog_proto::rpc::{admin::admin_server::AdminServer, private::private_server::PrivateServer};
+
+use crate::rpc::block::{BlockServer, BlockService};
+use crate::rpc::node_admin::NodeAdminService;
+use crate::rpc::node_wallet_manager::NodeWalletManagerService;
+
 use tonic::transport::Server;
 
 #[derive(Debug)]
@@ -24,9 +25,9 @@ impl RpcServer {
     }
 
     pub async fn start(&self, addr: SocketAddr) -> Result<(), Box<dyn std::error::Error>> {
-        let account_server = AccountServer::new(AccountService::new(self.state.clone()));
-        let admin_server = AdminServer::new(AdminService::new(self.state.clone()));
-        let private_server = PrivateServer::new(PrivateService::new(self.state.clone()));
+        let account_server = BlockServer::new(BlockService::new(self.state.clone()));
+        let admin_server = NodeAdminServer::new(NodeAdminService::new(self.state.clone()));
+        let private_server = NodeWalletManagerServer::new(NodeWalletManagerService::new(self.state.clone()));
         println!("starting rpc server at {}", addr);
 
         // The stack of middleware that our service will be wrapped in
