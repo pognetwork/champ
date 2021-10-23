@@ -1,4 +1,49 @@
 # Changelog
+## [0.0.8] - 2021-10-22
+
+### Build
+
+- Add missing dev-dependency [new_release]
+- Fix ci/cd release [new_release]
+- Fix ci/cd release [new_release]
+
+## [0.0.7] - 2021-10-22
+
+### Documentation
+
+- Update rpc api
+
+### Features
+
+- Config management (#64)
+- Adds JWT ECDSA Curve signatures (#66)
+- Initial blockpool (#65)
+- Adds a few Admin rpc functions (#67)
+- Sled database (#68)
+- Wallet library (#70)
+
+### Miscellaneous Tasks
+
+- Add wapi & wasm modules
+- Update & cleanup dependencies
+- Update & cleanup dependencies
+
+### Refactor
+
+- Move storage to node
+
+### Security
+
+- Ignore irellevant security advisories
+
+### Testing
+
+- Validate collect (#62)
+
+### Build
+
+- Automatically build new binaries
+
 ## [0.0.6] - 2021-10-11
 
 ### Features

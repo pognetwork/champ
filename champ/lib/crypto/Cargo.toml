@@ -4,7 +4,7 @@ edition = "2018"
 name = "crypto"
 
 publish = false
-version = "0.0.6"
+version = "0.0.8"
 
 [dependencies]
 anyhow = "1.0"

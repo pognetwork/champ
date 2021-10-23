@@ -1,6 +1,6 @@
-use std::convert::TryInto;
-
 use crate::state::ChampStateArc;
+use crate::storage;
+
 use anyhow::Result;
 use crypto::{self, curves::curve25519::verify_signature};
 use encoding::account::generate_account_address;
@@ -9,6 +9,7 @@ use pog_proto::api::{
     Block,
 };
 use prost::Message;
+use std::convert::TryInto;
 use storage::Database;
 use thiserror::Error;
 
@@ -26,6 +27,10 @@ pub enum Validation {
     SendTxNotFound,
     #[error("attempt to claim non send tx")]
     MissmatchedTx,
+    #[error("duplicate transaction")]
+    DuplicatedTx,
+    #[error("too many transactions")]
+    TooManyTransactions,
 }
 
 #[derive(Error, Debug)]
@@ -75,9 +80,23 @@ async fn verify_transactions(new_block: &Block, prev_block: &Block, state: &Cham
     let new_data = new_block.data.as_ref().ok_or(Node::BlockDataNotFound)?;
     let prev_data = prev_block.data.as_ref().ok_or(Node::BlockDataNotFound)?;
 
+    let mut transaction_ids: Vec<[u8; 32]> = vec![];
+
+    if new_data.transactions.len() > 255 {
+        return Err(Validation::TooManyTransactions.into());
+    }
+
     // TODO: Run concurrently
     let mut new_balance: i128 = prev_data.balance as i128;
     for transaction in &new_data.transactions {
+        // validate that transaction is not duplicated
+        let txid = transaction.get_id(new_block.get_id()?)?;
+        if transaction_ids.contains(&txid) {
+            return Err(Validation::DuplicatedTx.into());
+        }
+        transaction_ids.push(txid);
+
+        // calculate the new balance after all transactions are processed
         let tx_type = transaction.data.as_ref().ok_or(Validation::TransactionDataNotFound)?;
         new_balance += match tx_type {
             Data::TxSend(t) => -(t.amount as i128), // remove money from this balance

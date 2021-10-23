@@ -4,27 +4,33 @@ edition = "2018"
 name = "champ-node"
 
 publish = false
-version = "0.0.6"
+version = "0.0.8"
 
 [dependencies]
 anyhow = "1.0"
+async-trait = "0.1"
 clap = "3.0.0-beta.4"
 crypto = {path = "../lib/crypto"}
 directories = "4.0"
 encoding = {path = "../lib/encoding"}
 futures = "0.3.15"
 hyper = "0.14"
+path-absolutize = "3.0.11"
 pog-proto = {git = "https://github.com/pognetwork/proto"}
 prost = "0.8"
 roughtime = {path = "../lib/roughtime"}
 serde = "1"
-storage = {path = "../lib/storage"}
 thiserror = "1.0"
 tokio = {version = "1.0", features = ["macros", "rt-multi-thread"]}
 toml = "0.5"
 tonic = {version = "0.5", features = ["transport", "prost"]}
 tonic-web = "0.1"
 tower = "0.4.8"
+
+# /STORAGE
+rocksdb = {version = "0.17", optional = true}
+scylla = {version = "0.2", optional = true}
+sled = {version = "0.34", optional = true}
 
 [dev-dependencies.cargo-husky]
 features = ["user-hooks"]
@@ -33,3 +39,9 @@ version = "1"
 [[bin]]
 name = "champ-node"
 path = "main.rs"
+
+[features]
+backend-rocksdb = ["rocksdb"]
+backend-scylla = ["scylla"]
+backend-sled = ["sled"]
+default = ["backend-sled", "backend-scylla"]

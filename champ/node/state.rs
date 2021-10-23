@@ -1,5 +1,5 @@
+use crate::storage::Database;
 use std::sync::Arc;
-use storage::Database;
 use tokio::sync::{Mutex, RwLock};
 
 use crate::{blockpool::BlockpoolClient, config::Config};
@@ -22,7 +22,7 @@ impl ChampState {
 
     #[cfg(test)]
     pub async fn mock() -> ChampStateArc {
-        use crate::blockpool::Blockpool;
+        use crate::{blockpool::Blockpool, storage};
 
         let mut pool = Blockpool::new();
         let blockpool_client = pool.get_client();
@@ -31,7 +31,7 @@ impl ChampState {
         let db = Mutex::new(
             storage::new(&storage::DatabaseConfig {
                 kind: storage::Databases::Mock,
-                uri: "",
+                ..Default::default()
             })
             .await
             .unwrap(),

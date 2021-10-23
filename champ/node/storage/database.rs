@@ -3,15 +3,19 @@ use std::fmt::Debug;
 use anyhow::Result;
 use async_trait::async_trait;
 use pog_proto::api;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-pub mod mock;
+use super::mock;
 #[cfg(feature = "backend-rocksdb")]
-pub mod rocksdb;
+use super::rocksdb;
 #[cfg(feature = "backend-scylla")]
-pub mod scylla;
+use super::scylla;
+#[cfg(feature = "backend-sled")]
+use super::sled;
 
 /// Represents a generic storage backend
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[non_exhaustive]
 pub enum Databases {
     Mock,
@@ -19,11 +23,31 @@ pub enum Databases {
     RocksDB,
     #[cfg(feature = "backend-scylla")]
     Scylla,
+    #[cfg(feature = "backend-sled")]
+    Sled,
 }
 
-pub struct DatabaseConfig<'a> {
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DatabaseConfig {
     pub kind: Databases,
-    pub uri: &'a str,
+    pub uri: Option<String>,
+
+    /// absolute path or relative path (relative to the config file location)
+    pub path: Option<String>,
+
+    #[serde(skip_serializing)]
+    pub data_path: Option<String>,
+}
+
+impl Default for DatabaseConfig {
+    fn default() -> Self {
+        Self {
+            kind: Databases::Mock,
+            path: None,
+            uri: None,
+            data_path: None,
+        }
+    }
 }
 
 #[derive(Error, Debug)]
@@ -44,7 +68,7 @@ pub enum DatabaseError {
     Specific(String),
 }
 
-pub async fn new(cfg: &DatabaseConfig<'_>) -> Result<Box<dyn Database>, DatabaseError> {
+pub async fn new(cfg: &DatabaseConfig) -> Result<Box<dyn Database>, DatabaseError> {
     let mut db: Box<dyn Database>;
     match cfg.kind {
         #[cfg(feature = "backend-rocksdb")]
@@ -57,10 +81,16 @@ pub async fn new(cfg: &DatabaseConfig<'_>) -> Result<Box<dyn Database>, Database
             db = Box::new(scylla::Scylla::new());
             db.init(cfg).await.map_err(|_e| DatabaseError::Unknown)?;
         }
+        #[cfg(feature = "backend-sled")]
+        Databases::Sled => {
+            db = Box::new(sled::SledDB::new(cfg).expect("should find sled files"));
+        }
         Databases::Mock => {
             db = Box::new(mock::MockDB::new());
             db.init(cfg).await.map_err(|_e| DatabaseError::Unknown)?;
-        } // _ => return Err(DatabaseError::InvalidKind),
+        }
+        #[allow(unreachable_patterns)]
+        _ => return Err(DatabaseError::InvalidKind),
     }
     Ok(db)
 }
@@ -74,7 +104,9 @@ impl Debug for dyn Database {
 #[async_trait]
 // Send and sync are added because of async traits: https://github.com/dtolnay/async-trait#dyn-traits
 pub trait Database: Send + Sync {
-    async fn init(&mut self, config: &DatabaseConfig) -> Result<()>;
+    async fn init(&mut self, _config: &DatabaseConfig) -> Result<()> {
+        Ok(())
+    }
 
     async fn get_block_by_id(&self, block_id: api::BlockID) -> Result<&api::Block, DatabaseError>;
     async fn get_block_by_height(

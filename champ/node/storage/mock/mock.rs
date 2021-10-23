@@ -1,13 +1,11 @@
+use crate::storage::{Database, DatabaseConfig, DatabaseError};
+use anyhow::Result;
+use async_trait::async_trait;
+use pog_proto::api::{self, transaction::Data::TxDelegate};
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
     convert::TryInto,
 };
-
-use anyhow::Result;
-use async_trait::async_trait;
-use pog_proto::api::{self, transaction::Data::TxDelegate};
-
-use crate::{Database, DatabaseConfig, DatabaseError};
 
 #[derive(Default, Debug)]
 pub struct MockDB {
@@ -152,11 +150,10 @@ impl Database for MockDB {
 
     async fn get_delegates_by_account(&self, account_id: api::AccountID) -> Result<Vec<api::AccountID>, DatabaseError> {
         let mut delegated_accounts = HashSet::new();
-        let account_hex = hex::decode(account_id).map_err(|_| DatabaseError::Unknown)?;
 
         self.transactions.iter().rev().for_each(|(_, (tx, tx_acc))| {
             if let Some(TxDelegate(delegate_tx)) = &tx.data {
-                if delegate_tx.representative == account_hex {
+                if delegate_tx.representative == account_id {
                     // only the latest transaction counts per account
                     if delegated_accounts.contains(tx_acc) {
                         return;
