@@ -28,6 +28,10 @@ fn default_database() -> DatabaseConfig {
     }
 }
 
+fn default_node_name() -> String {
+    "PogNetwork Node".to_string()
+}
+
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Config {
     #[serde(default = "default_admin")]
@@ -60,6 +64,7 @@ pub struct Admin {
     pub enabled: bool,
     pub jwt_private_key: String,
     pub jwt_public_key: String,
+    #[serde(default = "default_node_name")]
     pub node_name: String,
 }
 
