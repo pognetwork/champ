@@ -1,18 +1,18 @@
-use pog_proto::rpc::private::{
-    private_server::Private, AddAccountReply, AddAccountRequest, DecryptMessageReply, DecryptMessageRequest, Empty,
-    EncryptMessageReply, EncryptMessageRequest, GetAccountReply, GetAccountRequest, GetAccountsReply,
-    RemoveAccountRequest, SignBlockReply, SignBlockRequest, SignMessageReply, SignMessageRequest,
-    VerifySignatureRequest,
+use pog_proto::rpc::node_wallet_manager::{
+    AddWalletReply, AddWalletRequest, DecryptMessageReply, DecryptMessageRequest, Empty, EncryptMessageReply,
+    EncryptMessageRequest, GetWalletReply, GetWalletRequest, GetWalletsReply, RemoveWalletRequest, SignBlockReply,
+    SignBlockRequest, SignMessageReply, SignMessageRequest, VerifySignatureRequest,
 };
 
 use crate::state::ChampStateArc;
+pub use pog_proto::rpc::node_wallet_manager::node_wallet_manager_server::{NodeWalletManager, NodeWalletManagerServer};
 
 #[derive(Debug)]
-pub struct PrivateService {
+pub struct NodeWalletManagerService {
     pub state: ChampStateArc,
 }
 
-impl PrivateService {
+impl NodeWalletManagerService {
     pub fn new(state: ChampStateArc) -> Self {
         Self {
             state,
@@ -21,28 +21,28 @@ impl PrivateService {
 }
 
 #[tonic::async_trait]
-impl Private for PrivateService {
-    async fn get_accounts(
+impl NodeWalletManager for NodeWalletManagerService {
+    async fn get_wallets(
         &self,
         _request: tonic::Request<Empty>,
-    ) -> Result<tonic::Response<GetAccountsReply>, tonic::Status> {
+    ) -> Result<tonic::Response<GetWalletsReply>, tonic::Status> {
         unimplemented!()
     }
-    async fn get_account(
+    async fn get_wallet(
         &self,
-        _request: tonic::Request<GetAccountRequest>,
-    ) -> Result<tonic::Response<GetAccountReply>, tonic::Status> {
+        _request: tonic::Request<GetWalletRequest>,
+    ) -> Result<tonic::Response<GetWalletReply>, tonic::Status> {
         unimplemented!()
     }
-    async fn add_account(
+    async fn add_wallet(
         &self,
-        _request: tonic::Request<AddAccountRequest>,
-    ) -> Result<tonic::Response<AddAccountReply>, tonic::Status> {
+        _request: tonic::Request<AddWalletRequest>,
+    ) -> Result<tonic::Response<AddWalletReply>, tonic::Status> {
         unimplemented!()
     }
-    async fn remove_account(
+    async fn remove_wallet(
         &self,
-        _request: tonic::Request<RemoveAccountRequest>,
+        _request: tonic::Request<RemoveWalletRequest>,
     ) -> Result<tonic::Response<Empty>, tonic::Status> {
         unimplemented!()
     }

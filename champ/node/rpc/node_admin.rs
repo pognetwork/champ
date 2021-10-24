@@ -1,19 +1,21 @@
-use pog_proto::rpc::admin::{
-    admin_server::Admin, Empty, GetBlockPoolSizeReply, GetChainReply, GetChainRequest, GetLogsReply, GetLogsRequest,
-    GetModeReply, GetModeRequest, GetNodeNameReply, GetNodeStatusReply, GetNodeStatusRequest, GetPeersRequest,
-    GetPeersResponse, GetPendingBlocksReply, GetPendingBlocksRequest, GetVersionResponse, SetModeReply, SetModeRequest,
+use pog_proto::rpc::node_admin::{
+    Empty, GetBlockPoolSizeReply, GetChainReply, GetChainRequest, GetLogsReply, GetLogsRequest, GetModeReply,
+    GetModeRequest, GetNodeNameReply, GetNodeStatusReply, GetNodeStatusRequest, GetPeersRequest, GetPeersResponse,
+    GetPendingBlocksReply, GetPendingBlocksRequest, GetVersionResponse, SetModeReply, SetModeRequest,
     SetNodeNameRequest, UpgradeNodeRequest, UpgradeNodeResponse,
 };
 use tonic::{Response, Status};
 
 use crate::state::ChampStateArc;
 
+pub use pog_proto::rpc::node_admin::node_admin_server::{NodeAdmin, NodeAdminServer};
+
 #[derive(Debug)]
-pub struct AdminService {
+pub struct NodeAdminService {
     pub state: ChampStateArc,
 }
 
-impl AdminService {
+impl NodeAdminService {
     pub fn new(state: ChampStateArc) -> Self {
         Self {
             state,
@@ -24,7 +26,7 @@ impl AdminService {
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[tonic::async_trait]
-impl Admin for AdminService {
+impl NodeAdmin for NodeAdminService {
     async fn get_peers(
         &self,
         _request: tonic::Request<GetPeersRequest>,
