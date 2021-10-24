@@ -2,7 +2,9 @@ use crate::storage::{Database, DatabaseConfig, DatabaseError};
 use anyhow::Result;
 use async_trait::async_trait;
 use pog_proto::api;
-use sled;
+use prost::Message;
+use sled::Transactional;
+use sled::{self};
 
 #[derive(Debug)]
 pub struct SledDB {
@@ -36,7 +38,8 @@ impl SledDB {
         let blocks = db.open_tree("blocks")?;
         // blocks contain:
         //
-        // key: "blk_" + account_id + "_" + block_height
+        // key: "byblk_" + block_id
+        // key: "byacc_" + account_id + "_" + block_height
         // val: block proto
 
         // transactions provides a list of transactions as a fast way to get transactions by their transaction id
@@ -64,6 +67,7 @@ impl SledDB {
 
 #[async_trait]
 impl Database for SledDB {
+    // impl SledDB {
     async fn get_block_by_id(&self, _block_id: api::BlockID) -> Result<&api::Block, DatabaseError> {
         unimplemented!("")
     }
@@ -79,8 +83,54 @@ impl Database for SledDB {
         unimplemented!("method unsupported by database backend")
     }
 
-    async fn add_block(&mut self, _block: api::Block) -> Result<(), DatabaseError> {
-        unimplemented!("method unsupported by database backend")
+    async fn add_block(&mut self, block: api::Block) -> Result<(), DatabaseError> {
+        let block_data = block.data.clone().ok_or(DatabaseError::DataNotFound)?;
+        let block_id = block.get_id().map_err(|e| DatabaseError::Specific(e.to_string()))?;
+        let account_id = encoding::account::generate_account_address(block.public_key.clone())
+            .map_err(|_| DatabaseError::Specific("account ID could not be generated".to_string()))?;
+
+        let res: sled::transaction::TransactionResult<()> = (&self.accounts, &self.blocks, &self.transactions)
+            .transaction(|(accounts, blocks, transactions)| {
+                let mut block_key = b"byblk_".to_vec();
+                block_key.append(&mut block_id.to_vec());
+
+                // Add new accounts
+                if block_data.height == 0 {
+                    let mut account_key = b"lastblk_".to_vec();
+                    account_key.append(&mut account_id.to_vec());
+                    accounts.insert(account_key, &block_id.clone())?;
+                };
+
+                // Add Block
+                blocks.insert(block_key, block.encode_to_vec())?;
+
+                // Add Block Transactions
+                let mut batch = sled::Batch::default();
+                for (i, tx) in block_data.transactions.iter().enumerate() {
+                    let transaction_id = match tx.get_id(block_id) {
+                        Ok(x) => x,
+                        Err(_) => return sled::transaction::abort(()),
+                    };
+
+                    let tx = tx.encode_to_vec();
+
+                    // "byid_" + transaction_id
+                    let mut tx_key = b"byid_".to_vec();
+                    tx_key.append(&mut transaction_id.into());
+                    batch.insert(tx_key, tx.clone());
+
+                    // "byblk_" + block_id + "block_index"
+                    let mut tx_key = b"byblk_".to_vec();
+                    tx_key.append(&mut block_id.into());
+                    tx_key.append(&mut i.to_be_bytes().into());
+                    batch.insert(tx_key, tx);
+                }
+                transactions.apply_batch(&batch)?;
+
+                Ok(())
+            });
+
+        res.map_err(|_| DatabaseError::DBInsertFailed(line!()))
     }
 
     async fn get_block_by_height(

@@ -64,7 +64,7 @@ pub enum DatabaseError {
     NoLastBlock,
     #[error("db insert failed at {0}")]
     DBInsertFailed(u32),
-    #[error("this Error: {0}")]
+    #[error("An error occured: {0}")]
     Specific(String),
 }
 

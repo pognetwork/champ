@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use tokio::sync::{
     mpsc::{self, Receiver, Sender},
     oneshot,
@@ -8,7 +8,7 @@ use tokio::sync::{
 
 use std::collections::VecDeque;
 
-use crate::state::ChampStateArc;
+use crate::{state::ChampStateArc, validation::block::validate};
 
 #[derive(Debug)]
 struct QueueItem {
@@ -96,24 +96,33 @@ impl Blockpool {
             panic!("add_state has to be called first")
         }
 
+        let state = self.state.clone().unwrap();
+
         while let Some(cmd) = self.rx.recv().await {
             use Command::*;
             match cmd {
                 ProcessBlock {
-                    block: _,
+                    block,
                     resp,
                 } => {
-                    let _ = resp.send(Ok(()));
+                    if validate(&block, &state).await.is_ok() {
+                        self.block_queue.push_back(QueueItem {
+                            block,
+                        });
+                        let _ = resp.send(Ok(()));
+                    } else {
+                        let _ = resp.send(Err(anyhow!("invalid block")));
+                    }
                 }
                 ProcessVote {
                     resp,
                 } => {
-                    let _ = resp.send(Ok(()));
+                    let _ = resp.send(Err(anyhow!("not implemented")));
                 }
                 GetQueueSize {
                     resp,
                 } => {
-                    let _ = resp.send(Ok(0));
+                    let _ = resp.send(Ok(self.block_queue.len() as u64));
                 }
             }
         }
