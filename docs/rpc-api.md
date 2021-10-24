@@ -14,11 +14,11 @@ Work in Progress
 
 ## Block Service
 
-The Block Service acts as the public interface that will talk to a users wallet.
+The Block Service acts as the public interface of a node which external applications that, for example, a user's wallet talks to.
 
 <!-- prettier-ignore -->
 ??? info "getBalance"
-    Shows the current balance of the account.
+    Gets the current balance of an account.
 
 <!-- prettier-ignore -->
 ??? info "getBlockHeight"
@@ -45,7 +45,7 @@ The Block Service acts as the public interface that will talk to a users wallet.
 
 <!-- prettier-ignore -->
 ??? warning "[not yet implemented] getGlobalTransactionCount"
-    Gets the count of all transactions by all accountsö
+    Gets the count of all transactions in the network.
 
 <!-- prettier-ignore -->
 ??? warning "[not yet implemented] getPendingBlocks"
@@ -77,7 +77,7 @@ The Block Service acts as the public interface that will talk to a users wallet.
 
 ## Node Wallet Manager Service
 
-The Node Wallet Manager Service will be predominantly used for centralized exchange plattforms as a way to manage their user accounts.
+The Node Wallet Manager Service enables authorized users to interact with wallets stored on a node. This is especially usefull for integrating services like centralized exchanges and online shops.
 
 <!-- prettier-ignore -->
 ??? info "getAccounts"
@@ -114,7 +114,7 @@ The Node Wallet Manager Service will be predominantly used for centralized excha
 
 ## Node Admin Service
 
-The Node Admin Service will be used by admins to oversee and controll the function of a node.
+The Node Admin Service provides endpoints for managing and administering a node. It is primarily used by the node admin webinterface.
 
 <!-- prettier-ignore -->
 ??? info "getPeers"
