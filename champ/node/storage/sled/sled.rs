@@ -3,7 +3,7 @@ use std::convert::TryInto;
 use crate::storage::{Database, DatabaseConfig, DatabaseError};
 use anyhow::Result;
 use async_trait::async_trait;
-use pog_proto::api::{self, BlockID};
+use pog_proto::api::{self, AccountID, BlockID};
 use prost::Message;
 use sled::Transactional;
 use sled::{self};
@@ -36,6 +36,9 @@ impl SledDB {
         //
         // key: account_id + "_lastblk"
         // val: latest block id
+        //
+        // key: account_id + "_rep"
+        // val: representative account_id
 
         let blocks = db.open_tree("blocks")?;
         // blocks contain:
@@ -129,7 +132,7 @@ impl Database for SledDB {
     }
 
     async fn add_block(&mut self, block: api::Block) -> Result<(), DatabaseError> {
-        let block_data = block.data.clone().ok_or(DatabaseError::DataNotFound)?;
+        let block_data = block.data.clone().expect("block should have valid data");
         let block_id = block.get_id().map_err(|e| DatabaseError::Specific(e.to_string()))?;
         let account_id = encoding::account::generate_account_address(block.public_key.clone())
             .map_err(|_| DatabaseError::Specific("account ID could not be generated".to_string()))?;
@@ -150,6 +153,15 @@ impl Database for SledDB {
                 // Add Block Transactions
                 let mut batch = sled::Batch::default();
                 for (i, tx) in block_data.transactions.iter().enumerate() {
+                    let tx_data = tx.data.clone().expect("transaction should have valid data");
+
+                    // Set representative
+                    if let api::transaction::Data::TxDelegate(tx) = tx_data {
+                        let mut account_rep_key = b"rep_".to_vec();
+                        account_rep_key.append(&mut account_id.to_vec());
+                        accounts.insert(account_rep_key, tx.representative)?;
+                    }
+
                     let transaction_id = match tx.get_id(block_id) {
                         Ok(x) => x,
                         Err(_) => return sled::transaction::abort(()),
@@ -178,14 +190,37 @@ impl Database for SledDB {
 
     async fn get_block_by_height(
         &self,
-        _account_id: api::AccountID,
-        _block_height: &u64,
+        account_id: api::AccountID,
+        block_height: &u64,
     ) -> Result<Option<api::Block>, DatabaseError> {
-        unimplemented!("method unsupported by database backend")
+        let mut block_key = b"byacc_".to_vec();
+        block_key.append(&mut account_id.into());
+        block_key.append(&mut b"_".to_vec());
+        block_key.append(&mut block_height.to_be_bytes().into());
+
+        let block = self.blocks.get(block_key).map_err(|e| DatabaseError::Specific(e.to_string()))?;
+
+        let block = match block {
+            Some(block) => block,
+            None => return Ok(None),
+        };
+
+        api::Block::decode(&*block.to_vec()).map(Some).map_err(|e| DatabaseError::Specific(e.to_string()))
     }
 
-    async fn get_account_delegate(&self, _account_id: api::AccountID) -> Result<Option<api::AccountID>, DatabaseError> {
-        unimplemented!("method unsupported by database backend")
+    async fn get_account_delegate(&self, account_id: api::AccountID) -> Result<Option<api::AccountID>, DatabaseError> {
+        let mut last_block_key = account_id.to_vec();
+        last_block_key.append(&mut b"_rep".to_vec());
+
+        let delegate_id = self.accounts.get(last_block_key).map_err(|e| DatabaseError::Specific(e.to_string()))?;
+        let delegate_id: AccountID = match delegate_id {
+            Some(delegate) => {
+                delegate.to_vec().try_into().map_err(|_| DatabaseError::Specific("invalid account id".to_string()))?
+            }
+            None => return Ok(None),
+        };
+
+        Ok(Some(delegate_id))
     }
 
     async fn get_delegates_by_account(
