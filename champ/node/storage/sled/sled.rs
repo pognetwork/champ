@@ -34,7 +34,7 @@ impl SledDB {
         let accounts = db.open_tree("accounts")?;
         // accounts contain:
         //
-        // key: account_id + "_lastblk"
+        // key: account_id + "_last_blk"
         // val: latest block id
         //
         // key: account_id + "_rep"
@@ -43,18 +43,21 @@ impl SledDB {
         let blocks = db.open_tree("blocks")?;
         // blocks contain:
         //
-        // key: "byid_" + block_id
-        // key: "byacc_" + account_id + "_" + block_height
+        // key: "by_id_" + block_id
+        // key: "by_acc_" + account_id + "_" + block_height
         // val: block proto
 
         // transactions provides a list of transactions as a fast way to get transactions by their transaction id
         let transactions = db.open_tree("transactions")?;
         // transactions contain:
         //
-        // key: "byid_" + transaction_id
+        // key: "by_id_" + transaction_id
         // val: transaction proto
         //
-        // key: "byid_" + block_id + "block_index"
+        // key: "blk_by_id_" + transaction_id
+        // val: block_id
+        //
+        // key: "by_blk_id_" + block_id + "block_index"
         // val: transaction proto
 
         let meta = db.open_tree("meta")?;
@@ -74,7 +77,7 @@ impl SledDB {
 impl Database for SledDB {
     // impl SledDB {
     async fn get_block_by_id(&self, block_id: api::BlockID) -> Result<api::Block, DatabaseError> {
-        let mut block_key = b"byid_".to_vec();
+        let mut block_key = b"by_id_".to_vec();
         block_key.append(&mut block_id.to_vec());
 
         let block = self
@@ -91,7 +94,7 @@ impl Database for SledDB {
         &self,
         transaction_id: api::TransactionID,
     ) -> Result<api::Transaction, DatabaseError> {
-        let mut transaction_key = b"byid_".to_vec();
+        let mut transaction_key = b"by_id_".to_vec();
         transaction_key.append(&mut transaction_id.to_vec());
 
         let transaction = self
@@ -106,7 +109,7 @@ impl Database for SledDB {
 
     async fn get_latest_block_by_account(&self, account_id: api::AccountID) -> Result<api::Block, DatabaseError> {
         let mut last_block_key = account_id.to_vec();
-        last_block_key.append(&mut b"_lastblk".to_vec());
+        last_block_key.append(&mut b"_last_blk".to_vec());
 
         let latest_block_id: BlockID = self
             .accounts
@@ -118,7 +121,7 @@ impl Database for SledDB {
             .try_into()
             .map_err(|_| DatabaseError::Specific("invalid block id".to_string()))?;
 
-        let mut block_key = b"byid_".to_vec();
+        let mut block_key = b"by_id_".to_vec();
         block_key.append(&mut latest_block_id.to_vec());
 
         let block = self
@@ -139,12 +142,12 @@ impl Database for SledDB {
 
         let res: sled::transaction::TransactionResult<()> = (&self.accounts, &self.blocks, &self.transactions)
             .transaction(|(accounts, blocks, transactions)| {
-                let mut block_key = b"byid_".to_vec();
+                let mut block_key = b"by_id_".to_vec();
                 block_key.append(&mut block_id.to_vec());
 
                 // Set as latest block
-                let mut account_key = b"lastblk_".to_vec();
-                account_key.append(&mut account_id.to_vec());
+                let mut account_key = account_id.to_vec();
+                account_key.append(&mut b"_last_blk".to_vec());
                 accounts.insert(account_key, &block_id.clone())?;
 
                 // Add Block
@@ -169,13 +172,18 @@ impl Database for SledDB {
 
                     let tx = tx.encode_to_vec();
 
-                    // "byid_" + transaction_id
-                    let mut tx_key = b"byid_".to_vec();
+                    // "by_id_" + transaction_id
+                    let mut tx_key = b"by_id_".to_vec();
                     tx_key.append(&mut transaction_id.into());
                     batch.insert(tx_key, tx.clone());
 
-                    // "byid_" + block_id + "block_index"
-                    let mut tx_key = b"byid_".to_vec();
+                    // "by_id_" + transaction_id + "_blk"
+                    let mut tx_key = b"blk_by_id_".to_vec();
+                    tx_key.append(&mut transaction_id.into());
+                    batch.insert(tx_key, &block_id);
+
+                    // "by_blk_id_" + block_id + "block_index"
+                    let mut tx_key = b"by_blk_id_".to_vec();
                     tx_key.append(&mut block_id.into());
                     tx_key.append(&mut i.to_be_bytes().into());
                     batch.insert(tx_key, tx);
@@ -193,7 +201,7 @@ impl Database for SledDB {
         account_id: api::AccountID,
         block_height: &u64,
     ) -> Result<Option<api::Block>, DatabaseError> {
-        let mut block_key = b"byacc_".to_vec();
+        let mut block_key = b"by_acc_".to_vec();
         block_key.append(&mut account_id.into());
         block_key.append(&mut b"_".to_vec());
         block_key.append(&mut block_height.to_be_bytes().into());
@@ -208,6 +216,7 @@ impl Database for SledDB {
         api::Block::decode(&*block.to_vec()).map(Some).map_err(|e| DatabaseError::Specific(e.to_string()))
     }
 
+    // TODO: THIS IS NOT OPTIMIZED FOR PERFORMANCE! BEWARE!
     async fn get_account_delegate(&self, account_id: api::AccountID) -> Result<Option<api::AccountID>, DatabaseError> {
         let mut last_block_key = account_id.to_vec();
         last_block_key.append(&mut b"_rep".to_vec());
@@ -223,19 +232,64 @@ impl Database for SledDB {
         Ok(Some(delegate_id))
     }
 
-    async fn get_delegates_by_account(
-        &self,
-        _account_id: api::AccountID,
-    ) -> Result<Vec<api::AccountID>, DatabaseError> {
-        unimplemented!("method unsupported by database backend")
+    // TODO: THIS IS NOT OPTIMIZED FOR PERFORMANCE AND BASED ON
+    // OUR MOCK DATABASE CODE! BEWARE! HERE BE DRAGONS!
+    async fn get_delegates_by_account(&self, account_id: api::AccountID) -> Result<Vec<api::AccountID>, DatabaseError> {
+        let mut delegated_accounts = std::collections::HashSet::new();
+
+        let stuff = self.transactions.scan_prefix(b"blk_by_id_").rev().filter_map(|res| {
+            let (key, value) = res.ok()?;
+            let tx = api::Transaction::decode(&*value.to_vec()).ok()?;
+            let blk_id: BlockID = key[10..].try_into().ok()?;
+            Some((blk_id, tx))
+        });
+
+        for (blk_id, tx) in stuff {
+            let blk = self.get_block_by_id(blk_id).await?;
+            let tx_acc = encoding::account::generate_account_address(blk.public_key.clone())
+                .map_err(|_| DatabaseError::Specific("account ID could not be generated".to_string()))?;
+
+            if let Some(api::transaction::Data::TxDelegate(delegate_tx)) = &tx.data {
+                if delegate_tx.representative == account_id {
+                    // only the latest transaction counts per account
+                    if delegated_accounts.contains(&tx_acc) {
+                        continue;
+                    }
+                    delegated_accounts.insert(tx_acc);
+                }
+            }
+        }
+
+        Ok(delegated_accounts.into_iter().collect())
     }
 
+    // TODO: THIS IS NOT OPTIMIZED FOR PERFORMANCE AND BASED ON
+    // OUR MOCK DATABASE CODE! BEWARE! HERE BE DRAGONS!
     async fn get_latest_block_by_account_before(
         &self,
-        _account_id: api::AccountID,
-        _unix_from: u64,
-        _unix_limit: u64,
+        account_id: api::AccountID,
+        unix_from: u64,
+        unix_limit: u64,
     ) -> Result<Option<api::Block>, DatabaseError> {
-        unimplemented!("method unsupported by database backend")
+        self.blocks
+            .scan_prefix(b"by_id_")
+            // reverse to make it faster for newer blocks
+            .rev()
+            .find_map(|res| {
+                let (_, value) = res.ok()?;
+                let block = api::Block::decode(&*value.to_vec()).ok()?;
+                let block_account_id = encoding::account::generate_account_address(block.public_key.clone()).ok()?;
+
+                if block_account_id == account_id {
+                    if block.timestamp < unix_limit {
+                        return Some(None);
+                    }
+                    if block.timestamp < unix_from {
+                        return Some(Some(block.to_owned()));
+                    }
+                }
+                None
+            })
+            .ok_or(DatabaseError::Unknown)
     }
 }
