@@ -216,7 +216,6 @@ impl Database for SledDB {
         api::Block::decode(&*block.to_vec()).map(Some).map_err(|e| DatabaseError::Specific(e.to_string()))
     }
 
-    // TODO: THIS IS NOT OPTIMIZED FOR PERFORMANCE! BEWARE!
     async fn get_account_delegate(&self, account_id: api::AccountID) -> Result<Option<api::AccountID>, DatabaseError> {
         let mut last_block_key = account_id.to_vec();
         last_block_key.append(&mut b"_rep".to_vec());
