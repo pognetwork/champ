@@ -1,7 +1,9 @@
+use std::convert::TryInto;
+
 use crate::storage::{Database, DatabaseConfig, DatabaseError};
 use anyhow::Result;
 use async_trait::async_trait;
-use pog_proto::api;
+use pog_proto::api::{self, BlockID};
 use prost::Message;
 use sled::Transactional;
 use sled::{self};
@@ -38,7 +40,7 @@ impl SledDB {
         let blocks = db.open_tree("blocks")?;
         // blocks contain:
         //
-        // key: "byblk_" + block_id
+        // key: "byid_" + block_id
         // key: "byacc_" + account_id + "_" + block_height
         // val: block proto
 
@@ -49,7 +51,7 @@ impl SledDB {
         // key: "byid_" + transaction_id
         // val: transaction proto
         //
-        // key: "byblk_" + block_id + "block_index"
+        // key: "byid_" + block_id + "block_index"
         // val: transaction proto
 
         let meta = db.open_tree("meta")?;
@@ -68,19 +70,62 @@ impl SledDB {
 #[async_trait]
 impl Database for SledDB {
     // impl SledDB {
-    async fn get_block_by_id(&self, _block_id: api::BlockID) -> Result<&api::Block, DatabaseError> {
-        unimplemented!("")
+    async fn get_block_by_id(&self, block_id: api::BlockID) -> Result<api::Block, DatabaseError> {
+        let mut block_key = b"byid_".to_vec();
+        block_key.append(&mut block_id.to_vec());
+
+        let block = self
+            .blocks
+            .get(block_key)
+            .map_err(|e| DatabaseError::Specific(e.to_string()))?
+            .ok_or_else(|| DatabaseError::Specific("block not found".to_string()))
+            .map_err(|e| DatabaseError::Specific(e.to_string()))?;
+
+        api::Block::decode(&*block.to_vec()).map_err(|e| DatabaseError::Specific(e.to_string()))
     }
 
     async fn get_transaction_by_id(
         &self,
-        _transaction_id: api::TransactionID,
-    ) -> Result<&api::Transaction, DatabaseError> {
-        unimplemented!("method unsupported by database backend")
+        transaction_id: api::TransactionID,
+    ) -> Result<api::Transaction, DatabaseError> {
+        let mut transaction_key = b"byid_".to_vec();
+        transaction_key.append(&mut transaction_id.to_vec());
+
+        let transaction = self
+            .transactions
+            .get(transaction_key)
+            .map_err(|e| DatabaseError::Specific(e.to_string()))?
+            .ok_or_else(|| DatabaseError::Specific("block not found".to_string()))
+            .map_err(|e| DatabaseError::Specific(e.to_string()))?;
+
+        api::Transaction::decode(&*transaction.to_vec()).map_err(|e| DatabaseError::Specific(e.to_string()))
     }
 
-    async fn get_latest_block_by_account(&self, _account_id: api::AccountID) -> Result<&api::Block, DatabaseError> {
-        unimplemented!("method unsupported by database backend")
+    async fn get_latest_block_by_account(&self, account_id: api::AccountID) -> Result<api::Block, DatabaseError> {
+        let mut last_block_key = account_id.to_vec();
+        last_block_key.append(&mut b"_lastblk".to_vec());
+
+        let latest_block_id: BlockID = self
+            .accounts
+            .get(last_block_key)
+            .map_err(|e| DatabaseError::Specific(e.to_string()))?
+            .ok_or_else(|| DatabaseError::Specific("block not found".to_string()))
+            .map_err(|e| DatabaseError::Specific(e.to_string()))?
+            .to_vec()
+            .try_into()
+            .map_err(|_| DatabaseError::Specific("invalid block id".to_string()))?;
+
+        let mut block_key = b"byid_".to_vec();
+        block_key.append(&mut latest_block_id.to_vec());
+
+        let block = self
+            .blocks
+            .get(block_key)
+            .map_err(|e| DatabaseError::Specific(e.to_string()))?
+            .ok_or_else(|| DatabaseError::Specific("block not found".to_string()))
+            .map_err(|e| DatabaseError::Specific(e.to_string()))?;
+
+        api::Block::decode(&*block.to_vec()).map_err(|e| DatabaseError::Specific(e.to_string()))
     }
 
     async fn add_block(&mut self, block: api::Block) -> Result<(), DatabaseError> {
@@ -91,15 +136,13 @@ impl Database for SledDB {
 
         let res: sled::transaction::TransactionResult<()> = (&self.accounts, &self.blocks, &self.transactions)
             .transaction(|(accounts, blocks, transactions)| {
-                let mut block_key = b"byblk_".to_vec();
+                let mut block_key = b"byid_".to_vec();
                 block_key.append(&mut block_id.to_vec());
 
-                // Add new accounts
-                if block_data.height == 0 {
-                    let mut account_key = b"lastblk_".to_vec();
-                    account_key.append(&mut account_id.to_vec());
-                    accounts.insert(account_key, &block_id.clone())?;
-                };
+                // Set as latest block
+                let mut account_key = b"lastblk_".to_vec();
+                account_key.append(&mut account_id.to_vec());
+                accounts.insert(account_key, &block_id.clone())?;
 
                 // Add Block
                 blocks.insert(block_key, block.encode_to_vec())?;
@@ -119,8 +162,8 @@ impl Database for SledDB {
                     tx_key.append(&mut transaction_id.into());
                     batch.insert(tx_key, tx.clone());
 
-                    // "byblk_" + block_id + "block_index"
-                    let mut tx_key = b"byblk_".to_vec();
+                    // "byid_" + block_id + "block_index"
+                    let mut tx_key = b"byid_".to_vec();
                     tx_key.append(&mut block_id.into());
                     tx_key.append(&mut i.to_be_bytes().into());
                     batch.insert(tx_key, tx);
@@ -137,7 +180,7 @@ impl Database for SledDB {
         &self,
         _account_id: api::AccountID,
         _block_height: &u64,
-    ) -> Result<Option<&api::Block>, DatabaseError> {
+    ) -> Result<Option<api::Block>, DatabaseError> {
         unimplemented!("method unsupported by database backend")
     }
 
@@ -157,7 +200,7 @@ impl Database for SledDB {
         _account_id: api::AccountID,
         _unix_from: u64,
         _unix_limit: u64,
-    ) -> Result<Option<&api::Block>, DatabaseError> {
+    ) -> Result<Option<api::Block>, DatabaseError> {
         unimplemented!("method unsupported by database backend")
     }
 }
