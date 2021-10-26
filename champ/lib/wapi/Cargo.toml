@@ -1,6 +1,6 @@
 [package]
 authors = ["The POG Contributors <contact@pog.network>"]
-edition = "2018"
+edition = "2021"
 name = "pog-wapi"
 version = "0.0.8"
 
