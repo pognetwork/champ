@@ -1,9 +1,4 @@
-use pog_proto::rpc::node_admin::{
-    Empty, GetBlockPoolSizeReply, GetChainReply, GetChainRequest, GetLogsReply, GetLogsRequest, GetModeReply,
-    GetModeRequest, GetNodeNameReply, GetNodeStatusReply, GetNodeStatusRequest, GetPeersRequest, GetPeersResponse,
-    GetPendingBlocksReply, GetPendingBlocksRequest, GetVersionResponse, SetModeReply, SetModeRequest,
-    SetNodeNameRequest, UpgradeNodeRequest, UpgradeNodeResponse,
-};
+use pog_proto::rpc::node_admin::*;
 use tonic::{Response, Status};
 
 use crate::state::ChampStateArc;

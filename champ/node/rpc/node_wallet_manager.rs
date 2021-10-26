@@ -1,8 +1,4 @@
-use pog_proto::rpc::node_wallet_manager::{
-    AddWalletReply, AddWalletRequest, DecryptMessageReply, DecryptMessageRequest, Empty, EncryptMessageReply,
-    EncryptMessageRequest, GetWalletReply, GetWalletRequest, GetWalletsReply, RemoveWalletRequest, SignBlockReply,
-    SignBlockRequest, SignMessageReply, SignMessageRequest, VerifySignatureRequest,
-};
+use pog_proto::rpc::node_wallet_manager::*;
 
 use crate::state::ChampStateArc;
 pub use pog_proto::rpc::node_wallet_manager::node_wallet_manager_server::{NodeWalletManager, NodeWalletManagerServer};
