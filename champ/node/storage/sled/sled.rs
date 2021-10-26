@@ -284,7 +284,7 @@ impl Database for SledDB {
                         return Some(None);
                     }
                     if block.timestamp < unix_from {
-                        return Some(Some(block.to_owned()));
+                        return Some(Some(block));
                     }
                 }
                 None
