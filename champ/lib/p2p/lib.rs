@@ -33,10 +33,10 @@ impl Connection {
         Ok(stream)
     }
 
-    pub async fn write(&mut self, bytes: &'static [u8]) -> Result<(), Box<dyn std::error::Error + '_>> {
+    pub async fn write(&mut self, bytes: Bytes) -> Result<(), Box<dyn std::error::Error + '_>> {
         //idk what this anonymous lifetimes does
         //put Codec in own function / have as shared state?
-        self.framed_write.send(Bytes::from(bytes)).await?; //use feed/ send all batch requests more efficient into the Sink
+        self.framed_write.send(bytes).await?; //use feed/ send all batch requests more efficient into the Sink
         Ok(())
     }
 
