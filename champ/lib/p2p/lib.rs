@@ -94,8 +94,7 @@ mod tests {
 
         let read_handle = tokio::spawn(async move {
             let mut connection = Connection::listen(address).await.unwrap();
-            let result = connection.read().await;
-            result
+            connection.read().await
         });
 
         let write_handle = tokio::spawn(async move {
