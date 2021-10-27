@@ -1,7 +1,6 @@
 use crate::Connection;
 use bytes::Bytes;
 use libp2p::futures::SinkExt;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio_util::codec::{FramedWrite, LengthDelimitedCodec};
 
@@ -10,10 +9,10 @@ use tokio_util::codec::{FramedWrite, LengthDelimitedCodec};
 //test passes when TcpStream::connect yields a TcpStream value and therefore succeeds
 async fn listen_for_connection() {
     let address = "127.0.0.1:7890";
-    let handle = tokio::spawn(async move {
+    tokio::spawn(async move {
         Connection::listen(address).await.expect("failed listening for the connection");
     });
-    let stream = TcpStream::connect(address).await.expect("failed connecting");;
+    TcpStream::connect(address).await.expect("failed connecting");
 }
 
 #[cfg(test)]
@@ -23,30 +22,30 @@ async fn listen_for_connection() {
 async fn listen_for_wrong_connection() {
     let address = "127.0.0.1:7890";
     let other_address = "127.0.0.1:7891";
-    let handle = tokio::spawn(async move {
+    tokio::spawn(async move {
         Connection::listen(address).await.expect("failed listening for the connection");
     });
-    let stream = TcpStream::connect(other_address).await.expect("failed connecting");;
+    TcpStream::connect(other_address).await.expect("failed connecting");
 }
 
 #[cfg(test)]
 #[tokio::test]
 async fn read_frame() {
     let address = "127.0.0.1:7890";
-    let mut buffer: Bytes = Bytes::from_static(b"testdata");
-    let mut expected = buffer.clone();
+    let buffer: Bytes = Bytes::from_static(b"testdata");
+    let expected = buffer.clone();
 
     let read_handle = tokio::spawn(async move {
-        let mut connection = Connection::new(address).await.unwrap();
+        let mut connection = Connection::listen(address).await.unwrap();
         let result = connection.read().await;
         result
     });
 
 
     let write_handle = tokio::spawn(async move {
-        let mut stream = TcpStream::connect(address).await.unwrap();
+        let stream = TcpStream::connect(address).await.unwrap();
         let mut framed = FramedWrite::new(stream, LengthDelimitedCodec::new());
-        let x = framed.send(buffer.clone()).await.unwrap();
+        framed.send(buffer.clone()).await.unwrap();
         framed.flush().await.unwrap(); //this flush is probably unnecessary
     });
 

@@ -23,6 +23,7 @@ impl Connection {
         Ok(Connection::connection_from_stream(stream))
     }
 
+    #[allow(dead_code)]
     //establishes a connection by connecting to address
     pub async fn connect<T: ToSocketAddrs>(address: T) -> Result<Connection, Box<dyn std::error::Error>> {
         let stream = TcpStream::connect(address).await?;
@@ -39,6 +40,7 @@ impl Connection {
         connection
     }
 
+    #[allow(dead_code)]
     //processes bytes into Sink and flushes.
     //use feed/ send all batch requests more efficient into the Sink
     pub async fn write(&mut self, bytes: Bytes) -> Result<(), Box<dyn std::error::Error>> {
