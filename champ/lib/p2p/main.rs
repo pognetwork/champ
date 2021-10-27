@@ -7,9 +7,9 @@ use tokio_util::codec::{FramedWrite, LengthDelimitedCodec};
 
 #[cfg(test)]
 #[tokio::test]
-async fn read_write_frame() {
+async fn read_frame() {
     let address = "127.0.0.1:7890";
-    let mut buffer: &'static [u8] = b"sdsd";
+    let mut buffer: Bytes = b"testdata";
 
     let read_handle = tokio::spawn(async move {
         let mut connection = Connection::new(address).await.unwrap();
@@ -20,7 +20,7 @@ async fn read_write_frame() {
     let write_handle = tokio::spawn(async move {
         let mut stream = TcpStream::connect(address).await.unwrap();
         let mut framed = FramedWrite::new(stream, LengthDelimitedCodec::new());
-        let x = framed.send(Bytes::from(buffer)).await.unwrap();
+        let x = framed.send(buffer).await.unwrap();
         framed.flush().await.unwrap(); //this flush is probably unnecessary
     });
 
