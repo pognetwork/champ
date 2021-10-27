@@ -71,16 +71,22 @@ mod tests {
     //test passes when TcpStream::connect yields a TcpStream value and therefore succeeds
     async fn listen_for_connection() {
         let address = "127.0.0.1:7899";
-        tokio::spawn(async move {
+        let handle1 = tokio::spawn(async move {
             eprintln!("before listen");
             Connection::listen(address).await.expect("failed listening for the connection");
             eprintln!("after listen");
         });
-        eprintln!("before connect");
-        thread::sleep(Duration::from_millis(5000));
-        eprintln!("after wait");
-        TcpStream::connect(address).await.expect("failed connecting");
-        eprintln!("after connect");
+
+        let handle2 = tokio::spawn(async move {
+            eprintln!("before connect");
+            thread::sleep(Duration::from_millis(5000));
+            eprintln!("after wait");
+            TcpStream::connect(address).await.expect("failed connecting");
+            eprintln!("after connect");
+        });
+
+        handle1.await.unwrap();
+        handle2.await.unwrap();
     }
 
     #[tokio::test]
