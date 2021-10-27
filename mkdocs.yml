@@ -4,3 +4,4 @@ nav:
   - Overview: "overview.md"
   - RPC API: "rpc-api.md"
   - CI/CD: "cicd.md"
+  - Security: "security.md"
