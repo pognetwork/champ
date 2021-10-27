@@ -14,12 +14,12 @@ impl Connection {
     #[allow(dead_code)]
     //waits for an incoming connection on address
     pub async fn listen<T: ToSocketAddrs>(address: T) -> Result<Connection, Box<dyn std::error::Error>> {
-        println!("before bind");
+        eprintln!("before bind");
         let listener = TcpListener::bind(address).await?;
-        println!("after bind");
+        eprintln!("after bind");
         // The second item contains the IP and port of the new connection.
         let (stream, _) = listener.accept().await?;
-        println!("after accept");
+        eprintln!("after accept");
         Ok(Connection::connection_from_stream(stream))
     }
 
@@ -63,6 +63,8 @@ impl Connection {
 mod tests {
     use super::*;
     use serial_test::serial;
+    use std::thread;
+    use std::time::Duration;
 
     #[tokio::test]
     #[serial]
@@ -70,13 +72,15 @@ mod tests {
     async fn listen_for_connection() {
         let address = "127.0.0.1:7890";
         tokio::spawn(async move {
-            println!("before listen");
+            eprintln!("before listen");
             Connection::listen(address).await.expect("failed listening for the connection");
-            println!("after listen");
+            eprintln!("after listen");
         });
-        println!("before connect");
+        eprintln!("before connect");
+        thread::sleep(Duration::from_millis(5000));
+        eprintln!("after wait");
         TcpStream::connect(address).await.expect("failed connecting");
-        println!("after connect");
+        eprintln!("after connect");
     }
 
     #[tokio::test]
