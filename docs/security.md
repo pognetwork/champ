@@ -31,10 +31,17 @@
     > Credential Cracking: `Mitigated` because we hash passwords that take longer to compare and we plan to implement a rate limiting mechanism.
     <br> (_Elevation of Privilage, High Severity_)
 
+- ### Block Service
+    **Description:**
+    This is the endpoint to the Wallet Web Client that handels user requests to view their wallet or chain information.
+
+    > High Complexity Queries: We plan to add size limits to requests to preventing users from executing high workload requests.
+    <br> (_Denial of Service, Medium Severity_)
+
 - ### Node
     > DDOS: We plan to add rate limiting and we will guide Node Operators for optimal setup as we won't run the nodes ourselves.
     <br>(_Denial of Service, High Severity_)
 
-- ### Block Service
-    > High Complexity Queries: We plan to add size limits to requests to preventing users from executing high workload requests.
-    <br> (_Denial of Service, Medium Severity_)
+- ### Peer to Peer
+    > DDOS: We plan to add rate limiting and we will guide Node Operators for optimal setup as we won't run the nodes ourselves.
+    <br>(_Denial of Service, High Severity_)
