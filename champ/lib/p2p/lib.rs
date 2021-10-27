@@ -1,5 +1,6 @@
 use bytes::{Bytes, BytesMut};
 use libp2p::futures::SinkExt;
+use serial_test::serial;
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
 use tokio_stream::StreamExt;
@@ -61,6 +62,7 @@ mod tests {
     use super::*;
 
     #[tokio::test]
+    #[serial]
     //test passes when TcpStream::connect yields a TcpStream value and therefore succeeds
     async fn listen_for_connection() {
         let address = "127.0.0.1:7890";
@@ -72,6 +74,7 @@ mod tests {
 
     #[tokio::test]
     #[should_panic]
+    #[serial]
     //test fails when TcpStream::connect yields a TcpStream value and therefore did connect
     async fn listen_for_wrong_connection() {
         let address = "127.0.0.1:7890";
@@ -83,10 +86,11 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn read_frame() {
         //this needs to be a different address to not interfere with other tests
         //trying to figure out how to prevent this from happening
-        let address = "127.0.0.1:7892";
+        let address = "127.0.0.1:7890";
         let buffer: Bytes = Bytes::from_static(b"testdata");
         let expected = buffer.clone();
 

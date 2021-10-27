@@ -8,8 +8,8 @@ version = "0.0.8"
 
 [dependencies]
 libp2p = "0.39"
-tokio = {version = "1.0", features = ["macros", "rt-multi-thread"]}
-tokio-util = "0.6.0"
+tokio = {version = "1.0", features = ["macros", "rt-multi-thread","net"]}
+tokio-util = {version = "0.6.0", features = ["codec"]}
 tokio-stream = "0.1.7"
 bytes = "1"
 serial_test = "0.5.1"
