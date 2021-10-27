@@ -14,9 +14,12 @@ impl Connection {
     #[allow(dead_code)]
     //waits for an incoming connection on address
     pub async fn listen<T: ToSocketAddrs>(address: T) -> Result<Connection, Box<dyn std::error::Error>> {
+        println!("before bind");
         let listener = TcpListener::bind(address).await?;
+        println!("after bind");
         // The second item contains the IP and port of the new connection.
         let (stream, _) = listener.accept().await?;
+        println!("after accept");
         Ok(Connection::connection_from_stream(stream))
     }
 
@@ -67,9 +70,13 @@ mod tests {
     async fn listen_for_connection() {
         let address = "127.0.0.1:7890";
         tokio::spawn(async move {
+            println!("before listen");
             Connection::listen(address).await.expect("failed listening for the connection");
+            println!("after listen");
         });
+        println!("before connect");
         TcpStream::connect(address).await.expect("failed connecting");
+        println!("after connect");
     }
 
     #[tokio::test]
