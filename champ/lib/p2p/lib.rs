@@ -79,7 +79,6 @@ mod tests {
 
         let handle2 = tokio::spawn(async move {
             eprintln!("before connect");
-            thread::sleep(Duration::from_millis(5000));
             eprintln!("after wait");
             TcpStream::connect(address).await.expect("failed connecting");
             eprintln!("after connect");
