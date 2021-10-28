@@ -10,11 +10,12 @@ pub enum JWTError {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct Claims {
+pub struct Claims {
     sub: String,
     iat: u64,
     exp: u64,
     iss: String,
+    pub permissions: Vec<String>,
 }
 
 fn get_current_time() -> u64 {
@@ -30,6 +31,7 @@ pub fn create(user_id: &str, expires_in_seconds: u64, private_key: &[u8]) -> Res
         iat: now,
         exp: now + expires_in_seconds,
         iss: "pog.network node".to_string(),
+        permissions: vec![],
     };
 
     let encoding_key = &EncodingKey::from_ec_pem(private_key).map_err(|e| JWTError::Unknown(e.to_string()))?;
@@ -38,17 +40,17 @@ pub fn create(user_id: &str, expires_in_seconds: u64, private_key: &[u8]) -> Res
     Ok(token.as_str().to_string())
 }
 
-pub fn verify(token: &str, public_key: &[u8]) -> Result<(), JWTError> {
+pub fn verify(token: &str, public_key: &[u8]) -> Result<Claims, JWTError> {
     let validation = Validation::new(Algorithm::ES256);
 
-    jsonwebtoken::decode::<Claims>(
+    let claims = jsonwebtoken::decode::<Claims>(
         token,
         &DecodingKey::from_ec_pem(public_key).map_err(|e| JWTError::Unknown(e.to_string()))?,
         &validation,
     )
     .map_err(|e| JWTError::Unknown(e.to_string()))?;
 
-    Ok(())
+    Ok(claims.claims)
 }
 
 #[cfg(test)]

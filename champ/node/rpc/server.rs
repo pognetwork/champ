@@ -25,7 +25,7 @@ impl RpcServer {
         let public_key = { &self.state.config.read().await.admin.jwt_public_key }.to_owned();
         let cloned_public_key = public_key.clone();
 
-        let wallet_server = BlockServer::new(BlockService::new(self.state.clone()));
+        let block_server = BlockServer::new(BlockService::new(self.state.clone()));
         let node_admin_server = NodeAdminServer::with_interceptor(
             NodeAdminService::new(self.state.clone()),
             move |request: Request<()>| interceptor_auth(request, &public_key),
@@ -34,8 +34,8 @@ impl RpcServer {
             NodeWalletManagerService::new(self.state.clone()),
             move |request| interceptor_auth(request, &cloned_public_key),
         );
-
         let node_user = NodeUserServer::new(NodeUserService::new(self.state.clone()));
+
         println!("starting rpc server at {}", addr);
 
         // The stack of middleware that our service will be wrapped in
@@ -44,7 +44,7 @@ impl RpcServer {
         Server::builder()
             .accept_http1(true)
             .layer(layer)
-            .add_service(tonic_web::enable(wallet_server))
+            .add_service(tonic_web::enable(block_server))
             .add_service(tonic_web::enable(node_admin_server))
             .add_service(tonic_web::enable(node_wallet_manager_server))
             .add_service(tonic_web::enable(node_user))
