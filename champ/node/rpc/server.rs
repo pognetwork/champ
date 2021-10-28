@@ -1,12 +1,13 @@
-use crate::state::ChampStateArc;
-use std::{net::SocketAddr, time::Duration};
-
+use crate::interceptors::interceptor_auth;
 use crate::rpc::block::{BlockServer, BlockService};
 use crate::rpc::node_admin::{NodeAdminServer, NodeAdminService};
 use crate::rpc::node_user::{NodeUserServer, NodeUserService};
 use crate::rpc::node_wallet_manager::{NodeWalletManagerServer, NodeWalletManagerService};
+use crate::state::ChampStateArc;
+use std::{net::SocketAddr, time::Duration};
 
 use tonic::transport::Server;
+use tonic::Request;
 
 #[derive(Debug)]
 pub struct RpcServer {
@@ -21,10 +22,19 @@ impl RpcServer {
     }
 
     pub async fn start(&self, addr: SocketAddr) -> Result<(), Box<dyn std::error::Error>> {
+        let public_key = { &self.state.config.read().await.admin.jwt_public_key }.to_owned();
+        let cloned_public_key = public_key.clone();
+
         let wallet_server = BlockServer::new(BlockService::new(self.state.clone()));
-        let node_admin_server = NodeAdminServer::new(NodeAdminService::new(self.state.clone()));
-        let node_wallet_manager_server =
-            NodeWalletManagerServer::new(NodeWalletManagerService::new(self.state.clone()));
+        let node_admin_server = NodeAdminServer::with_interceptor(
+            NodeAdminService::new(self.state.clone()),
+            move |request: Request<()>| interceptor_auth(request, &public_key),
+        );
+        let node_wallet_manager_server = NodeWalletManagerServer::with_interceptor(
+            NodeWalletManagerService::new(self.state.clone()),
+            move |request| interceptor_auth(request, &cloned_public_key),
+        );
+
         let node_user = NodeUserServer::new(NodeUserService::new(self.state.clone()));
         println!("starting rpc server at {}", addr);
 

@@ -1,19 +1,21 @@
 use pog_jwt::verify;
 use tonic::{metadata::MetadataValue, Request, Status};
 
-use crate::state::ChampState;
+#[derive(Clone)]
+pub struct Interceptor {
+    pub public_key: String,
+}
 
-async fn check_auth(req: Request<()>, state: ChampState) -> Result<Request<()>, Status> {
-    let metadata_token = MetadataValue::from_str("Bearer some-secret-token").unwrap();
-    let token =
-        metadata_token.to_str().map_err(|_| Status::new(tonic::Code::Internal, "token could not be retrieved"))?;
-    let public_key = &state.config.read().await.admin.jwt_public_key;
-    if !verify(token, public_key.as_bytes()).is_ok() {
-        return Err(Status::unauthenticated("No valid auth token"));
-    }
+pub fn interceptor_auth(req: Request<()>, public_key: &str) -> Result<Request<()>, Status> {
+    if let Some(t) = req.metadata().get("authorization") {
+        let token = MetadataValue::to_str(t).map_err(|_| Status::unauthenticated("token could not be parsed"))?;
+        let _ = verify(token, public_key.as_bytes()).map_err(|_| Status::unauthenticated("No auth token provided"))?;
 
-    match req.metadata().get("authorization") {
-        Some(t) if token == t => Ok(req),
-        _ => Err(Status::unauthenticated("No valid auth token")),
+        //req.extensions_mut().insert(MyExtension {
+        //    some_piece_of_data: "foo".to_string(),
+        //});
+
+        return Ok(req);
     }
+    Err(Status::unauthenticated("No auth token provided"))
 }

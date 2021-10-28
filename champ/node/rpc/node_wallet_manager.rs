@@ -1,7 +1,9 @@
 use pog_proto::rpc::node_wallet_manager::*;
 
 use crate::state::ChampStateArc;
-pub use pog_proto::rpc::node_wallet_manager::node_wallet_manager_server::{NodeWalletManager, NodeWalletManagerServer};
+pub use pog_proto::rpc::node_wallet_manager::node_wallet_manager_server::{
+    NodeWalletManager, NodeWalletManagerServer,
+};
 
 #[derive(Debug)]
 pub struct NodeWalletManagerService {

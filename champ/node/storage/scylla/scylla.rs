@@ -76,7 +76,10 @@ impl Database for Scylla {
         unimplemented!("method unsupported by database backend")
     }
 
-    async fn get_account_delegate(&self, _account_id: api::AccountID) -> Result<Option<api::AccountID>, DatabaseError> {
+    async fn get_account_delegate(
+        &self,
+        _account_id: api::AccountID,
+    ) -> Result<Option<api::AccountID>, DatabaseError> {
         unimplemented!("method unsupported by database backend")
     }
 

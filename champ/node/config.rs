@@ -70,7 +70,8 @@ pub struct Admin {
 
 impl Config {
     fn get_default_data_path() -> Result<PathBuf> {
-        let project_dir = directories::ProjectDirs::from("network", "pog", "champ").expect("failed to create data dir");
+        let project_dir =
+            directories::ProjectDirs::from("network", "pog", "champ").expect("failed to create data dir");
         let data_dir = project_dir.data_dir();
         std::fs::create_dir_all(data_dir)?;
         Ok(data_dir.to_path_buf())
