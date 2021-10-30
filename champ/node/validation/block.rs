@@ -61,6 +61,7 @@ pub async fn validate(block: &Block, state: &ChampStateArc) -> Result<()> {
         _ => return Err(Node::BlockNotFound.into()),
     };
 
+    // TODO: verify block, doesn't already exist
     // signature
     verify_signature(&data.encode_to_vec(), public_key, signature)?;
     // height / previous block
@@ -99,7 +100,7 @@ async fn verify_transactions(new_block: &Block, prev_block: &Block, state: &Cham
         // calculate the new balance after all transactions are processed
         let tx_type = transaction.data.as_ref().ok_or(Validation::TransactionDataNotFound)?;
         new_balance += match tx_type {
-            Data::TxSend(t) => -(t.amount as i128), // remove money from this balance
+            Data::TxSend(t) => -(t.amount as i128),
             Data::TxCollect(t) => validate_collect(t, db).await?,
             _ => new_balance,
         };
@@ -128,12 +129,15 @@ fn verify_previous_block(new_block: &Block, prev_block: &Block) -> Result<()> {
 
 // Verifies the block height and previous block
 fn verify_account_genesis_block() -> Result<()> {
+    // TODO: check this
     unimplemented!()
 }
 
 #[allow(clippy::borrowed_box)]
 async fn validate_collect(tx: &TxClaim, db: &Box<dyn Database>) -> Result<i128> {
     // check DB for send with id tx_id
+    // TODO: check already collected
+    // TODO: check if its yours to collect
 
     let tx_id = match tx.transaction_id.clone().try_into() {
         Ok(a) => a,
