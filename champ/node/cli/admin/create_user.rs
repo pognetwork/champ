@@ -15,6 +15,7 @@ pub async fn run(state: &ChampStateArc, user: &str, password: &str) -> Result<()
         return Err(CLIError::UserExists);
     }
 
+    //TODO: Add length checks
     config.admin_accounts.insert(
         user.to_string(),
         crate::config::UserAccount {

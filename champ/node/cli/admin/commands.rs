@@ -16,6 +16,7 @@ pub async fn run(matches: &ArgMatches, state: &ChampStateArc) -> Result<(), CLIE
             }
         }
 
+        //TODO: Add length checks
         let user = matches.value_of("username").ok_or_else(|| CLIError::Unknown("no user name given".to_string()))?;
         let password =
             matches.value_of("password").ok_or_else(|| CLIError::Unknown("no password given".to_string()))?;
