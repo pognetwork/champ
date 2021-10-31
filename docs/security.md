@@ -4,26 +4,27 @@
 ![threat-model](threat.drawio.svg)
 
 ### **Description**
+
 - ### gRPC
 
     - gRPC Requests are the requests made by the client to the node. Requests can range from fetching the wallet balance to updating the node.
-    - gRPC Responses are the responses made by the node that provide the requested necessary information to the client.
+    - gRPC Responses are the responses made by the node that provides the requested necessary information to the client.
 
 - ### Database
 
-    Database queries, in the diagram marked as `data exchanges` handle saving and retrieving the data for the services and the node. 
+    Database queries, in the diagram marked as `data exchanges`, handle saving and retrieving the data for the services and the node. 
 
 ## Threats
 
 - ### All outgoing connections
 
     **Description**
-    These include the P2P Networking and gRPC connections between the Node and the Web Clients.
+    These include the P2P Networking and gRPC connections between the node and the Web Clients.
 
-    > DDOS: We plan to add rate limiting and we will guide Node Operators for optimal setup as we won't run the nodes ourselves.
+    > DDOS: We plan to add rate limiting and, we will guide Node Operators for optimal setup as we won't run the nodes ourselves.
     <br>(_Denial of Service, High Severity_)
 
-    > Insecure SSL version: In release we plan to refuse connections with a TLS version different than 1.3 and refuse insecure connections. Currently, everything is accepted for development purposes.
+    > Insecure SSL version: In a release, we plan to refuse connections with a TLS version different than 1.3 and refuse insecure connections. Currently, everything is accepted for development purposes.
     <br> (_Tamperling, High Severity_)
 
 - ### All Web Clients
@@ -36,7 +37,7 @@
 
 - ### Node Admin and Node Wallet Manager Web Clients only
 
-    > CSRF Attacks: `Mitigated` because we avoid using Cookies that could carry sensitive information. Our short lived JWTs are stored in the browser session storage.
+    > CSRF Attacks: `Mitigated` because we avoid using Cookies that could carry sensitive information. Our short-lived JWTs are stored in the browser session storage.
     <br> (_Spoofing, High Severity_)
 
 - ### Node Admin Service and Node Wallet Manager Service
@@ -61,10 +62,11 @@
 
 - ### Database
 
-    > Injection: `Mitigated` because we use use the [Sled](https://github.com/spacejam/sled) database that works more as a key-value storage and is therefore not susceptible to injection.
+    > Injection: `Mitigated` because we use the [Sled](https://github.com/spacejam/sled) database that works more as a key-value storage and is therefore not susceptible to injection.
     <br>(_Elevation of Privilage, High Severity_)
 
 - ### Config
+
     > Injection: We plan to add an input size limits for user inputs to remove the possibility of overwriting of information.
     <br>(_Buffer Overflow, High Severity_)
 - ### Peer to Peer
