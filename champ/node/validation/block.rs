@@ -101,7 +101,7 @@ async fn verify_transactions(new_block: &Block, prev_block: &Block, state: &Cham
         let tx_type = transaction.data.as_ref().ok_or(Validation::TransactionDataNotFound)?;
         new_balance += match tx_type {
             Data::TxSend(t) => -(t.amount as i128),
-            Data::TxCollect(t) => validate_collect(t, db).await?,
+            Data::TxCollect(t) => validate_collect(t, db, new_block).await?,
             _ => new_balance,
         };
     }
@@ -134,7 +134,7 @@ fn verify_account_genesis_block() -> Result<()> {
 }
 
 #[allow(clippy::borrowed_box)]
-async fn validate_collect(tx: &TxClaim, db: &Box<dyn Database>) -> Result<i128> {
+async fn validate_collect(tx: &TxClaim, db: &Box<dyn Database>, block: &Block) -> Result<i128> {
     // check DB for send with id tx_id
     // TODO: check already collected
 
@@ -154,10 +154,11 @@ async fn validate_collect(tx: &TxClaim, db: &Box<dyn Database>) -> Result<i128> 
         None => return Err(Validation::SendTxNotFound.into()),
     };
 
+    let data = block.data.as_ref().ok_or(Node::BlockDataNotFound)?;
     // Check claimer is verified TxSend.received
     // Claimer needs to sign the claimtrx -> Add signature to ClaimTx using claimer private key
     // Assuming received is the public key
-    verify_signature(&tx.data, &sendtrx.receiver, &tx.signature)?;
+    verify_signature(&data.encode_to_vec(), &sendtrx.receiver, &block.signature)?;
 
     Ok(sendtrx.amount.into())
 }
@@ -296,8 +297,6 @@ mod tests {
         //         previous: Some(check_claim_previous.get_id().expect("get block ID").to_vec()),
         //         transactions: vec![Transaction {
         //             data: Some(Data::TxCollect(TxClaim {
-        //                 data: b"Hello, World!".to_vec(),
-        //                 signature: create_signature(b"Hello, World!", &b"Kann ich fragen wie du heisst?".to_vec())?,
         //                 transaction_id: check_claim_tx
         //                     .get_id(data_block_1.get_id().expect("get block ID"))
         //                     .expect("get Tx ID")
