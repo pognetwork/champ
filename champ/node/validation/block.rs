@@ -63,6 +63,9 @@ pub async fn validate(block: &Block, state: &ChampStateArc) -> Result<()> {
 
     // TODO: verify block, doesn't already exist
     // signature
+    // TODO: ! I think this wont work. Cos someone could use their own but different keypair
+    // and this check doesnt check if the keypair is actually from the person it should
+    // as it doesnt check the key compared to an existing chain. Maybe use last blocks public key?
     verify_signature(&data.encode_to_vec(), public_key, signature)?;
     // height / previous block
     verify_previous_block(block, latest_block)?;
@@ -106,7 +109,7 @@ async fn verify_transactions(new_block: &Block, prev_block: &Block, state: &Cham
         };
     }
 
-    if new_balance == new_data.balance as i128 && new_balance > 0 {
+    if new_balance == new_data.balance as i128 && new_balance >= 0 {
         return Ok(());
     }
 
