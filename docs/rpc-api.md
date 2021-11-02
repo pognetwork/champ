@@ -80,74 +80,93 @@ The Block Service acts as the public interface of a node which external applicat
 The Node Wallet Manager Service enables authorized users to interact with wallets stored on a node. This is especially usefull for integrating services like centralized exchanges and online shops.
 
 <!-- prettier-ignore -->
-??? info "getAccounts"
+??? warning "[not yet implemented] getWallets"
+    Gets all accounts on a node.
 
 <!-- prettier-ignore -->
-??? info "getAccount"
+??? warning "[not yet implemented] getWallet"
+    Gets an account using a address on a node.
 
 <!-- prettier-ignore -->
-??? info "getDefaultAccount"
+??? warning "[not yet implemented] addWallet"
+    Creates a wallet for a user using a password.
 
 <!-- prettier-ignore -->
-??? info "setDefaultAccount"
+??? warning "[not yet implemented] removeWallet"
+    Deletes a wallet from the node.
 
 <!-- prettier-ignore -->
-??? info "addAccount"
+??? warning "[not yet implemented] signMessage"
+    Signs the message given using the wallets private key stored on the node.
 
 <!-- prettier-ignore -->
-??? info "removeAccount"
+??? warning "[not yet implemented] signBlock"
+    Signs the block given using the wallets private key stored on the node.
 
 <!-- prettier-ignore -->
-??? info "signMessage"
+??? warning "[not yet implemented] verifySignature"
+    Verifies the signature of a message.
 
 <!-- prettier-ignore -->
-??? info "signBlock"
+??? warning "[not yet implemented] encryptMessage"
+    Encrypts a message using the recipients public key.
 
 <!-- prettier-ignore -->
-??? info "verifySignature"
-
-<!-- prettier-ignore -->
-??? info "encryptMessage"
-
-<!-- prettier-ignore -->
-??? info "decryptMessage"
+??? warning "[not yet implemented] decryptMessage"
+    Decrypts a message using the wallets private key stored on the node.
 
 ## Node Admin Service
 
 The Node Admin Service provides endpoints for managing and administering a node. It is primarily used by the node admin webinterface.
 
 <!-- prettier-ignore -->
-??? info "getPeers"
+??? warning "[not yet implemented] getPeers"
+    Gets a list of all the nodes that this node is directly connected to.
 
 <!-- prettier-ignore -->
 ??? info "getVersion"
+    Gets the nodes version.
 
 <!-- prettier-ignore -->
-??? info "upgradeNode"
+??? warning "[not yet implemented] upgradeNode"
+    Updates the nodes software.
 
 <!-- prettier-ignore -->
-??? info "getPendingBlocks"
+??? warning "[not yet implemented] getPendingBlocks"
+    Gets all the blocks that are not validated yet.
 
 <!-- prettier-ignore -->
-??? info "setPendingBlockLimit"
+??? info "getPendingBlockCount"
+    Gets the count of unvalidated blocks.
+    
+<!-- prettier-ignore -->
+??? warning "[not yet implemented] setPendingBlockLimit"
+    Sets a limit to the amount of blocks that are unvalidated.
 
 <!-- prettier-ignore -->
-??? info "getNodeStatus"
+??? info warning "[not yet implemented] getNodeStatus"
+    Gets the status of the node.
 
 <!-- prettier-ignore -->
-??? info "getMode"
+??? info warning "[not yet implemented] getMode"
+    Gets the mode of the node.
 
 <!-- prettier-ignore -->
-??? info "setMode"
+??? info warning "[not yet implemented] setMode"
+    Sets the mode of the node.
 
 <!-- prettier-ignore -->
 ??? info "getNodeName"
+    Gets the name of the node.
 
 <!-- prettier-ignore -->
 ??? info "setNodeName"
+    Sets the name of the node.
 
 <!-- prettier-ignore -->
-??? info "getChain"
+??? warning "[not yet implemented] getChain"
+    Gets chain name. For example _MainNet_, _testNet_ etc.
 
 <!-- prettier-ignore -->
-??? info "getLogs"
+??? warning "[not yet implemented] getLogs"
+    Gets the node logs.
