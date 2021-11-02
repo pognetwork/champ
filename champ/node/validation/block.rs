@@ -61,11 +61,8 @@ pub async fn validate(block: &Block, state: &ChampStateArc) -> Result<()> {
         _ => return Err(Node::BlockNotFound.into()),
     };
 
-    // TODO: verify block, doesn't already exist
+    // TODO: verify block doesn't already exist
     // signature
-    // TODO: ! I think this wont work. Cos someone could use their own but different keypair
-    // and this check doesnt check if the keypair is actually from the person it should
-    // as it doesnt check the key compared to an existing chain. Maybe use last blocks public key?
     verify_signature(&data.encode_to_vec(), public_key, signature)?;
     // height / previous block
     verify_previous_block(block, latest_block)?;
@@ -75,7 +72,7 @@ pub async fn validate(block: &Block, state: &ChampStateArc) -> Result<()> {
     Ok(())
 }
 
-// TODO: add own error type to not disrupt the program
+// TODO: add error handling so validation error go to voting
 // Verifies the transactions and balances
 async fn verify_transactions(new_block: &Block, prev_block: &Block, state: &ChampStateArc) -> Result<()> {
     let db = &state.db.lock().await;
@@ -132,7 +129,6 @@ fn verify_previous_block(new_block: &Block, prev_block: &Block) -> Result<()> {
 
 // Verifies the block height and previous block
 fn verify_account_genesis_block() -> Result<()> {
-    // TODO: check this
     unimplemented!()
 }
 
@@ -275,6 +271,7 @@ mod tests {
                 transactions: vec![check_claim_tx.clone()],
             }),
         };
+        // TODO: Fix this tests. It broke due to verifying the signature
         // let check_claim_previous = Block {
         //     signature: b"data_block_one".to_vec(),
         //     public_key: b"key_one".to_vec(),
