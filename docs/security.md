@@ -65,10 +65,6 @@
     > Injection: `Mitigated` because we use the [Sled](https://github.com/spacejam/sled) database that works more as a key-value storage and is therefore not susceptible to injection.
     <br>(_Elevation of Privilage, High Severity_)
 
-- ### Config
-
-    > Injection: We plan to add an input size limits for user inputs to remove the possibility of overwriting of information.
-    <br>(_Buffer Overflow, High Severity_)
 - ### Peer to Peer
 
     > DDOS: We plan to add rate limiting and we will guide Node Operators for optimal setup as we won't run the nodes ourselves.
