@@ -1,4 +1,7 @@
-# PogChamp
+<h1>
+<img align="left" width="150" src="https://pog.network/assets/pog.svg">
+ &nbsp;PogChamp
+</h1>
 
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/pognetwork/champ?label=version&logo=github&style=flat-square) ![](https://img.shields.io/npm/v/@pognetwork/champ-wasm?style=flat-square&logo=npm) ![GitHub Workflow Status (branch)](https://img.shields.io/github/workflow/status/pognetwork/champ/Testing/main?label=tests&style=flat-square) ![GitHub Workflow Status (branch)](https://img.shields.io/github/workflow/status/pognetwork/champ/Audit%20Dependencies/main?label=audit&style=flat-square)
 
