@@ -22,19 +22,6 @@ pub enum Ed25519Error {
 // https://www.youtube.com/watch?v=NF1pwjL9-DE Computerphile Vid
 // increment nr of times watched without understanding: 3
 
-//A                  B
-//APrivate           BPrivate
-//BPublic            APublic
-
-// A Data ---------------------> B
-// BPublic(Data) --------------> B BPrivate = Data
-// APrivate(Data)--------------> B APublic = Data
-// APrivate(BPublic(Data)) ----> B
-
-// At B
-// APrivate(BPublic(Data)) % APublic = BPublic(Data)
-// BPublic(Data) % BPrivate = Data
-
 /// Verify the signature of some data
 pub fn verify_signature(data: &[u8], public_key: &[u8], data_signature: &[u8]) -> Result<(), Ed25519Error> {
     let peer_public_key = signature::UnparsedPublicKey::new(&signature::ED25519, public_key);
