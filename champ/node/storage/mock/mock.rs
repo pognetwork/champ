@@ -148,7 +148,10 @@ impl Database for MockDB {
         Ok(Some(d))
     }
 
-    async fn get_delegates_by_account(&self, account_id: api::AccountID) -> Result<Vec<api::AccountID>, DatabaseError> {
+    async fn get_delegates_by_account(
+        &self,
+        account_id: api::AccountID,
+    ) -> Result<Vec<api::AccountID>, DatabaseError> {
         let mut delegated_accounts = HashSet::new();
 
         self.transactions.iter().rev().for_each(|(_, (tx, tx_acc))| {

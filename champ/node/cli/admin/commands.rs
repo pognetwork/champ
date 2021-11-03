@@ -16,10 +16,14 @@ pub async fn run(matches: &ArgMatches, state: &ChampStateArc) -> Result<(), CLIE
             }
         }
 
-        let user = matches.value_of("username").ok_or_else(|| CLIError::Unknown("no user name given".to_string()))?;
+        let user = matches.value_of("username").ok_or_else(|| CLIError::Unknown("username missing".to_string()))?;
         let password =
-            matches.value_of("password").ok_or_else(|| CLIError::Unknown("no password given".to_string()))?;
-        create_user::run(state, user, password).await?;
+            matches.value_of("password").ok_or_else(|| CLIError::Unknown("password missing".to_string()))?;
+        let permissions =
+            matches.values_of("perms").ok_or_else(|| CLIError::Unknown("password missing".to_string()))?;
+
+        create_user::run(state, user, password, permissions.map(|s| s.to_string()).collect()).await?;
+
         println!("Successfully created user '{}'", user);
 
         return Ok(());

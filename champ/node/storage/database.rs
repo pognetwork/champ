@@ -141,7 +141,8 @@ pub trait Database: Send + Sync {
     async fn get_account_delegate(&self, account_id: api::AccountID) -> Result<Option<api::AccountID>, DatabaseError>;
 
     /// Finds who is delegating power to an account
-    async fn get_delegates_by_account(&self, account_id: api::AccountID) -> Result<Vec<api::AccountID>, DatabaseError>;
+    async fn get_delegates_by_account(&self, account_id: api::AccountID)
+        -> Result<Vec<api::AccountID>, DatabaseError>;
 
     /// Adds a new block to the database
     async fn add_block(&mut self, block: api::Block) -> Result<(), DatabaseError>;
