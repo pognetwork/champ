@@ -153,11 +153,10 @@ async fn validate_collect(tx: &TxClaim, db: &Box<dyn Database>, block: &Block) -
         None => return Err(Validation::SendTxNotFound.into()),
     };
 
-    let data = block.data.as_ref().ok_or(Node::BlockDataNotFound)?;
-    // Check claimer is verified TxSend.received
-    // Claimer needs to sign the claimtrx -> Add signature to ClaimTx using claimer private key
-    // Assuming received is the public key
-    verify_signature(&data.encode_to_vec(), &sendtrx.receiver, &block.signature)?;
+    let account_id = generate_account_address(block.public_key.to_vec())?;
+    if account_id.to_vec() != sendtrx.receiver {
+        return Err(Validation::TxValidationError.into());
+    }
 
     Ok(sendtrx.amount.into())
 }
@@ -167,8 +166,7 @@ mod tests {
     use crate::validation::block::{verify_previous_block, verify_transactions};
     use crate::ChampState;
     use anyhow::Result;
-    //use crypto::curves::curve25519::create_signature;
-    //use pog_proto::api::transaction::TxClaim;
+    // use pog_proto::api::transaction::TxClaim;
     use pog_proto::api::{
         block::BlockData,
         transaction::{Data, TxSend},
@@ -271,7 +269,7 @@ mod tests {
                 transactions: vec![check_claim_tx.clone()],
             }),
         };
-        // TODO: Fix this tests. It broke due to verifying the signature
+        // TODO: Fix this test with development driven tests
         // let check_claim_previous = Block {
         //     signature: b"data_block_one".to_vec(),
         //     public_key: b"key_one".to_vec(),
@@ -313,12 +311,12 @@ mod tests {
             verify_transactions(&block, &prev_block, &state).await.expect("tx should be verified. Tx Nr: 1"),
             ()
         );
-        //assert_eq!(
+        // assert_eq!(
         //    verify_transactions(&check_claim, &check_claim_previous, &state)
         //        .await
         //        .expect("tx should be verified. Tx Nr: 2"),
         //    ()
-        //);
+        // );
 
         Ok(())
     }
