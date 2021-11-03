@@ -1,5 +1,5 @@
 <h1>
-<img align="left" width="150" src="https://pog.network/assets/pog.svg">
+<img align="left" width="140" src="https://pog.network/assets/pog.svg">
  &nbsp;PogChamp
 </h1>
 
