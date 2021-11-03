@@ -56,6 +56,16 @@ async fn main() -> Result<()> {
                                 .takes_value(true)
                                 .value_name("PASSWORD")
                                 .forbid_empty_values(true),
+                        )
+                        .arg(
+                            Arg::new("perms")
+                                .about("adds permissions")
+                                .takes_value(true)
+                                .multiple_values(true)
+                                .value_name("PERMISSIONS")
+                                .forbid_empty_values(false)
+                                .max_values(20)
+                                .min_values(0),
                         ),
                 )
                 .subcommand(clap::App::new("generate-key").about("generates a node private key used for JWTs")),

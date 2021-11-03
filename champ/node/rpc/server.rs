@@ -22,17 +22,21 @@ impl RpcServer {
     }
 
     pub async fn start(&self, addr: SocketAddr) -> Result<(), Box<dyn std::error::Error>> {
-        let public_key = { &self.state.config.read().await.admin.jwt_public_key }.to_owned();
+        let (public_key, users) = {
+            let cfg = &self.state.config.read().await;
+            (cfg.admin.jwt_public_key.to_owned(), cfg.node_users.clone())
+        };
         let cloned_public_key = public_key.clone();
+        let cloned_users = users.clone();
 
         let block_server = BlockServer::new(BlockService::new(self.state.clone()));
         let node_admin_server = NodeAdminServer::with_interceptor(
             NodeAdminService::new(self.state.clone()),
-            move |request: Request<()>| interceptor_auth(request, &public_key),
+            move |request: Request<()>| interceptor_auth(request, &public_key, &users),
         );
         let node_wallet_manager_server = NodeWalletManagerServer::with_interceptor(
             NodeWalletManagerService::new(self.state.clone()),
-            move |request| interceptor_auth(request, &cloned_public_key),
+            move |request| interceptor_auth(request, &cloned_public_key, &cloned_users),
         );
         let node_user = NodeUserServer::new(NodeUserService::new(self.state.clone()));
 
