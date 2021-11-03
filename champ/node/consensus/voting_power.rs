@@ -38,7 +38,7 @@ pub async fn get_actual_power(state: &ChampStateArc, account_id: api::AccountID)
     let first_block = db.get_block_by_height(account_id, &0).await?.ok_or_else(|| anyhow!("no block found"))?;
 
     let bresult = graphs::balance_graph(data.balance);
-    let hresult = graphs::tx_graph(data.height, block, old_block_result);
+    let hresult = graphs::tx_graph(data.height, &block, old_block_result.as_ref());
     let aresult = graphs::age_graph(block.timestamp - first_block.timestamp);
 
     // TODO: Green Adresses?

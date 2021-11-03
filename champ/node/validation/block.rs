@@ -64,9 +64,9 @@ pub async fn validate(block: &Block, state: &ChampStateArc) -> Result<()> {
     // signature
     verify_signature(&data.encode_to_vec(), public_key, signature)?;
     // height / previous block
-    verify_previous_block(block, latest_block)?;
+    verify_previous_block(block, &latest_block)?;
     // transactions / balance
-    verify_transactions(block, latest_block, state).await?;
+    verify_transactions(block, &latest_block, state).await?;
 
     Ok(())
 }

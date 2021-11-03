@@ -108,7 +108,7 @@ impl Block for BlockService {
         let block = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
 
         Ok(Response::new(BlockByIdReply {
-            block: Some(block.to_owned()),
+            block: Some(block),
         }))
     }
 
@@ -161,7 +161,7 @@ impl Block for BlockService {
         let transaction = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
 
         Ok(Response::new(TxByIdReply {
-            transaction: Some(transaction.to_owned()),
+            transaction: Some(transaction),
         }))
     }
 
