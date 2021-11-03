@@ -1,9 +1,9 @@
+mod auth;
 mod blockpool;
 mod cli;
 mod config;
 mod consensus;
 mod http;
-mod interceptors;
 mod rpc;
 mod state;
 pub mod storage;

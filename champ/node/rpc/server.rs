@@ -1,4 +1,4 @@
-use crate::interceptors::interceptor_auth;
+use crate::auth::interceptors::interceptor_auth;
 use crate::rpc::block::{BlockServer, BlockService};
 use crate::rpc::node_admin::{NodeAdminServer, NodeAdminService};
 use crate::rpc::node_user::{NodeUserServer, NodeUserService};

@@ -1,3 +1,4 @@
+use crate::auth::permissions::verify_perms;
 use pog_proto::rpc::node_admin::*;
 use tonic::{Response, Status};
 
@@ -30,8 +31,9 @@ impl NodeAdmin for NodeAdminService {
     }
     async fn get_version(
         &self,
-        _request: tonic::Request<Empty>,
+        request: tonic::Request<Empty>,
     ) -> Result<tonic::Response<GetVersionResponse>, tonic::Status> {
+        verify_perms(&request, "admin.read")?;
         Ok(Response::new(GetVersionResponse {
             version: VERSION.to_string(),
         }))
@@ -50,8 +52,9 @@ impl NodeAdmin for NodeAdminService {
     }
     async fn get_block_pool_size(
         &self,
-        _request: tonic::Request<Empty>,
+        request: tonic::Request<Empty>,
     ) -> Result<tonic::Response<GetBlockPoolSizeReply>, tonic::Status> {
+        verify_perms(&request, "admin.read")?;
         Ok(Response::new(GetBlockPoolSizeReply {
             length: self
                 .state
@@ -92,6 +95,7 @@ impl NodeAdmin for NodeAdminService {
         &self,
         request: tonic::Request<SetNodeNameRequest>,
     ) -> Result<tonic::Response<Empty>, tonic::Status> {
+        verify_perms(&request, "admin.write")?;
         let new_name = request.into_inner().new_name;
         let mut config = self.state.config.write().await;
         config.admin.node_name = new_name;
