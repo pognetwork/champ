@@ -5,11 +5,7 @@ use crate::state::ChampStateArc;
 use crate::storage;
 
 use pog_proto::api;
-use pog_proto::rpc::block::{
-    BalanceReply, BalanceRequest, BlockByIdReply, BlockByIdRequest, BlockHeightReply, BlockHeightRequest,
-    DelegateReply, DelegateRequest, Empty, PendingBlockReply, TxByIdReply, TxByIdRequest, TxByIndexReply,
-    TxByIndexRequest, UnacknowledgedTxReply, VotingPowerReply, VotingPowerRequest,
-};
+use pog_proto::rpc::block::*;
 
 pub use pog_proto::rpc::block::block_server::{Block, BlockServer};
 
@@ -112,7 +108,7 @@ impl Block for BlockService {
         let block = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
 
         Ok(Response::new(BlockByIdReply {
-            block: Some(block.to_owned()),
+            block: Some(block),
         }))
     }
 
@@ -128,7 +124,7 @@ impl Block for BlockService {
         };
 
         let db_response = db.get_account_delegate(address).await;
-        let response = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
+        let response = db_response.map_err(|_| Status::new(tonic::Code::Internal, "internal server error"))?;
 
         match &response {
             Some(address) => Ok(Response::new(DelegateReply {
@@ -165,7 +161,7 @@ impl Block for BlockService {
         let transaction = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
 
         Ok(Response::new(TxByIdReply {
-            transaction: Some(transaction.to_owned()),
+            transaction: Some(transaction),
         }))
     }
 

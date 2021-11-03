@@ -1,4 +1,4 @@
-site_name: Champ
+site_name: champ
 nav:
   - Home: "index.md"
   - Overview: "overview.md"

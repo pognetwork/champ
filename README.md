@@ -14,4 +14,5 @@
 ├── node # pog node application
 └── wallet # simple wallet (native) </pre></big>
 
-For further information, check out our [`documentation`](https://pog.network/champ)
+For further information, check out our [`Documentation`](https://pog.network/champ)
+or our [`Getting Started Guide`](https://pog.network/champ)
