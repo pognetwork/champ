@@ -38,7 +38,7 @@ pub struct Config {
     pub admin: Admin,
 
     #[serde(default = "default_accounts", serialize_with = "toml::ser::tables_last")]
-    pub admin_accounts: BTreeMap<String, UserAccount>,
+    pub node_users: BTreeMap<String, UserAccount>,
 
     #[serde(default = "default_database")]
     pub database: DatabaseConfig,
@@ -53,8 +53,9 @@ pub struct Config {
     pub config_path: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct UserAccount {
+    pub permissions: Vec<String>,
     pub user_id: String,
     pub password_hash: String,
 }
@@ -70,7 +71,8 @@ pub struct Admin {
 
 impl Config {
     fn get_default_data_path() -> Result<PathBuf> {
-        let project_dir = directories::ProjectDirs::from("network", "pog", "champ").expect("failed to create data dir");
+        let project_dir =
+            directories::ProjectDirs::from("network", "pog", "champ").expect("failed to create data dir");
         let data_dir = project_dir.data_dir();
         std::fs::create_dir_all(data_dir)?;
         Ok(data_dir.to_path_buf())
@@ -112,7 +114,7 @@ impl Config {
         self.config_path = config_path.to_str().map(|p| p.to_string());
         self.database = config.database.clone();
         self.admin = config.admin;
-        self.admin_accounts = config.admin_accounts;
+        self.node_users = config.node_users;
 
         self.data_path = if let Some(path) = config.database.path {
             let path = path.parse::<PathBuf>()?;

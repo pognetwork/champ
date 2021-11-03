@@ -10,8 +10,8 @@ pub enum JWTError {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct Claims {
-    sub: String,
+pub struct Claims {
+    pub sub: String,
     iat: u64,
     exp: u64,
     iss: String,
@@ -38,17 +38,17 @@ pub fn create(user_id: &str, expires_in_seconds: u64, private_key: &[u8]) -> Res
     Ok(token.as_str().to_string())
 }
 
-pub fn verify(token: &str, public_key: &[u8]) -> Result<(), JWTError> {
+pub fn verify(token: &str, public_key: &[u8]) -> Result<Claims, JWTError> {
     let validation = Validation::new(Algorithm::ES256);
 
-    jsonwebtoken::decode::<Claims>(
+    let claims = jsonwebtoken::decode::<Claims>(
         token,
         &DecodingKey::from_ec_pem(public_key).map_err(|e| JWTError::Unknown(e.to_string()))?,
         &validation,
     )
     .map_err(|e| JWTError::Unknown(e.to_string()))?;
 
-    Ok(())
+    Ok(claims.claims)
 }
 
 #[cfg(test)]

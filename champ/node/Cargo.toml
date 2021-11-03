@@ -1,6 +1,6 @@
 [package]
 authors = ["The POG Contributors <contact@pog.network>"]
-edition = "2018"
+edition = "2021"
 name = "champ-node"
 
 publish = false
@@ -9,13 +9,14 @@ version = "0.0.8"
 [dependencies]
 anyhow = "1.0"
 async-trait = "0.1"
-clap = "3.0.0-beta.4"
+clap = "3.0.0-beta.5"
 crypto = {path = "../lib/crypto"}
 directories = "4.0"
 encoding = {path = "../lib/encoding"}
-futures = "0.3.15"
+futures = "0.3"
 hyper = "0.14"
-path-absolutize = "3.0.11"
+pog-jwt = {path = "../lib/jwt"}
+path-absolutize = "3.0"
 pog-proto = {git = "https://github.com/pognetwork/proto"}
 prost = "0.8"
 roughtime = {path = "../lib/roughtime"}
@@ -25,7 +26,7 @@ tokio = {version = "1.0", features = ["macros", "rt-multi-thread"]}
 toml = "0.5"
 tonic = {version = "0.5", features = ["transport", "prost"]}
 tonic-web = "0.1"
-tower = "0.4.8"
+tower = "0.4"
 
 # /STORAGE
 rocksdb = {version = "0.17", optional = true}

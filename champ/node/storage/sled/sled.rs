@@ -1,8 +1,12 @@
+use std::convert::TryInto;
+
 use crate::storage::{Database, DatabaseConfig, DatabaseError};
 use anyhow::Result;
 use async_trait::async_trait;
-use pog_proto::api;
-use sled;
+use pog_proto::api::{self, AccountID, BlockID};
+use prost::Message;
+use sled::Transactional;
+use sled::{self};
 
 #[derive(Debug)]
 pub struct SledDB {
@@ -30,23 +34,30 @@ impl SledDB {
         let accounts = db.open_tree("accounts")?;
         // accounts contain:
         //
-        // key: account_id + "_lastblk"
+        // key: account_id + "_last_blk"
         // val: latest block id
+        //
+        // key: account_id + "_rep"
+        // val: representative account_id
 
         let blocks = db.open_tree("blocks")?;
         // blocks contain:
         //
-        // key: "blk_" + account_id + "_" + block_height
+        // key: "by_id_" + block_id
+        // key: "by_acc_" + account_id + "_" + block_height
         // val: block proto
 
         // transactions provides a list of transactions as a fast way to get transactions by their transaction id
         let transactions = db.open_tree("transactions")?;
         // transactions contain:
         //
-        // key: "byid_" + transaction_id
+        // key: "by_id_" + transaction_id
         // val: transaction proto
         //
-        // key: "byblk_" + block_id + "block_index"
+        // key: "blk_by_id_" + transaction_id
+        // val: block_id
+        //
+        // key: "by_blk_id_" + block_id + "block_index"
         // val: transaction proto
 
         let meta = db.open_tree("meta")?;
@@ -64,50 +75,220 @@ impl SledDB {
 
 #[async_trait]
 impl Database for SledDB {
-    async fn get_block_by_id(&self, _block_id: api::BlockID) -> Result<&api::Block, DatabaseError> {
-        unimplemented!("")
+    // impl SledDB {
+    async fn get_block_by_id(&self, block_id: api::BlockID) -> Result<api::Block, DatabaseError> {
+        let mut block_key = b"by_id_".to_vec();
+        block_key.append(&mut block_id.to_vec());
+
+        let block = self
+            .blocks
+            .get(block_key)
+            .map_err(|e| DatabaseError::Specific(e.to_string()))?
+            .ok_or_else(|| DatabaseError::Specific("block not found".to_string()))
+            .map_err(|e| DatabaseError::Specific(e.to_string()))?;
+
+        api::Block::decode(&*block.to_vec()).map_err(|e| DatabaseError::Specific(e.to_string()))
     }
 
     async fn get_transaction_by_id(
         &self,
-        _transaction_id: api::TransactionID,
-    ) -> Result<&api::Transaction, DatabaseError> {
-        unimplemented!("method unsupported by database backend")
+        transaction_id: api::TransactionID,
+    ) -> Result<api::Transaction, DatabaseError> {
+        let mut transaction_key = b"by_id_".to_vec();
+        transaction_key.append(&mut transaction_id.to_vec());
+
+        let transaction = self
+            .transactions
+            .get(transaction_key)
+            .map_err(|e| DatabaseError::Specific(e.to_string()))?
+            .ok_or_else(|| DatabaseError::Specific("block not found".to_string()))
+            .map_err(|e| DatabaseError::Specific(e.to_string()))?;
+
+        api::Transaction::decode(&*transaction.to_vec()).map_err(|e| DatabaseError::Specific(e.to_string()))
     }
 
-    async fn get_latest_block_by_account(&self, _account_id: api::AccountID) -> Result<&api::Block, DatabaseError> {
-        unimplemented!("method unsupported by database backend")
+    async fn get_latest_block_by_account(&self, account_id: api::AccountID) -> Result<api::Block, DatabaseError> {
+        let mut last_block_key = account_id.to_vec();
+        last_block_key.append(&mut b"_last_blk".to_vec());
+
+        let latest_block_id: BlockID = self
+            .accounts
+            .get(last_block_key)
+            .map_err(|e| DatabaseError::Specific(e.to_string()))?
+            .ok_or_else(|| DatabaseError::Specific("block not found".to_string()))
+            .map_err(|e| DatabaseError::Specific(e.to_string()))?
+            .to_vec()
+            .try_into()
+            .map_err(|_| DatabaseError::Specific("invalid block id".to_string()))?;
+
+        let mut block_key = b"by_id_".to_vec();
+        block_key.append(&mut latest_block_id.to_vec());
+
+        let block = self
+            .blocks
+            .get(block_key)
+            .map_err(|e| DatabaseError::Specific(e.to_string()))?
+            .ok_or_else(|| DatabaseError::Specific("block not found".to_string()))
+            .map_err(|e| DatabaseError::Specific(e.to_string()))?;
+
+        api::Block::decode(&*block.to_vec()).map_err(|e| DatabaseError::Specific(e.to_string()))
     }
 
-    async fn add_block(&mut self, _block: api::Block) -> Result<(), DatabaseError> {
-        unimplemented!("method unsupported by database backend")
+    async fn add_block(&mut self, block: api::Block) -> Result<(), DatabaseError> {
+        let block_data = block.data.clone().expect("block should have valid data");
+        let block_id = block.get_id().map_err(|e| DatabaseError::Specific(e.to_string()))?;
+        let account_id = encoding::account::generate_account_address(block.public_key.clone())
+            .map_err(|_| DatabaseError::Specific("account ID could not be generated".to_string()))?;
+
+        let res: sled::transaction::TransactionResult<()> = (&self.accounts, &self.blocks, &self.transactions)
+            .transaction(|(accounts, blocks, transactions)| {
+                let mut block_key = b"by_id_".to_vec();
+                block_key.append(&mut block_id.to_vec());
+
+                // Set as latest block
+                let mut account_key = account_id.to_vec();
+                account_key.append(&mut b"_last_blk".to_vec());
+                accounts.insert(account_key, &block_id.clone())?;
+
+                // Add Block
+                blocks.insert(block_key, block.encode_to_vec())?;
+
+                // Add Block Transactions
+                let mut batch = sled::Batch::default();
+                for (i, tx) in block_data.transactions.iter().enumerate() {
+                    let tx_data = tx.data.clone().expect("transaction should have valid data");
+
+                    // Set representative
+                    if let api::transaction::Data::TxDelegate(tx) = tx_data {
+                        let mut account_rep_key = b"rep_".to_vec();
+                        account_rep_key.append(&mut account_id.to_vec());
+                        accounts.insert(account_rep_key, tx.representative)?;
+                    }
+
+                    let transaction_id = match tx.get_id(block_id) {
+                        Ok(x) => x,
+                        Err(_) => return sled::transaction::abort(()),
+                    };
+
+                    let tx = tx.encode_to_vec();
+
+                    // "by_id_" + transaction_id
+                    let mut tx_key = b"by_id_".to_vec();
+                    tx_key.append(&mut transaction_id.into());
+                    batch.insert(tx_key, tx.clone());
+
+                    // "by_id_" + transaction_id + "_blk"
+                    let mut tx_key = b"blk_by_id_".to_vec();
+                    tx_key.append(&mut transaction_id.into());
+                    batch.insert(tx_key, &block_id);
+
+                    // "by_blk_id_" + block_id + "block_index"
+                    let mut tx_key = b"by_blk_id_".to_vec();
+                    tx_key.append(&mut block_id.into());
+                    tx_key.append(&mut i.to_be_bytes().into());
+                    batch.insert(tx_key, tx);
+                }
+                transactions.apply_batch(&batch)?;
+
+                Ok(())
+            });
+
+        res.map_err(|_| DatabaseError::DBInsertFailed(line!()))
     }
 
     async fn get_block_by_height(
         &self,
-        _account_id: api::AccountID,
-        _block_height: &u64,
-    ) -> Result<Option<&api::Block>, DatabaseError> {
-        unimplemented!("method unsupported by database backend")
+        account_id: api::AccountID,
+        block_height: &u64,
+    ) -> Result<Option<api::Block>, DatabaseError> {
+        let mut block_key = b"by_acc_".to_vec();
+        block_key.append(&mut account_id.into());
+        block_key.append(&mut b"_".to_vec());
+        block_key.append(&mut block_height.to_be_bytes().into());
+
+        let block = self.blocks.get(block_key).map_err(|e| DatabaseError::Specific(e.to_string()))?;
+
+        let block = match block {
+            Some(block) => block,
+            None => return Ok(None),
+        };
+
+        api::Block::decode(&*block.to_vec()).map(Some).map_err(|e| DatabaseError::Specific(e.to_string()))
     }
 
-    async fn get_account_delegate(&self, _account_id: api::AccountID) -> Result<Option<api::AccountID>, DatabaseError> {
-        unimplemented!("method unsupported by database backend")
+    async fn get_account_delegate(&self, account_id: api::AccountID) -> Result<Option<api::AccountID>, DatabaseError> {
+        let mut last_block_key = account_id.to_vec();
+        last_block_key.append(&mut b"_rep".to_vec());
+
+        let delegate_id = self.accounts.get(last_block_key).map_err(|e| DatabaseError::Specific(e.to_string()))?;
+        let delegate_id: AccountID = match delegate_id {
+            Some(delegate) => {
+                delegate.to_vec().try_into().map_err(|_| DatabaseError::Specific("invalid account id".to_string()))?
+            }
+            None => return Ok(None),
+        };
+
+        Ok(Some(delegate_id))
     }
 
-    async fn get_delegates_by_account(
-        &self,
-        _account_id: api::AccountID,
-    ) -> Result<Vec<api::AccountID>, DatabaseError> {
-        unimplemented!("method unsupported by database backend")
+    // TODO: THIS IS NOT OPTIMIZED FOR PERFORMANCE AND BASED ON
+    // OUR MOCK DATABASE CODE! BEWARE! HERE BE DRAGONS!
+    async fn get_delegates_by_account(&self, account_id: api::AccountID) -> Result<Vec<api::AccountID>, DatabaseError> {
+        let mut delegated_accounts = std::collections::HashSet::new();
+
+        let stuff = self.transactions.scan_prefix(b"blk_by_id_").rev().filter_map(|res| {
+            let (key, value) = res.ok()?;
+            let tx = api::Transaction::decode(&*value.to_vec()).ok()?;
+            let blk_id: BlockID = key[10..].try_into().ok()?;
+            Some((blk_id, tx))
+        });
+
+        for (blk_id, tx) in stuff {
+            let blk = self.get_block_by_id(blk_id).await?;
+            let tx_acc = encoding::account::generate_account_address(blk.public_key.clone())
+                .map_err(|_| DatabaseError::Specific("account ID could not be generated".to_string()))?;
+
+            if let Some(api::transaction::Data::TxDelegate(delegate_tx)) = &tx.data {
+                if delegate_tx.representative == account_id {
+                    // only the latest transaction counts per account
+                    if delegated_accounts.contains(&tx_acc) {
+                        continue;
+                    }
+                    delegated_accounts.insert(tx_acc);
+                }
+            }
+        }
+
+        Ok(delegated_accounts.into_iter().collect())
     }
 
+    // TODO: THIS IS NOT OPTIMIZED FOR PERFORMANCE AND BASED ON
+    // OUR MOCK DATABASE CODE! BEWARE! HERE BE DRAGONS!
     async fn get_latest_block_by_account_before(
         &self,
-        _account_id: api::AccountID,
-        _unix_from: u64,
-        _unix_limit: u64,
-    ) -> Result<Option<&api::Block>, DatabaseError> {
-        unimplemented!("method unsupported by database backend")
+        account_id: api::AccountID,
+        unix_from: u64,
+        unix_limit: u64,
+    ) -> Result<Option<api::Block>, DatabaseError> {
+        self.blocks
+            .scan_prefix(b"by_id_")
+            // reverse to make it faster for newer blocks
+            .rev()
+            .find_map(|res| {
+                let (_, value) = res.ok()?;
+                let block = api::Block::decode(&*value.to_vec()).ok()?;
+                let block_account_id = encoding::account::generate_account_address(block.public_key.clone()).ok()?;
+
+                if block_account_id == account_id {
+                    if block.timestamp < unix_limit {
+                        return Some(None);
+                    }
+                    if block.timestamp < unix_from {
+                        return Some(Some(block));
+                    }
+                }
+                None
+            })
+            .ok_or(DatabaseError::Unknown)
     }
 }

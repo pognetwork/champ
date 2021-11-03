@@ -298,6 +298,7 @@ dependencies = [
  "futures",
  "hyper",
  "path-absolutize",
+ "pog-jwt",
  "pog-proto",
  "prost",
  "rocksdb",
@@ -1733,8 +1734,8 @@ dependencies = [
 [[package]]
 name = "pog-proto"
 version = "0.1.0"
-source = "git+https://github.com/pognetwork/proto#38a209b1397fdee60d7436f741a681a7eee7a2c0"
-dependencies = [
+source = "git+https://github.com/pognetwork/proto#768890052197d9e18231fa618d193ec34d14ffae"
+iidependencies = [
  "bytes",
  "prost",
  "sha3",
