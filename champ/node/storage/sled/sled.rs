@@ -233,7 +233,10 @@ impl Database for SledDB {
 
     // TODO: THIS IS NOT OPTIMIZED FOR PERFORMANCE AND BASED ON
     // OUR MOCK DATABASE CODE! BEWARE! HERE BE DRAGONS!
-    async fn get_delegates_by_account(&self, account_id: api::AccountID) -> Result<Vec<api::AccountID>, DatabaseError> {
+    async fn get_delegates_by_account(
+        &self,
+        account_id: api::AccountID,
+    ) -> Result<Vec<api::AccountID>, DatabaseError> {
         let mut delegated_accounts = std::collections::HashSet::new();
 
         let stuff = self.transactions.scan_prefix(b"blk_by_id_").rev().filter_map(|res| {
