@@ -15,7 +15,7 @@ pub fn balance_graph(balance: u64) -> f64 {
     NORMALIZED_MAX_POW / (1.0 + E.powf((balance as f64 / -5.0) + NORMALIZED_MAX_POW))
 }
 
-pub fn tx_graph(block_height: u64, new_block: &Block, old_block: Option<&Block>) -> f64 {
+pub fn block_graph(block_height: u64, new_block: &Block, old_block: Option<&Block>) -> f64 {
     let old_block_time = match old_block {
         Some(b) => b.timestamp,
         None => new_block.timestamp,
@@ -30,10 +30,10 @@ pub fn tx_graph(block_height: u64, new_block: &Block, old_block: Option<&Block>)
 
     // x is the nr of tx based on the account life in weeks
     // https://www.geogebra.org/calculator/ymkv5ew6
-    let tx_per_week = (time / block_height as f64) / WEEK_IN_SECONDS;
+    let blocks_per_week = (time / block_height as f64) / WEEK_IN_SECONDS;
     // this is between 0 and 1 where plateau starts at 0.5
-    let graph_result = 1.0 / (tx_per_week / (PLATEAU_SIZE / 2.0) - 1.0).powi(2 * TX_CURVE_MAX) + 1.0;
-    // to normalize tx graph and balanc graph
+    let graph_result = 1.0 / (blocks_per_week / (PLATEAU_SIZE / 2.0) - 1.0).powi(2 * TX_CURVE_MAX) + 1.0;
+    // to normalize tx graph and balance graph
     graph_result * 10.0
 }
 
