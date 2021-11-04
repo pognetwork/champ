@@ -18,4 +18,6 @@
 └── wallet # simple wallet (native) </pre></big>
 
 For further information, check out our [`Documentation`](https://pog.network/champ)
-or our [`Getting Started Guide`](https://pog.network/champ)
+or our [`Getting Started Guide`](https://pog.network/champ/developers/setup).
+
+A list of all contributors and their specific contributions to this project is also available at [`pog.network/contributors`](https://pog.network/contributors)
