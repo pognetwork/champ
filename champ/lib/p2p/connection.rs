@@ -59,6 +59,7 @@ impl Connection {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use libp2p::futures::StreamExt;
     use serial_test::serial;
 
     #[tokio::test]
@@ -107,6 +108,30 @@ mod tests {
             let mut framed = FramedWrite::new(stream, LengthDelimitedCodec::new());
             framed.send(buffer.clone()).await.unwrap();
             framed.flush().await.unwrap(); //this flush is probably unnecessary
+        });
+
+        let result = read_handle.await.unwrap();
+        write_handle.await.unwrap();
+
+        assert_eq!(expected, result.to_owned())
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn write_frame() {
+        let address = "127.0.0.1:7890";
+        let buffer: Bytes = Bytes::from_static(b"testdata");
+        let expected = buffer.clone();
+
+        let read_handle = tokio::spawn(async move {
+            let (stream, _) = TcpListener::bind(address).await.unwrap().accept().await.unwrap();
+            let mut framed = FramedRead::new(stream, LengthDelimitedCodec::new());
+            framed.next().await.unwrap().unwrap()
+        });
+
+        let write_handle = tokio::spawn(async move {
+            let mut connection = Connection::connect(address).await.unwrap();
+            connection.write(buffer).await.unwrap()
         });
 
         let result = read_handle.await.unwrap();
