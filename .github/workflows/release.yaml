@@ -123,7 +123,7 @@ jobs:
 
       - name: Build wasm
         working-directory: ./champ/lib/champ-wasm
-        run: wasm-pack build --scope pognetwork --release
+        run: wasm-pack build --scope pognetwork --release --target web
 
       - name: Publish wasm
         working-directory: ./champ/lib/champ-wasm

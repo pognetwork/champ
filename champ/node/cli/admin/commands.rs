@@ -4,7 +4,7 @@ use crate::{
 };
 
 use clap::ArgMatches;
-use crypto::curves::ecdsa;
+use crypto::signatures::ecdsa;
 
 pub async fn run(matches: &ArgMatches, state: &ChampStateArc) -> Result<(), CLIError> {
     if let Some(matches) = matches.subcommand_matches("create-user") {

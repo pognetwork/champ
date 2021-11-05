@@ -5,7 +5,7 @@ pog-wasm exposes champ's wallet generation and decryption/encryption to JavaScri
 ## Usage
 
 ```ts
-import { Wallet } from "champ-wasm";
+import { Wallet } from "@pognetwork/champ-wasm";
 
 const wallet = Wallet.generate("hunter2");
 const unlockedWallet = Wallet.unlock(wallet, "hunter2");

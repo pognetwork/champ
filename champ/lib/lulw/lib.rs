@@ -2,7 +2,7 @@ mod versions;
 use std::convert::TryInto;
 
 use base64::{decode, encode};
-use crypto::aead::{decrypt, encrypt};
+use crypto::aead::chacha::{decrypt, encrypt};
 use thiserror::Error;
 use versions::v0::{Cipher, CipherParams, CryptoOptions, KDFParams, Lulw, KDF};
 
@@ -32,7 +32,7 @@ pub enum WalletError {
 
 pub fn generate_wallet(password: String) -> Result<String, WalletError> {
     let (ciphertext, salt, nonce) = {
-        let private_key: Vec<u8> = crypto::curves::curve25519::generate_private_key()
+        let private_key = crypto::signatures::ed25519::generate_private_key()
             .map_err(|e| WalletError::GeneratePrivateKeyError(e.to_string()))?;
 
         encrypt(&private_key, password.as_bytes()).map_err(|e| WalletError::EncryptionError(e.to_string()))?
@@ -92,7 +92,7 @@ pub fn unlock_wallet(wallet: &str, password: String) -> Result<Vec<u8>, WalletEr
         .try_into()
         .map_err(|_| WalletError::DecodeError("salt".to_string()))?;
 
-    let nonce: [u8; 12] = decode(wallet.crypto.cipherparams.nonce)
+    let nonce: [u8; 24] = decode(wallet.crypto.cipherparams.nonce)
         .map_err(|_| WalletError::DecodeError("nonce".to_string()))?
         .try_into()
         .map_err(|_| WalletError::DecodeError("nonce".to_string()))?;

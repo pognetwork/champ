@@ -2,7 +2,7 @@ use crate::state::ChampStateArc;
 use crate::storage;
 
 use anyhow::Result;
-use crypto::{self, curves::curve25519::verify_signature};
+use crypto::{self, signatures::ed25519::verify_signature};
 use encoding::account::generate_account_address;
 use pog_proto::api::{
     transaction::{Data, TxClaim},
