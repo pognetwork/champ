@@ -1,9 +1,7 @@
 use base64::encode;
-use ring::rand::{SecureRandom, SystemRandom};
+use rand::{thread_rng, Rng};
 
 pub fn generate() -> Result<String, String> {
-    let rand = SystemRandom::new();
-    let mut id: [u8; 16] = [0; 16];
-    rand.fill(&mut id).map_err(|_| "error getting random data".to_string())?;
+    let id: [u8; 16] = thread_rng().gen();
     Ok(encode(id))
 }
