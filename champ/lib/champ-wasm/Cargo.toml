@@ -13,9 +13,6 @@ lulw = {path = "../lulw"}
 parking_lot_core = "0.8.0"
 wasm-bindgen = "0.2.78"
 
-[profile.release]
-opt-level = "s"
-
 [dev-dependencies]
 wasm-bindgen-test = "0.3"
 
