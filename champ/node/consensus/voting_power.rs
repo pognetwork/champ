@@ -7,6 +7,7 @@ use pog_proto::api;
 // To balance each graph
 const BLOCK_WEIGHT: f64 = 1.2;
 const BALANCE_WEIGHT: f64 = 0.5;
+const OUTFLOW_WEIGHT: f64 = 1.0;
 const AGE_WEIGHT: f64 = 1.0;
 
 // so we can normalize the network affect
@@ -37,6 +38,15 @@ pub async fn get_actual_power(state: &ChampStateArc, account_id: api::AccountID)
     // First Block from an account
     let first_block = db.get_block_by_height(account_id, &0).await?.ok_or_else(|| anyhow!("no block found"))?;
 
+    let new_block_balance = data.balance;
+    let old_block_balance = old_block_result
+        .clone()
+        .ok_or_else(|| anyhow!("block not found"))?
+        .data
+        .ok_or_else(|| anyhow!("block data not found"))?
+        .balance;
+
+    let oresult = cashflow_graph(new_block_balance, old_block_balance);
     let bresult = balance_graph(data.balance);
     let bbresult = block_graph(data.height, &block, old_block_result.as_ref());
     let aresult = age_graph(block.timestamp - first_block.timestamp);
@@ -44,7 +54,8 @@ pub async fn get_actual_power(state: &ChampStateArc, account_id: api::AccountID)
     // TODO: Green Adresses?
 
     // Weights to change how much impact each factor should have
-    let graph_result = bbresult * BLOCK_WEIGHT + bresult * BALANCE_WEIGHT + aresult * AGE_WEIGHT;
+    let graph_result =
+        bbresult * BLOCK_WEIGHT + bresult * BALANCE_WEIGHT + aresult * AGE_WEIGHT + oresult * OUTFLOW_WEIGHT;
 
     let result = if graph_result < 0.0 {
         0
