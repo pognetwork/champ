@@ -5,21 +5,17 @@ use crate::state::ChampStateArc;
 use crate::storage;
 
 use pog_proto::api;
-use pog_proto::rpc::account::{
-    BalanceReply, BalanceRequest, BlockByIdReply, BlockByIdRequest, BlockHeightReply, BlockHeightRequest,
-    DelegateReply, DelegateRequest, Empty, PendingBlockReply, TxByIdReply, TxByIdRequest, TxByIndexReply,
-    TxByIndexRequest, UnacknowledgedTxReply, VotingPowerReply, VotingPowerRequest,
-};
+use pog_proto::rpc::block::*;
 
-pub use pog_proto::rpc::account::account_server::{Account, AccountServer};
+pub use pog_proto::rpc::block::block_server::{Block, BlockServer};
 
 use tonic::{Request, Response, Status};
 #[derive(Debug)]
-pub struct AccountService {
+pub struct BlockService {
     pub state: ChampStateArc,
 }
 
-impl AccountService {
+impl BlockService {
     pub fn new(state: ChampStateArc) -> Self {
         Self {
             state,
@@ -28,7 +24,7 @@ impl AccountService {
 }
 
 #[tonic::async_trait]
-impl Account for AccountService {
+impl Block for BlockService {
     async fn get_balance(&self, request: Request<BalanceRequest>) -> Result<Response<BalanceReply>, Status> {
         // We must use .into_inner() as the fields of gRPC requests and responses are private
         let address: api::AccountID = match request.into_inner().address.try_into() {
@@ -112,7 +108,7 @@ impl Account for AccountService {
         let block = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
 
         Ok(Response::new(BlockByIdReply {
-            block: Some(block.to_owned()),
+            block: Some(block),
         }))
     }
 
@@ -128,7 +124,7 @@ impl Account for AccountService {
         };
 
         let db_response = db.get_account_delegate(address).await;
-        let response = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
+        let response = db_response.map_err(|_| Status::new(tonic::Code::Internal, "internal server error"))?;
 
         match &response {
             Some(address) => Ok(Response::new(DelegateReply {
@@ -165,7 +161,7 @@ impl Account for AccountService {
         let transaction = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
 
         Ok(Response::new(TxByIdReply {
-            transaction: Some(transaction.to_owned()),
+            transaction: Some(transaction),
         }))
     }
 

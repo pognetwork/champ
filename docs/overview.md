@@ -1,1 +1,0 @@
-![techstack](./techstack.drawio.svg)

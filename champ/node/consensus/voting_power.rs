@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 
-use crate::consensus::graphs;
+use crate::consensus::graphs::*;
 use crate::state::ChampStateArc;
 use pog_proto::api;
 
@@ -37,9 +37,9 @@ pub async fn get_actual_power(state: &ChampStateArc, account_id: api::AccountID)
     // First Block from an account
     let first_block = db.get_block_by_height(account_id, &0).await?.ok_or_else(|| anyhow!("no block found"))?;
 
-    let bresult = graphs::balance_graph(data.balance);
-    let hresult = graphs::tx_graph(data.height, block, old_block_result);
-    let aresult = graphs::age_graph(block.timestamp - first_block.timestamp);
+    let bresult = balance_graph(data.balance);
+    let hresult = tx_graph(data.height, &block, old_block_result.as_ref());
+    let aresult = age_graph(block.timestamp - first_block.timestamp);
 
     // TODO: Green Adresses?
 
@@ -79,6 +79,7 @@ pub async fn get_active_power(state: &ChampStateArc, account_id: api::AccountID)
     }
     Ok(total_power)
 }
+
 /// Gets the max voting power in the system and sets a limit of a percentage
 fn get_max_voting_power() -> u32 {
     //TODO: Get all voting power in the system

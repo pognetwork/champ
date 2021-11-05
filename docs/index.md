@@ -1,41 +1,5 @@
----
-title: Getting Started
-template: main.html
----
+## Welcome to `champ`'s documentation!
 
-## Getting Started
+#### This documentation is seperated into two parts, [**developers**](./developers/setup) and [**operators**](./operators/installation).
 
-### 1. Install Requirements
-
-#### Development
-
-- [`rust` >= `1.55.x`](https://rustup.rs/)
-- `just` >= `0.10.x` &nbsp;(`$ cargo install just`)
-- build tools ([windows](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2019))
-
-<br>
-
-Required for using RocksDB (`--features backend-rocksdb`):
-
-- `clang`/`llvm` ([windows](https://llvm.org/builds/))
-
-### 2. Clone Repo
-
-```bash
-$ git clone https://github.com/pognetwork/champ.git && cd champ
-```
-
-## Development
-
-### List all Commands
-
-```bash
-$ just
-```
-
-### Run node/wallet
-
-```
-$ just node
-$ just wallet
-```
+The developer documentation is primarily aimed at people who already have development experience and wish to modify, contribute and interact with the project while our operator documentation provides a startingpoint for getting a node up and running and interacting with and securing it.

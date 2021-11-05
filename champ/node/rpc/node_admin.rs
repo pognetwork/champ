@@ -1,19 +1,17 @@
-use pog_proto::rpc::admin::{
-    admin_server::Admin, Empty, GetBlockPoolSizeReply, GetChainReply, GetChainRequest, GetLogsReply, GetLogsRequest,
-    GetModeReply, GetModeRequest, GetNodeNameReply, GetNodeStatusReply, GetNodeStatusRequest, GetPeersRequest,
-    GetPeersResponse, GetPendingBlocksReply, GetPendingBlocksRequest, GetVersionResponse, SetModeReply, SetModeRequest,
-    SetNodeNameRequest, UpgradeNodeRequest, UpgradeNodeResponse,
-};
+use crate::auth::permissions::verify_perms;
+use pog_proto::rpc::node_admin::*;
 use tonic::{Response, Status};
 
 use crate::state::ChampStateArc;
 
+pub use pog_proto::rpc::node_admin::node_admin_server::{NodeAdmin, NodeAdminServer};
+
 #[derive(Debug)]
-pub struct AdminService {
+pub struct NodeAdminService {
     pub state: ChampStateArc,
 }
 
-impl AdminService {
+impl NodeAdminService {
     pub fn new(state: ChampStateArc) -> Self {
         Self {
             state,
@@ -24,7 +22,7 @@ impl AdminService {
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[tonic::async_trait]
-impl Admin for AdminService {
+impl NodeAdmin for NodeAdminService {
     async fn get_peers(
         &self,
         _request: tonic::Request<GetPeersRequest>,
@@ -33,8 +31,9 @@ impl Admin for AdminService {
     }
     async fn get_version(
         &self,
-        _request: tonic::Request<Empty>,
+        request: tonic::Request<Empty>,
     ) -> Result<tonic::Response<GetVersionResponse>, tonic::Status> {
+        verify_perms(&request, "admin.read")?;
         Ok(Response::new(GetVersionResponse {
             version: VERSION.to_string(),
         }))
@@ -53,8 +52,9 @@ impl Admin for AdminService {
     }
     async fn get_block_pool_size(
         &self,
-        _request: tonic::Request<Empty>,
+        request: tonic::Request<Empty>,
     ) -> Result<tonic::Response<GetBlockPoolSizeReply>, tonic::Status> {
+        verify_perms(&request, "admin.read")?;
         Ok(Response::new(GetBlockPoolSizeReply {
             length: self
                 .state
@@ -95,6 +95,7 @@ impl Admin for AdminService {
         &self,
         request: tonic::Request<SetNodeNameRequest>,
     ) -> Result<tonic::Response<Empty>, tonic::Status> {
+        verify_perms(&request, "admin.write")?;
         let new_name = request.into_inner().new_name;
         let mut config = self.state.config.write().await;
         config.admin.node_name = new_name;

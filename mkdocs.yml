@@ -1,5 +1,12 @@
-site_name: Champ
+site_name: champ
 nav:
-  - Home: "index.md"
-  - Overview: "overview.md"
-  - RPC API: "rpc-api.md"
+  - Overview: "index.md"
+  - Developers:
+      - Getting Started: "developers/setup.md"
+      - Overview: "developers/overview.md"
+      - RPC API: "developers/rpc-api.md"
+      - CI/CD: "developers/cicd.md"
+      - Voting: "developers/voting.md"
+  - Operators:
+      - Installation: "operators/installation.md"
+      - Security: "operators/security.md"

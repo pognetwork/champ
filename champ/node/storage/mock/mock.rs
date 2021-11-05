@@ -10,7 +10,7 @@ use std::{
 #[derive(Default, Debug)]
 pub struct MockDB {
     blocks: BTreeMap<api::BlockID, (api::Block, api::AccountID)>,
-    accounts: HashMap<api::AccountID, (api::PublicAccount, Vec<api::BlockID>, Vec<api::TransactionID>)>,
+    accounts: HashMap<api::AccountID, (api::Account, Vec<api::BlockID>, Vec<api::TransactionID>)>,
     transactions: BTreeMap<api::TransactionID, (api::Transaction, api::AccountID)>,
 }
 
@@ -34,19 +34,19 @@ impl Database for MockDB {
         Ok(())
     }
 
-    async fn get_block_by_id(&self, block_id: api::BlockID) -> Result<&api::Block, DatabaseError> {
+    async fn get_block_by_id(&self, block_id: api::BlockID) -> Result<api::Block, DatabaseError> {
         let (block, _) = self.blocks.get(&block_id).ok_or(DatabaseError::Unknown)?;
-        Ok(block)
+        Ok(block.to_owned())
     }
 
     async fn get_transaction_by_id(
         &self,
         transaction_id: api::TransactionID,
-    ) -> Result<&api::Transaction, DatabaseError> {
-        self.transactions.get(&transaction_id).ok_or(DatabaseError::Unknown).map(|(tx, _)| tx)
+    ) -> Result<api::Transaction, DatabaseError> {
+        self.transactions.get(&transaction_id).ok_or(DatabaseError::Unknown).map(|(tx, _)| tx.to_owned())
     }
 
-    async fn get_latest_block_by_account(&self, account_id: api::AccountID) -> Result<&api::Block, DatabaseError> {
+    async fn get_latest_block_by_account(&self, account_id: api::AccountID) -> Result<api::Block, DatabaseError> {
         let (_account, blocks, _txs) = self.accounts.get(&account_id).ok_or(DatabaseError::Unknown)?;
 
         let last_block_id = blocks.last().ok_or(DatabaseError::NoLastBlock)?;
@@ -68,10 +68,12 @@ impl Database for MockDB {
             self.accounts.insert(
                 account_id,
                 (
-                    api::PublicAccount {
+                    api::Account {
                         r#type: 0,
                         address: account_id.to_vec(),
                         voting_power: 0,
+                        public_key: vec![],
+                        private_key: vec![],
                     },
                     vec![],
                     vec![],
@@ -107,14 +109,14 @@ impl Database for MockDB {
         &self,
         account_id: api::AccountID,
         block_height: &u64,
-    ) -> Result<Option<&api::Block>, DatabaseError> {
+    ) -> Result<Option<api::Block>, DatabaseError> {
         self.blocks
             .iter()
             // reverse to make it faster for newer blocks
             .rev()
             .find_map(|(_, (block, account))| { //TODO: check this returns none if nothing was found
                 if matches!(block.to_owned().data, Some(block_data) if *account == account_id && &block_data.height == block_height) {
-                    Some(Some(block))
+                    Some(Some(block.to_owned()))
                 } else {
                     None
                 }
@@ -146,7 +148,10 @@ impl Database for MockDB {
         Ok(Some(d))
     }
 
-    async fn get_delegates_by_account(&self, account_id: api::AccountID) -> Result<Vec<api::AccountID>, DatabaseError> {
+    async fn get_delegates_by_account(
+        &self,
+        account_id: api::AccountID,
+    ) -> Result<Vec<api::AccountID>, DatabaseError> {
         let mut delegated_accounts = HashSet::new();
 
         self.transactions.iter().rev().for_each(|(_, (tx, tx_acc))| {
@@ -169,7 +174,7 @@ impl Database for MockDB {
         account_id: api::AccountID,
         unix_from: u64,
         unix_limit: u64,
-    ) -> Result<Option<&api::Block>, DatabaseError> {
+    ) -> Result<Option<api::Block>, DatabaseError> {
         self.blocks
             .iter()
             // reverse to make it faster for newer blocks
@@ -180,7 +185,7 @@ impl Database for MockDB {
                         return Some(None);
                     }
                     if block.timestamp < unix_from {
-                        return Some(Some(block));
+                        return Some(Some(block.to_owned()));
                     }
                 }
                 None
