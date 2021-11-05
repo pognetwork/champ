@@ -93,6 +93,7 @@ mod tests {
 
     #[tokio::test]
     #[serial]
+    //test establishes a connection and passes when the read data matches the sent data.
     async fn read_frame() {
         let address = "127.0.0.1:7890";
         let buffer: Bytes = Bytes::from_static(b"testdata");
@@ -118,6 +119,7 @@ mod tests {
 
     #[tokio::test]
     #[serial]
+    //test establishes a connection and passes when the written data matches the received data.
     async fn write_frame() {
         let address = "127.0.0.1:7890";
         let buffer: Bytes = Bytes::from_static(b"testdata");
