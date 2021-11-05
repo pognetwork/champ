@@ -2,7 +2,7 @@
 
 We've created a diagram to help understand the general structure of this project:
 
-![techstack](./techstack.drawio.svg)
+[![techstack](./techstack.drawio.svg)](./techstack.drawio.svg)
 
 ## gRPC API
 

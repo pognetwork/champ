@@ -3,6 +3,10 @@ title: Getting Started
 template: main.html
 ---
 
+# Development Setup
+
+> Be sure to also checkout our [diagram covering the software architecture](./overview.md) and our [specification](https://pog.network/specification).
+
 ## Getting Started
 
 ### 1. Install Requirements
