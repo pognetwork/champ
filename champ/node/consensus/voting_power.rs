@@ -6,8 +6,8 @@ use pog_proto::api;
 
 // To balance each graph
 const BLOCK_WEIGHT: f64 = 1.2;
-const BALANCE_WEIGHT: f64 = 0.5;
-const OUTFLOW_WEIGHT: f64 = 1.0;
+const BALANCE_WEIGHT: f64 = 0.75;
+const CASHFLOW_WEIGHT: f64 = 1.0;
 const AGE_WEIGHT: f64 = 1.0;
 
 // so we can normalize the network affect
@@ -55,7 +55,7 @@ pub async fn get_actual_power(state: &ChampStateArc, account_id: api::AccountID)
 
     // Weights to change how much impact each factor should have
     let graph_result =
-        bbresult * BLOCK_WEIGHT + bresult * BALANCE_WEIGHT + aresult * AGE_WEIGHT + oresult * OUTFLOW_WEIGHT;
+        bbresult * BLOCK_WEIGHT + bresult * BALANCE_WEIGHT + aresult * AGE_WEIGHT + oresult * CASHFLOW_WEIGHT;
 
     let result = if graph_result < 0.0 {
         0
@@ -100,4 +100,183 @@ fn get_max_voting_power() -> u32 {
     //TODO: Get all voting power of all prime delegates combined
     let total_prime_delegate_power = 100_000_000_f64;
     (total_prime_delegate_power * MAX_NETWORK_POWER) as u32
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::consensus::{
+        graphs::{balance_graph, cashflow_graph},
+        voting_power::BALANCE_WEIGHT,
+        voting_power::CASHFLOW_WEIGHT,
+    };
+    use pog_proto::api::{block::BlockData, Block};
+    #[test]
+    fn check_voting_power() {
+        // Switch on to output debug table
+        const TEST_TABLE_ON: bool = false;
+
+        let blocks = vec![
+            Block {
+                signature: b"signature".to_vec(),
+                public_key: b"key".to_vec(),
+                timestamp: 1,
+                data: Some(BlockData {
+                    version: 0,
+                    signature_type: 0,
+                    balance: 1000,
+                    height: 1,
+                    previous: Some(b"previous".to_vec()),
+                    transactions: vec![],
+                }),
+            },
+            Block {
+                signature: b"signature".to_vec(),
+                public_key: b"key".to_vec(),
+                timestamp: 1,
+                data: Some(BlockData {
+                    version: 0,
+                    signature_type: 0,
+                    balance: 900,
+                    height: 2,
+                    previous: Some(b"previous".to_vec()),
+                    transactions: vec![],
+                }),
+            },
+            Block {
+                signature: b"signature".to_vec(),
+                public_key: b"key".to_vec(),
+                timestamp: 1,
+                data: Some(BlockData {
+                    version: 0,
+                    signature_type: 0,
+                    balance: 300,
+                    height: 3,
+                    previous: Some(b"previous".to_vec()),
+                    transactions: vec![],
+                }),
+            },
+            Block {
+                signature: b"signature".to_vec(),
+                public_key: b"key".to_vec(),
+                timestamp: 1,
+                data: Some(BlockData {
+                    version: 0,
+                    signature_type: 0,
+                    balance: 0,
+                    height: 4,
+                    previous: Some(b"previous".to_vec()),
+                    transactions: vec![],
+                }),
+            },
+            Block {
+                signature: b"signature".to_vec(),
+                public_key: b"key".to_vec(),
+                timestamp: 1,
+                data: Some(BlockData {
+                    version: 0,
+                    signature_type: 0,
+                    balance: 500,
+                    height: 5,
+                    previous: Some(b"previous".to_vec()),
+                    transactions: vec![],
+                }),
+            },
+            Block {
+                signature: b"signature".to_vec(),
+                public_key: b"key".to_vec(),
+                timestamp: 1,
+                data: Some(BlockData {
+                    version: 0,
+                    signature_type: 0,
+                    balance: 400,
+                    height: 6,
+                    previous: Some(b"previous".to_vec()),
+                    transactions: vec![],
+                }),
+            },
+            Block {
+                signature: b"signature".to_vec(),
+                public_key: b"key".to_vec(),
+                timestamp: 1,
+                data: Some(BlockData {
+                    version: 0,
+                    signature_type: 0,
+                    balance: 400,
+                    height: 7,
+                    previous: Some(b"previous".to_vec()),
+                    transactions: vec![],
+                }),
+            },
+            Block {
+                signature: b"signature".to_vec(),
+                public_key: b"key".to_vec(),
+                timestamp: 1,
+                data: Some(BlockData {
+                    version: 0,
+                    signature_type: 0,
+                    balance: 600,
+                    height: 8,
+                    previous: Some(b"previous".to_vec()),
+                    transactions: vec![],
+                }),
+            },
+            Block {
+                signature: b"signature".to_vec(),
+                public_key: b"key".to_vec(),
+                timestamp: 1,
+                data: Some(BlockData {
+                    version: 0,
+                    signature_type: 0,
+                    balance: 1000,
+                    height: 9,
+                    previous: Some(b"previous".to_vec()),
+                    transactions: vec![],
+                }),
+            },
+            Block {
+                signature: b"signature".to_vec(),
+                public_key: b"key".to_vec(),
+                timestamp: 1,
+                data: Some(BlockData {
+                    version: 0,
+                    signature_type: 0,
+                    balance: 900,
+                    height: 10,
+                    previous: Some(b"previous".to_vec()),
+                    transactions: vec![],
+                }),
+            },
+        ];
+        let mut old_data = BlockData {
+            version: 0,
+            signature_type: 0,
+            balance: 0,
+            height: 0,
+            previous: Some(b"some".to_vec()),
+            transactions: vec![],
+        };
+        println!("Old Balance - New Balance  -  Balance I  -  Cashflow I - Total I");
+        for block in blocks {
+            let new_data = match block.data {
+                Some(d) => d,
+                None => BlockData {
+                    version: 0,
+                    signature_type: 0,
+                    balance: 0,
+                    height: 0,
+                    previous: Some(b"some".to_vec()),
+                    transactions: vec![],
+                },
+            };
+            let balance_importance = balance_graph(new_data.balance) * BALANCE_WEIGHT;
+            let cashflow_importance = cashflow_graph(new_data.balance, old_data.balance) * CASHFLOW_WEIGHT;
+            let total_importance = balance_importance + cashflow_importance;
+            println!(
+                "{0} \t|----| {1} \t|----| {2} \t|----| {3} \t|----| {4}",
+                old_data.balance, new_data.balance, balance_importance, cashflow_importance, total_importance
+            );
+            old_data = new_data;
+        }
+        assert_eq!(false, TEST_TABLE_ON);
+    }
 }
