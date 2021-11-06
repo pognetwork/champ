@@ -1,21 +1,32 @@
 use pog_proto::api::Block;
-use std::f64::consts::E;
 
 // so we can normalize the curves
-const NORMALIZED_MAX_POW: f64 = 10.0;
 const TX_CURVE_MAX: i32 = 15;
 const PLATEAU_SIZE: f64 = 350.0;
+// TODO: Add Balance normalization
+const NORMALIZE_BALANCE: f64 = 1.0;
+// TODO: Add Cashflow normalization
+const NORMALIZE_CASHFLOW: f64 = 1.0;
+const INACTIVE_TAX_CUT: f64 = 5.0;
 
 const WEEK_IN_SECONDS: f64 = 60.0 * 60.0 * 24.0 * 7.0;
 
 pub fn balance_graph(balance: u64) -> f64 {
-    // base function that is an Asymptote with Balance
-    // where x is a balance type (tbd)
-    // This tends towards 10, as the balance increases
-    NORMALIZED_MAX_POW / (1.0 + E.powf((balance as f64 / -5.0) + NORMALIZED_MAX_POW))
+    balance as f64 / NORMALIZE_BALANCE
 }
 
-pub fn tx_graph(block_height: u64, new_block: &Block, old_block: Option<&Block>) -> f64 {
+pub fn cashflow_graph(new_block_balance: u64, old_block_balance: u64) -> f64 {
+    let cashflow = new_block_balance as i128 - old_block_balance as i128;
+
+    // Inactive Tax
+    if cashflow == 0 && new_block_balance > 0 {
+        return -(new_block_balance as f64 / NORMALIZE_BALANCE) / INACTIVE_TAX_CUT;
+    }
+
+    -cashflow as f64 / NORMALIZE_CASHFLOW
+}
+
+pub fn block_graph(block_height: u64, new_block: &Block, old_block: Option<&Block>) -> f64 {
     let old_block_time = match old_block {
         Some(b) => b.timestamp,
         None => new_block.timestamp,
@@ -30,10 +41,10 @@ pub fn tx_graph(block_height: u64, new_block: &Block, old_block: Option<&Block>)
 
     // x is the nr of tx based on the account life in weeks
     // https://www.geogebra.org/calculator/ymkv5ew6
-    let tx_per_week = (time / block_height as f64) / WEEK_IN_SECONDS;
+    let blocks_per_week = (time / block_height as f64) / WEEK_IN_SECONDS;
     // this is between 0 and 1 where plateau starts at 0.5
-    let graph_result = 1.0 / (tx_per_week / (PLATEAU_SIZE / 2.0) - 1.0).powi(2 * TX_CURVE_MAX) + 1.0;
-    // to normalize tx graph and balanc graph
+    let graph_result = 1.0 / (blocks_per_week / (PLATEAU_SIZE / 2.0) - 1.0).powi(2 * TX_CURVE_MAX) + 1.0;
+    // to normalize tx graph and balance graph
     graph_result * 10.0
 }
 
