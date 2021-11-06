@@ -4,7 +4,7 @@ edition = "2021"
 name = "lulw"
 
 publish = false
-version = "0.0.8"
+version = "0.0.9"
 
 [dependencies]
 base64 = "0.13"

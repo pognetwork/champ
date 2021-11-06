@@ -4,7 +4,7 @@ edition = "2021"
 name = "log"
 
 publish = false
-version = "0.0.8"
+version = "0.0.9"
 
 [lib]
 path = "lib.rs"

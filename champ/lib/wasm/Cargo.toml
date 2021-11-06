@@ -2,7 +2,7 @@
 authors = ["The POG Contributors <contact@pog.network>"]
 edition = "2021"
 name = "wasm"
-version = "0.0.8"
+version = "0.0.9"
 
 [dependencies]
 anyhow = "1.0"

@@ -4,10 +4,10 @@ edition = "2021"
 name = "encoding"
 
 publish = false
-version = "0.0.8"
+version = "0.0.9"
 
 [dependencies]
-crypto = {path = "../crypto", version = "^0.0.8"}
+crypto = {path = "../crypto", version = "^0.0.9"}
 sha3 = "0.9"
 thiserror = "1.0"
 

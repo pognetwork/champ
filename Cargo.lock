@@ -594,7 +594,7 @@ dependencies = [
 
 [[package]]
 name = "champ-node"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -624,7 +624,7 @@ dependencies = [
 
 [[package]]
 name = "champ-wasm"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "base64 0.13.0",
  "instant",
@@ -933,7 +933,7 @@ checksum = "7a81dae078cea95a014a339291cec439d2f232ebe854a9d672b796c6afafa9b7"
 
 [[package]]
 name = "crypto"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "anyhow",
  "argon2",
@@ -1134,7 +1134,7 @@ checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
 
 [[package]]
 name = "encoding"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "crypto",
  "sha3",
@@ -2411,7 +2411,7 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.0.8"
+version = "0.0.9"
 
 [[package]]
 name = "log"
@@ -2443,7 +2443,7 @@ dependencies = [
 
 [[package]]
 name = "lulw"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "base64 0.13.0",
  "crypto",
@@ -2868,7 +2868,7 @@ dependencies = [
 
 [[package]]
 name = "p2p"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "bytes 1.1.0",
  "libp2p",
@@ -3058,7 +3058,7 @@ checksum = "12295df4f294471248581bc09bef3c38a5e46f1e36d6a37353621a0c6c357e1f"
 
 [[package]]
 name = "pog-jwt"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "base64 0.13.0",
  "jsonwebtoken",
@@ -3080,7 +3080,7 @@ dependencies = [
 
 [[package]]
 name = "pog-wapi"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "anyhow",
 ]
@@ -3621,7 +3621,7 @@ dependencies = [
 
 [[package]]
 name = "roughtime"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4574,7 +4574,7 @@ checksum = "fd6fbd9a79829dd1ad0cc20627bf1ed606756a7f77edff7b66b7064f9cb327c6"
 
 [[package]]
 name = "wasm"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "anyhow",
  "wasmtime",
