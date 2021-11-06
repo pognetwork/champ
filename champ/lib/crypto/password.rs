@@ -3,7 +3,7 @@ use argon2::{
     password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
 };
-use ring::rand::{SecureRandom, SystemRandom};
+use rand::{thread_rng, Rng};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -39,10 +39,7 @@ pub fn verify(password: &[u8], hash: &str) -> Result<(), PasswordError> {
 }
 
 pub fn generate_salt() -> Result<[u8; 16], PasswordError> {
-    let rand = SystemRandom::new();
-
-    let mut salt: [u8; 16] = [0; 16];
-    rand.fill(&mut salt).map_err(|_| PasswordError::RandomFillError)?;
+    let salt: [u8; 16] = thread_rng().gen();
     Ok(salt)
 }
 
