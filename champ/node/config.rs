@@ -43,6 +43,8 @@ pub struct Config {
     #[serde(default = "default_database")]
     pub database: DatabaseConfig,
 
+    pub consensus: ConsensusSettings,
+
     #[serde(skip_serializing)]
     config_path_override: Option<String>,
 
@@ -51,6 +53,19 @@ pub struct Config {
 
     #[serde(skip_serializing)]
     pub config_path: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ConsensusSettings {
+    pub chain: String, // currently only `dev` is supported
+}
+
+impl Default for ConsensusSettings {
+    fn default() -> Self {
+        Self {
+            chain: "dev".to_string(),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

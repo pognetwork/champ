@@ -25,7 +25,7 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 impl NodeAdmin for NodeAdminService {
     async fn get_peers(
         &self,
-        _request: tonic::Request<GetPeersRequest>,
+        _request: tonic::Request<Empty>,
     ) -> Result<tonic::Response<GetPeersResponse>, tonic::Status> {
         unimplemented!()
     }
@@ -41,12 +41,12 @@ impl NodeAdmin for NodeAdminService {
     async fn upgrade_node(
         &self,
         _request: tonic::Request<UpgradeNodeRequest>,
-    ) -> Result<tonic::Response<UpgradeNodeResponse>, tonic::Status> {
+    ) -> Result<tonic::Response<Empty>, tonic::Status> {
         unimplemented!()
     }
     async fn get_pending_blocks(
         &self,
-        _request: tonic::Request<GetPendingBlocksRequest>,
+        _request: tonic::Request<Empty>,
     ) -> Result<tonic::Response<GetPendingBlocksReply>, tonic::Status> {
         unimplemented!()
     }
@@ -66,20 +66,17 @@ impl NodeAdmin for NodeAdminService {
     }
     async fn get_node_status(
         &self,
-        _request: tonic::Request<GetNodeStatusRequest>,
+        _request: tonic::Request<Empty>,
     ) -> Result<tonic::Response<GetNodeStatusReply>, tonic::Status> {
         unimplemented!()
     }
-    async fn get_mode(
-        &self,
-        _request: tonic::Request<GetModeRequest>,
-    ) -> Result<tonic::Response<GetModeReply>, tonic::Status> {
+    async fn get_mode(&self, _request: tonic::Request<Empty>) -> Result<tonic::Response<GetModeReply>, tonic::Status> {
         unimplemented!()
     }
     async fn set_mode(
         &self,
         _request: tonic::Request<SetModeRequest>,
-    ) -> Result<tonic::Response<SetModeReply>, tonic::Status> {
+    ) -> Result<tonic::Response<Empty>, tonic::Status> {
         unimplemented!()
     }
     async fn get_node_name(
@@ -104,9 +101,12 @@ impl NodeAdmin for NodeAdminService {
     }
     async fn get_chain(
         &self,
-        _request: tonic::Request<GetChainRequest>,
+        _request: tonic::Request<Empty>,
     ) -> Result<tonic::Response<GetChainReply>, tonic::Status> {
-        unimplemented!()
+        let config = self.state.config.read().await;
+        Ok(Response::new(GetChainReply {
+            current_chain: config.consensus.chain.clone(),
+        }))
     }
     async fn get_logs(
         &self,
