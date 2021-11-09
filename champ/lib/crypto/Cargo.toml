@@ -12,7 +12,7 @@ base64 = "0.13"
 chacha20poly1305 = "0.9"
 ed25519-zebra = "3"
 getrandom = {version = "0.2", features = ["js"]}
-pem = "0.8"
+pem = "1.0"
 rand = "0.8"
 ring = "0.16"
 sha3 = "0.9"

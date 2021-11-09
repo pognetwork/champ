@@ -51,7 +51,7 @@ pub fn generate_wallet(password: String) -> Result<String, WalletError> {
                 nonce: nonce.as_str(),
             },
             ciphertext: ciphertext.as_str(),
-            cipher: Cipher::Chacha20Poly1305AEAD,
+            cipher: Cipher::XChacha20Poly1305AEAD,
             kdf: KDF::Argon2ID,
             kdfparams: KDFParams {
                 salt: salt.as_str(),
@@ -71,7 +71,7 @@ pub fn unlock_wallet(wallet: &str, password: String) -> Result<Vec<u8>, WalletEr
     let wallet: Lulw = serde_json::from_str(wallet).map_err(|e| WalletError::DeserializationError(e.to_string()))?;
 
     if !(wallet.version == 1
-        && wallet.crypto.cipher == Cipher::Chacha20Poly1305AEAD
+        && wallet.crypto.cipher == Cipher::XChacha20Poly1305AEAD
         && wallet.crypto.kdf == KDF::Argon2ID)
     {
         return Err(WalletError::InvalidWalletFormat);
