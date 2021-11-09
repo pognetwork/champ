@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use tracing::{debug, trace};
 
 use crate::consensus::graphs::*;
 use crate::state::ChampStateArc;
@@ -20,7 +21,10 @@ const MAX_LOOKBACK_RANGE: u64 = 60 * 60 * 24 * 30 * 2;
 
 /// Returns actual voting power of an account.
 /// Actual voting power is without the delegated power.
+#[tracing::instrument]
 pub async fn get_actual_power(state: &ChampStateArc, account_id: api::AccountID) -> Result<u32> {
+    debug!("Calculating actual voting power");
+
     let db = &state.db.lock().await;
 
     let block = db.get_latest_block_by_account(account_id).await?;
@@ -46,16 +50,17 @@ pub async fn get_actual_power(state: &ChampStateArc, account_id: api::AccountID)
         .ok_or_else(|| anyhow!("block data not found"))?
         .balance;
 
-    let oresult = cashflow_graph(new_block_balance, old_block_balance);
     let bresult = balance_graph(data.balance);
+    let cresult = cashflow_graph(new_block_balance, old_block_balance);
     let bbresult = block_graph(data.height, &block, old_block_result.as_ref());
     let aresult = age_graph(block.timestamp - first_block.timestamp);
 
+    trace!("Graph results: balance={0}, cashflow={1}, block={2}, age={3}", bresult, cresult, bbresult, aresult);
     // TODO: Green Adresses?
 
     // Weights to change how much impact each factor should have
     let graph_result =
-        bbresult * BLOCK_WEIGHT + bresult * BALANCE_WEIGHT + aresult * AGE_WEIGHT + oresult * CASHFLOW_WEIGHT;
+        bbresult * BLOCK_WEIGHT + bresult * BALANCE_WEIGHT + aresult * AGE_WEIGHT + cresult * CASHFLOW_WEIGHT;
 
     let result = if graph_result < 0.0 {
         0
@@ -63,11 +68,30 @@ pub async fn get_actual_power(state: &ChampStateArc, account_id: api::AccountID)
         graph_result as u32
     };
 
+    trace!("total actual voting power result: {}", result);
+
     Ok(result)
+}
+
+/// Returns the active power of an account that is being used on the network.
+/// Active power is the account power with the delegated power.
+#[tracing::instrument]
+pub async fn get_active_power(state: &ChampStateArc, account_id: api::AccountID) -> Result<u32> {
+    debug!("Calculating actual voting power");
+    let actual_power = get_actual_power(state, account_id).await?;
+    let delegate_power = get_delegated_power(state, account_id).await?;
+    let total_network_power = get_max_voting_power();
+    let total_power = actual_power + delegate_power;
+    if total_power > total_network_power {
+        return Ok(total_network_power);
+    }
+    trace!("total active voting power result: {}", total_power);
+    Ok(total_power)
 }
 
 /// Gets the sum of the power of each delegate of an account
 async fn get_delegated_power(state: &ChampStateArc, account_id: api::AccountID) -> Result<u32> {
+    debug!("calculating delegated power");
     // TODO: Cache this
     let mut power = 0;
     let db = &state.db.lock().await;
@@ -79,20 +103,8 @@ async fn get_delegated_power(state: &ChampStateArc, account_id: api::AccountID) 
         power += p;
     }
 
+    trace!("total delegated voting power: {}", power);
     Ok(power)
-}
-
-/// Returns the active power of an account that is being used on the network.
-/// Active power is the account power with the delegated power.
-pub async fn get_active_power(state: &ChampStateArc, account_id: api::AccountID) -> Result<u32> {
-    let actual_power = get_actual_power(state, account_id).await?;
-    let delegate_power = get_delegated_power(state, account_id).await?;
-    let total_network_power = get_max_voting_power();
-    let total_power = actual_power + delegate_power;
-    if total_power > total_network_power {
-        return Ok(total_network_power);
-    }
-    Ok(total_power)
 }
 
 /// Gets the max voting power in the system and sets a limit of a percentage

@@ -2468,6 +2468,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
+ "tracing",
 ]
 
 [[package]]
@@ -3091,6 +3092,7 @@ dependencies = [
  "jsonwebtoken",
  "serde",
  "thiserror",
+ "tracing",
 ]
 
 [[package]]

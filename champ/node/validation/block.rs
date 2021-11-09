@@ -12,6 +12,7 @@ use prost::Message;
 use std::convert::TryInto;
 use storage::Database;
 use thiserror::Error;
+use tracing::{debug, trace};
 
 #[derive(Error, Debug)]
 pub enum Validation {
@@ -46,7 +47,10 @@ pub enum Node {
 
 // Validate block
 #[allow(dead_code)]
+#[tracing::instrument]
 pub async fn validate(block: &Block, state: &ChampStateArc) -> Result<()> {
+    debug!("validating a block");
+
     let data = block.clone().data.ok_or(Node::BlockDataNotFound)?;
     let public_key = &block.public_key;
     let signature = &block.signature;
@@ -69,12 +73,15 @@ pub async fn validate(block: &Block, state: &ChampStateArc) -> Result<()> {
     // transactions / balance
     verify_transactions(block, &latest_block, state).await?;
 
+    trace!("Block successfully validated. Block={:?}", block);
+
     Ok(())
 }
 
 // TODO: add error handling so validation error go to voting
 // Verifies the transactions and balances
 async fn verify_transactions(new_block: &Block, prev_block: &Block, state: &ChampStateArc) -> Result<()> {
+    debug!("verify transactions");
     let db = &state.db.lock().await;
     // go through all tx in the block and do math to see new balance
     // check against block balance
@@ -115,6 +122,7 @@ async fn verify_transactions(new_block: &Block, prev_block: &Block, state: &Cham
 
 // Verifies the block height and previous block
 fn verify_previous_block(new_block: &Block, prev_block: &Block) -> Result<()> {
+    debug!("verify previous block");
     let new_data = new_block.data.as_ref().ok_or(Node::BlockDataNotFound)?;
     let prev_data = prev_block.data.as_ref().ok_or(Node::BlockDataNotFound)?;
 
@@ -136,7 +144,7 @@ fn verify_account_genesis_block() -> Result<()> {
 async fn validate_collect(tx: &TxClaim, db: &Box<dyn Database>, block: &Block) -> Result<i128> {
     // check DB for send with id tx_id
     // TODO: check already collected
-
+    debug!("verify claim transactions");
     let tx_id = match tx.transaction_id.clone().try_into() {
         Ok(a) => a,
         Err(_) => return Err(Node::TxNotFound.into()),

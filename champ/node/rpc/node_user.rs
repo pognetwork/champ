@@ -4,6 +4,7 @@ use pog_proto::rpc::node_user::*;
 
 pub use pog_proto::rpc::node_user::node_user_server::{NodeUser, NodeUserServer};
 use tonic::{Response, Status};
+use tracing::debug;
 
 #[derive(Debug)]
 pub struct NodeUserService {
@@ -24,6 +25,8 @@ impl NodeUser for NodeUserService {
         &self,
         request: tonic::Request<LoginRequest>,
     ) -> Result<tonic::Response<LoginReply>, tonic::Status> {
+        debug!("user logging in");
+
         let username = request.into_inner().username;
         let private_key = &self.state.config.read().await.admin.jwt_private_key;
         let expires_in = 10000;

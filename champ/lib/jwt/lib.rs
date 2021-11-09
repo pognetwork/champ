@@ -2,6 +2,7 @@ use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
 use std::time::SystemTime;
 use thiserror::Error;
+use tracing::debug;
 
 #[derive(Error, Debug)]
 pub enum JWTError {
@@ -22,6 +23,7 @@ fn get_current_time() -> u64 {
 }
 
 pub fn create(user_id: &str, expires_in_seconds: u64, private_key: &[u8]) -> Result<String, JWTError> {
+    debug!("creating jwt");
     let header = Header::new(Algorithm::ES256);
 
     let now = get_current_time();
@@ -39,6 +41,7 @@ pub fn create(user_id: &str, expires_in_seconds: u64, private_key: &[u8]) -> Res
 }
 
 pub fn verify(token: &str, public_key: &[u8]) -> Result<Claims, JWTError> {
+    debug!("verify jwt");
     let validation = Validation::new(Algorithm::ES256);
 
     let claims = jsonwebtoken::decode::<Claims>(
