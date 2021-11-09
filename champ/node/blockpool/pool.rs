@@ -5,6 +5,7 @@ use tokio::sync::{
     mpsc::{self, Receiver, Sender},
     oneshot,
 };
+use tracing::info;
 
 use std::collections::VecDeque;
 
@@ -98,6 +99,7 @@ impl Blockpool {
 
         let state = self.state.clone().unwrap();
 
+        info!("blockpool started listening to incoming commands");
         while let Some(cmd) = self.rx.recv().await {
             use Command::*;
             match cmd {

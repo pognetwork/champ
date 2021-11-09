@@ -8,6 +8,7 @@ use std::{net::SocketAddr, time::Duration};
 
 use tonic::transport::Server;
 use tonic::Request;
+use tracing::info;
 
 #[derive(Debug)]
 pub struct RpcServer {
@@ -42,7 +43,7 @@ impl RpcServer {
         );
         let node_user = NodeUserServer::new(NodeUserService::new(self.state.clone()));
 
-        println!("starting rpc server at {}", addr);
+        info!("starting rpc server at {}", addr);
 
         // The stack of middleware that our service will be wrapped in
         let layer = tower::ServiceBuilder::new().timeout(Duration::from_secs(30)).into_inner();

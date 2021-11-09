@@ -25,6 +25,7 @@ pub fn interceptor_auth(
             verify(token, public_key.as_bytes()).map_err(|_| Status::unauthenticated("No auth token provided"))?;
 
         let user = users.get(&claims.sub).ok_or_else(|| Status::unauthenticated("user not found"))?;
+        tracing::trace!("user authenticated; permissions={:?}", user.permissions.clone());
 
         req.extensions_mut().insert(UserMetadata {
             permissions: user.permissions.clone(),
@@ -32,5 +33,7 @@ pub fn interceptor_auth(
 
         return Ok(req);
     }
+
+    tracing::debug!("got unauthenticated request to authenticated service");
     Err(Status::unauthenticated("No auth token provided"))
 }
