@@ -45,18 +45,24 @@ impl RpcServer {
 
         info!("starting rpc server at {}", addr);
 
+        let grpc_web = tonic_web::config()
+            // .allow_origins(vec!["http://admin.localhost:2020"])
+            .allow_all_origins()
+            .expose_headers(vec!["x-request-id", "x-grpc-web"]);
+
         // The stack of middleware that our service will be wrapped in
-        let layer = tower::ServiceBuilder::new().timeout(Duration::from_secs(30)).into_inner();
-        let server = Server::builder().accept_http1(true).layer(layer).add_service(tonic_web::enable(block_server));
+        let timeout = tower::ServiceBuilder::new().timeout(Duration::from_secs(30)).into_inner();
+        let server = Server::builder().accept_http1(true).layer(timeout).add_service(grpc_web.enable(block_server));
 
         if self.state.config.read().await.admin.enabled {
             server
-                .add_service(tonic_web::enable(node_admin_server))
-                .add_service(tonic_web::enable(node_wallet_manager_server))
-                .add_service(tonic_web::enable(node_user))
+                .add_service(grpc_web.enable(node_admin_server))
+                .add_service(grpc_web.enable(node_wallet_manager_server))
+                .add_service(grpc_web.enable(node_user))
                 .serve(addr)
                 .await?;
         } else {
+            info!("admin service is disabled");
             server.serve(addr).await?;
         }
 

@@ -23,7 +23,7 @@ use crate::{blockpool::Blockpool, state::ChampState};
 async fn main() -> Result<()> {
     tracing_subscriber::fmt()
         // filter spans/events with level TRACE or higher.
-        .with_max_level(Level::INFO)
+        .with_max_level(Level::DEBUG)
         // build but do not install the subscriber.
         .init();
 

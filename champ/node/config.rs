@@ -27,7 +27,7 @@ fn default_accounts() -> BTreeMap<String, UserAccount> {
 
 fn default_admin() -> Admin {
     Admin {
-        enabled: false,
+        enabled: true,
         ..Default::default()
     }
 }
