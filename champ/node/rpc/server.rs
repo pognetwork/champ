@@ -30,10 +30,12 @@ impl RpcServer {
         let cloned_users = users.clone();
 
         let block_server = BlockServer::new(BlockService::new(self.state.clone()));
+
         let node_admin_server = NodeAdminServer::with_interceptor(
             NodeAdminService::new(self.state.clone()),
             move |request: Request<()>| interceptor_auth(request, &public_key, &users),
         );
+
         let node_wallet_manager_server = NodeWalletManagerServer::with_interceptor(
             NodeWalletManagerService::new(self.state.clone()),
             move |request| interceptor_auth(request, &cloned_public_key, &cloned_users),
@@ -44,16 +46,19 @@ impl RpcServer {
 
         // The stack of middleware that our service will be wrapped in
         let layer = tower::ServiceBuilder::new().timeout(Duration::from_secs(30)).into_inner();
+        let server = Server::builder().accept_http1(true).layer(layer).add_service(tonic_web::enable(block_server));
 
-        Server::builder()
-            .accept_http1(true)
-            .layer(layer)
-            .add_service(tonic_web::enable(block_server))
-            .add_service(tonic_web::enable(node_admin_server))
-            .add_service(tonic_web::enable(node_wallet_manager_server))
-            .add_service(tonic_web::enable(node_user))
-            .serve(addr)
-            .await?;
+        if self.state.config.read().await.admin.enabled {
+            server
+                .add_service(tonic_web::enable(node_admin_server))
+                .add_service(tonic_web::enable(node_wallet_manager_server))
+                .add_service(tonic_web::enable(node_user))
+                .serve(addr)
+                .await?;
+        } else {
+            server.serve(addr).await?;
+        }
+
         Ok(())
     }
 }

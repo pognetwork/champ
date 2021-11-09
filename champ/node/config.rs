@@ -3,12 +3,23 @@ use anyhow::Result;
 use anyhow::{anyhow, Context};
 use clap::ArgMatches;
 use path_absolutize::Absolutize;
+use pog_proto::rpc::node_admin::Mode;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::fs::OpenOptions;
 use std::io::Read;
 use std::io::Write;
 use std::path::PathBuf;
+
+// https://serde.rs/remote-derive.html
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(remote = "Mode")]
+enum ModeDef {
+    Prime,
+    Validating,
+    Observer,
+    Light,
+}
 
 fn default_accounts() -> BTreeMap<String, UserAccount> {
     BTreeMap::new()
@@ -43,6 +54,8 @@ pub struct Config {
     #[serde(default = "default_database")]
     pub database: DatabaseConfig,
 
+    pub consensus: ConsensusSettings,
+
     #[serde(skip_serializing)]
     config_path_override: Option<String>,
 
@@ -51,6 +64,23 @@ pub struct Config {
 
     #[serde(skip_serializing)]
     pub config_path: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ConsensusSettings {
+    pub chain: String, // currently only `dev` is supported
+
+    #[serde(with = "ModeDef")]
+    pub mode: Mode,
+}
+
+impl Default for ConsensusSettings {
+    fn default() -> Self {
+        Self {
+            chain: "dev".to_string(),
+            mode: Mode::Validating,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
