@@ -20,6 +20,7 @@ pub fn verify_perms<T>(request: &tonic::Request<T>, needs: &str) -> Result<(), t
         .ok_or_else(|| Status::new(Code::Unauthenticated, "Metadata could not be found"))?
         .permissions;
 
+    tracing::trace!("verifying permissions= {:?} with needed permission {1}", permissions, needs);
     if permissions.contains(&"superadmin".to_string()) {
         return Ok(());
     }

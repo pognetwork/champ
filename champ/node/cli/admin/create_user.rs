@@ -1,8 +1,10 @@
 use crate::{cli::error::CLIError, state::ChampStateArc};
 use crypto::id::generate;
 use crypto::password::{generate_salt, hash};
+use tracing::{debug, trace};
 
 pub async fn run(state: &ChampStateArc, user: &str, password: &str, perms: Vec<String>) -> Result<(), CLIError> {
+    debug!("creating a user from cli");
     let salt = generate_salt().map_err(|_| CLIError::Salt)?;
 
     let hash = hash(password.as_bytes(), &salt)
@@ -25,5 +27,8 @@ pub async fn run(state: &ChampStateArc, user: &str, password: &str, perms: Vec<S
     );
 
     config.write().map_err(|e| CLIError::Unknown(e.to_string()))?;
+
+    trace!("written user '{}' to config.", user);
+
     Ok(())
 }

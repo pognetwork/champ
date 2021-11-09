@@ -12,6 +12,7 @@ async-trait = "0.1"
 hex = "0.4"
 roughenough = {git = "https://github.com/pognetwork/roughenough"}
 thiserror = "1.0"
+tracing = "0.1"
 
 [lib]
 path = "lib.rs"

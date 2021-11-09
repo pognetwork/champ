@@ -5,9 +5,12 @@ use crate::{
 
 use clap::ArgMatches;
 use crypto::signatures::ecdsa;
+use tracing::{debug, trace};
 
 pub async fn run(matches: &ArgMatches, state: &ChampStateArc) -> Result<(), CLIError> {
+    debug!("check cli arguments");
     if let Some(matches) = matches.subcommand_matches("create-user") {
+        debug!("attempting to create a user");
         {
             let config = state.config.read().await;
 
@@ -24,7 +27,7 @@ pub async fn run(matches: &ArgMatches, state: &ChampStateArc) -> Result<(), CLIE
 
         create_user::run(state, user, password, permissions.map(|s| s.to_string()).collect()).await?;
 
-        println!("Successfully created user '{}'", user);
+        trace!("Successfully created user {}", user);
 
         return Ok(());
     }
@@ -36,7 +39,7 @@ pub async fn run(matches: &ArgMatches, state: &ChampStateArc) -> Result<(), CLIE
         config.admin.jwt_public_key = key_pair.public_key;
         config.admin.jwt_private_key = key_pair.private_key;
         config.write().map_err(|e| CLIError::Unknown(e.to_string()))?;
-        println!("Successfully generated JWT keys");
+        debug!("Successfully generated JWT keys");
         return Ok(());
     }
 

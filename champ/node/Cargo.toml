@@ -27,6 +27,8 @@ toml = "0.5"
 tonic = {version = "0.6", features = ["transport", "prost"]}
 tonic-web = "0.2"
 tower = "0.4"
+tracing = "0.1"
+tracing-subscriber = "0.3"
 
 # /STORAGE
 rocksdb = {version = "0.17", optional = true}

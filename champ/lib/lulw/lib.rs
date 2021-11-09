@@ -4,6 +4,7 @@ use std::convert::TryInto;
 use base64::{decode, encode};
 use crypto::aead::chacha::{decrypt, encrypt};
 use thiserror::Error;
+use tracing::debug;
 use versions::v0::{Cipher, CipherParams, CryptoOptions, KDFParams, Lulw, KDF};
 
 #[derive(Error, Debug)]
@@ -31,6 +32,7 @@ pub enum WalletError {
 }
 
 pub fn generate_wallet(password: String) -> Result<String, WalletError> {
+    debug!("generating wallet");
     let (ciphertext, salt, nonce) = {
         let private_key = crypto::signatures::ed25519::generate_private_key()
             .map_err(|e| WalletError::GeneratePrivateKeyError(e.to_string()))?;

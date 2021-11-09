@@ -5,6 +5,7 @@ use tower::ServiceBuilder;
 
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Request, Response, Server};
+use tracing::info;
 
 #[derive(Debug)]
 pub struct HttpServer {}
@@ -21,7 +22,7 @@ impl HttpServer {
 
         let http_service = make_service_fn(|_conn| async { Ok::<_, Infallible>(service_fn(HttpHandler::handle)) });
 
-        println!("starting http server at {}", addr);
+        info!("starting http server at {}", addr);
 
         let service = ServiceBuilder::new().timeout(Duration::from_secs(30)).service(http_service);
 

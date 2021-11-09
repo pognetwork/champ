@@ -11,6 +11,7 @@ base64 = "0.13"
 jsonwebtoken = "7"
 serde = {version = "1.0", features = ["derive"]}
 thiserror = "1.0"
+tracing = "0.1"
 
 [lib]
 path = "lib.rs"

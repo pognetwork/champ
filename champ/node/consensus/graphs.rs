@@ -18,6 +18,7 @@ pub fn balance_graph(balance: u64) -> f64 {
 pub fn cashflow_graph(new_block_balance: u64, old_block_balance: u64) -> f64 {
     let cashflow = new_block_balance as i128 - old_block_balance as i128;
 
+    tracing::trace!("real cashflow={}", cashflow);
     // Inactive Tax
     if cashflow == 0 && new_block_balance > 0 {
         return -(new_block_balance as f64 / NORMALIZE_BALANCE) / INACTIVE_TAX_CUT;

@@ -39,6 +39,12 @@ fn default_database() -> DatabaseConfig {
     }
 }
 
+fn default_consensus() -> ConsensusSettings {
+    ConsensusSettings {
+        ..Default::default()
+    }
+}
+
 fn default_node_name() -> String {
     "PogNetwork Node".to_string()
 }
@@ -54,6 +60,7 @@ pub struct Config {
     #[serde(default = "default_database")]
     pub database: DatabaseConfig,
 
+    #[serde(default = "default_consensus")]
     pub consensus: ConsensusSettings,
 
     #[serde(skip_serializing)]
