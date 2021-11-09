@@ -47,4 +47,4 @@ path = "main.rs"
 backend-rocksdb = ["rocksdb"]
 backend-scylla = ["scylla"]
 backend-sled = ["sled"]
-default = ["backend-sled", "backend-scylla"]
+default = ["backend-sled"]

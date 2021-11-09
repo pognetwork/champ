@@ -14,8 +14,8 @@ pub struct Lulw<'a> {
 
 #[derive(Serialize, Deserialize, PartialEq)]
 pub enum Cipher {
-    #[serde(rename = "chacha20-poly1305-aead")]
-    Chacha20Poly1305AEAD,
+    #[serde(rename = "xchacha20-poly1305-aead")]
+    XChacha20Poly1305AEAD,
 }
 
 #[derive(Serialize, Deserialize, PartialEq)]
