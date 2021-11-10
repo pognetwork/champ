@@ -18,9 +18,8 @@ async fn pwned_check(password: &str) -> Result<(), PwnedError> {
         .map_err(|e| PwnedError::Unknown("reqwest failed: ".to_string() + &e.to_string()))?;
     let response_body =
         response.text().await.map_err(|e| PwnedError::Unknown("text error: ".to_string() + &e.to_string()))?;
-    let response_suffex = response_body.split("\n").collect::<Vec<&str>>();
 
-    if response_suffex.into_iter().find(|row| row.starts_with(suffex)).is_some() {
+    if response_body.split('\n').any(|row| row.starts_with(suffex)) {
         return Err(PwnedError::Pwned);
     }
     Ok(())
