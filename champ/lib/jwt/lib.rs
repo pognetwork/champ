@@ -13,6 +13,7 @@ pub enum JWTError {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
     pub sub: String,
+    pub username: String,
     iat: u64,
     exp: u64,
     iss: String,
@@ -22,13 +23,14 @@ fn get_current_time() -> u64 {
     SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).expect("SystemTime before UNIX EPOCH").as_secs()
 }
 
-pub fn create(user_id: &str, expires_in_seconds: u64, private_key: &[u8]) -> Result<String, JWTError> {
+pub fn create(user_id: &str, username: &str, expires_in_seconds: u64, private_key: &[u8]) -> Result<String, JWTError> {
     debug!("creating jwt");
     let header = Header::new(Algorithm::ES256);
 
     let now = get_current_time();
     let claims = Claims {
         sub: user_id.to_string(),
+        username: username.to_string(),
         iat: now,
         exp: now + expires_in_seconds,
         iss: "pog.network node".to_string(),
@@ -71,7 +73,7 @@ kHmPRiazukxPLb6ilpRAewjW8nihRANCAATDskChT+Altkm9X7MI69T3IUmrQU0L
 
     #[test]
     fn it_works() {
-        let jwt = create("123", 60 * 60 * 24, PRIVATE_KEY).expect("should create a jwt");
+        let jwt = create("123", "test_user", 60 * 60 * 24, PRIVATE_KEY).expect("should create a jwt");
         verify(&jwt, PUBLIC_KEY).expect("should verify jwt");
     }
 }

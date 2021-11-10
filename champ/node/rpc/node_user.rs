@@ -27,10 +27,18 @@ impl NodeUser for NodeUserService {
     ) -> Result<tonic::Response<LoginReply>, tonic::Status> {
         debug!("user logging in");
 
-        let username = request.into_inner().username;
-        let private_key = &self.state.config.read().await.admin.jwt_private_key;
+        let username = request.into_inner().username.to_lowercase();
+
+        let (jwt_key, user) = {
+            let config = &self.state.config.read().await;
+            let user = config.node_users.get(&username);
+            let jwt_key = config.admin.jwt_private_key.clone();
+            let user = user.ok_or_else(|| Status::new(tonic::Code::Internal, "invalid username"))?;
+            (jwt_key, user.clone())
+        };
+
         let expires_in = 10000;
-        let token = create(&username, expires_in, private_key.as_bytes())
+        let token = create(&user.user_id, &username, expires_in, jwt_key.as_bytes())
             .map_err(|_| Status::new(tonic::Code::Internal, "could not create token"))?;
         Ok(Response::new(LoginReply {
             token,
