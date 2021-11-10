@@ -33,7 +33,7 @@
     These include the Wallet and the Admin interfaces.
 
     > XSS Attacks: `Mitigated` because React sanitizes all user input and therefore prevents accidental script injections. Furthermore, we plan to implement a Content Security Policy.
-    <br> (_Elevation of Privilage, High Severity_)
+    <br> (_Elevation of Privilege, High Severity_)
 
 - ### Node Admin and Node Wallet Manager Web Clients only
 
@@ -47,10 +47,10 @@
     The severtiy of these attacks are lower, as these enpoints are not open to the internet by default but are contained within the local network.
 
     > Credential Stuffing: `Mitigated` because we hash passwords in storage and we use the [Have I Been Pwned](https://haveibeenpwned.com/) Range API to securely (with k-Anonymity) check if a password has been part of a breach. 
-    <br> (_Elevation of Privilage, Medium Severity_)
+    <br> (_Elevation of Privilege, Medium Severity_)
 
     > Credential Cracking: `Mitigated` because we hash passwords that take longer to compare and we plan to implement a rate limiting mechanism.
-    <br> (_Elevation of Privilage, High Severity_)
+    <br> (_Elevation of Privilege, High Severity_)
 
 - ### Block Service
 
@@ -63,9 +63,18 @@
 - ### Database
 
     > Injection: `Mitigated` because we use the [Sled](https://github.com/spacejam/sled) database that works more as a key-value storage and is therefore not susceptible to injection.
-    <br>(_Elevation of Privilage, High Severity_)
+    <br>(_Elevation of Privilege, High Severity_)
 
 - ### Peer to Peer
 
     > DDOS: We plan to add rate limiting and we will guide Node Operators for optimal setup as we won't run the nodes ourselves.
     <br>(_Denial of Service, High Severity_)
+
+    > Sybil: `Mitigated` because our consensus algorithm prioritizes accounts that lose money over a period of time which makes farmed account importance inconsistant.
+    <br>(_Ele, High Severity_)
+## Contributions
+
+- Alexander Gemmingen ([@Alyks1](https://github.com/Alyks1))
+    * Have I been pwned API check [[1]](https://github.com/pognetwork/champ/pull/87)
+    * Crypto module (such as block signing and JWT) (Pair-Programming with Henry Gressmann) [[1]](https://github.com/pognetwork/champ/pull/28) [[2]](https://github.com/pognetwork/champ/pull/66)
+    * Designed graphs & calculations for the consensus algorithm [[1]](https://github.com/pognetwork/champ/pull/22) [[2]](https://github.com/pognetwork/champ/pull/83)
