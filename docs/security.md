@@ -71,7 +71,7 @@
     <br>(_Denial of Service, High Severity_)
 
     > Sybil: `Mitigated` because our consensus algorithm prioritizes accounts that lose money over a period of time which makes farmed account importance inconsistant.
-    <br>(_Ele, High Severity_)
+    <br>(_Sybil, High Severity_)
 ## Contributions
 
 - Alexander Gemmingen ([@Alyks1](https://github.com/Alyks1))
