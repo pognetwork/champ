@@ -17,6 +17,7 @@ rand = "0.8"
 ring = "0.16"
 sha3 = "0.9"
 thiserror = "1.0"
+sha-1 = "0.9"
 
 [lib]
 path = "lib.rs"

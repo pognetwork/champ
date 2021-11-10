@@ -22,6 +22,11 @@ pub async fn run(matches: &ArgMatches, state: &ChampStateArc) -> Result<(), CLIE
         let user = matches.value_of("username").ok_or_else(|| CLIError::Unknown("username missing".to_string()))?;
         let password =
             matches.value_of("password").ok_or_else(|| CLIError::Unknown("password missing".to_string()))?;
+
+        pwned::pwned_check(password)
+            .await
+            .map_err(|e| CLIError::Unknown("pwned error: ".to_string() + &e.to_string()))?;
+
         let permissions = if let Some(permissions) = matches.values_of("perms") {
             permissions.map(|s| s.to_string()).collect()
         } else {
