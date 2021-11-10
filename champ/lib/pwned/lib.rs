@@ -1,34 +1,28 @@
-use sha1::{self, Digest};
+use crypto::hash::create_sha1_password;
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq)]
 pub enum PwnedError {
     #[error("{0}")]
-    Unknown(String),
-    #[error("Been pwned")]
+    Internal(String),
+    #[error("Passwords Been Pwned")]
     Pwned,
 }
 
-async fn pwned_check(password: &str) -> Result<(), PwnedError> {
+pub async fn pwned_check(password: &str) -> Result<(), PwnedError> {
     let pw_hash = create_sha1_password(password);
     let pw_str = hex::encode(&pw_hash).to_uppercase();
     let (prefix, suffex) = pw_str.split_at(5);
     let response = reqwest::get("https://api.pwnedpasswords.com/range/".to_owned() + prefix)
         .await
-        .map_err(|e| PwnedError::Unknown("reqwest failed: ".to_string() + &e.to_string()))?;
+        .map_err(|e| PwnedError::Internal("reqwest failed: ".to_string() + &e.to_string()))?;
     let response_body =
-        response.text().await.map_err(|e| PwnedError::Unknown("text error: ".to_string() + &e.to_string()))?;
+        response.text().await.map_err(|e| PwnedError::Internal("text error: ".to_string() + &e.to_string()))?;
 
     if response_body.split('\n').any(|row| row.starts_with(suffex)) {
         return Err(PwnedError::Pwned);
     }
     Ok(())
-}
-
-fn create_sha1_password(password: &str) -> [u8; 20] {
-    let mut hasher = sha1::Sha1::new();
-    hasher.update(password);
-    hasher.finalize().into()
 }
 
 #[cfg(test)]

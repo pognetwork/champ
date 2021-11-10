@@ -576,6 +576,7 @@ dependencies = [
  "pog-jwt",
  "pog-proto",
  "prost 0.9.0",
+ "pwned",
  "rocksdb",
  "roughtime",
  "scylla",
@@ -809,6 +810,7 @@ dependencies = [
  "pem 1.0.1",
  "rand 0.8.4",
  "ring",
+ "sha-1",
  "sha3",
  "thiserror",
 ]
@@ -3129,9 +3131,9 @@ dependencies = [
 name = "pwned"
 version = "0.0.9"
 dependencies = [
+ "crypto",
  "hex",
  "reqwest",
- "sha-1",
  "thiserror",
  "tokio",
 ]

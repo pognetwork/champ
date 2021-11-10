@@ -29,6 +29,7 @@ tonic-web = "0.2"
 tower = "0.4"
 tracing = "0.1"
 tracing-subscriber = "0.3"
+pwned = {path = "../lib/pwned"}
 
 # /STORAGE
 rocksdb = {version = "0.17", optional = true}
