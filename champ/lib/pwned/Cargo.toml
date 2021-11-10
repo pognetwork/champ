@@ -1,0 +1,16 @@
+[package]
+authors = ["The POG Contributors <contact@pog.network>"]
+edition = "2021"
+name = "pwned"
+publish = false
+version = "0.0.9"
+
+[dependencies]
+reqwest = "0.11"
+tokio = {version = "1.0", features = ["macros", "rt-multi-thread"]}
+thiserror = "1.0"
+sha-1 = "0.9"
+hex = "0.4"
+
+[lib]
+path = "lib.rs"
