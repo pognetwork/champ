@@ -46,7 +46,7 @@
     These Services are the endpoints for the Web Clients of similar name.
     The severtiy of these attacks are lower, as these enpoints are not open to the internet by default but are contained within the local network.
 
-    > Credential Stuffing: `Mitigated` because we hash passwords in storage and we plan to use the [Have I Been Pwned](https://haveibeenpwned.com/) API to securly check if a password has been part of a breach.
+    > Credential Stuffing: `Mitigated` because we hash passwords in storage and we use the [Have I Been Pwned](https://haveibeenpwned.com/) Range API to securely (with k-Anonymity) check if a password has been part of a breach. 
     <br> (_Elevation of Privilage, Medium Severity_)
 
     > Credential Cracking: `Mitigated` because we hash passwords that take longer to compare and we plan to implement a rate limiting mechanism.
