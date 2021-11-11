@@ -49,7 +49,7 @@ impl Database for Scylla {
         self.create_schema().await
     }
 
-    async fn get_block_by_id(&self, _block_id: api::BlockID) -> Result<api::Block, DatabaseError> {
+    async fn get_block_by_id(&self, _block_id: api::SignedBlockID) -> Result<api::SignedBlock, DatabaseError> {
         unimplemented!("method unsupported by database backend")
     }
 
@@ -60,11 +60,14 @@ impl Database for Scylla {
         unimplemented!("method unsupported by database backend")
     }
 
-    async fn get_latest_block_by_account(&self, _account_id: api::AccountID) -> Result<api::Block, DatabaseError> {
+    async fn get_latest_block_by_account(
+        &self,
+        _account_id: api::AccountID,
+    ) -> Result<api::SignedBlock, DatabaseError> {
         unimplemented!("method unsupported by database backend")
     }
 
-    async fn add_block(&mut self, _block: api::Block) -> Result<(), DatabaseError> {
+    async fn add_block(&mut self, _block: api::SignedBlock) -> Result<(), DatabaseError> {
         unimplemented!("method unsupported by database backend")
     }
 
@@ -72,7 +75,7 @@ impl Database for Scylla {
         &self,
         _account_id: api::AccountID,
         _block_height: &u64,
-    ) -> Result<Option<api::Block>, DatabaseError> {
+    ) -> Result<Option<api::SignedBlock>, DatabaseError> {
         unimplemented!("method unsupported by database backend")
     }
 
@@ -95,7 +98,7 @@ impl Database for Scylla {
         _account_id: api::AccountID,
         _unix_from: u64,
         _unix_limit: u64,
-    ) -> Result<Option<api::Block>, DatabaseError> {
+    ) -> Result<Option<api::SignedBlock>, DatabaseError> {
         unimplemented!("method unsupported by database backend")
     }
 }

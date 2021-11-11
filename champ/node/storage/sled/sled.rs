@@ -76,7 +76,7 @@ impl SledDB {
 #[async_trait]
 impl Database for SledDB {
     // impl SledDB {
-    async fn get_block_by_id(&self, block_id: api::BlockID) -> Result<api::Block, DatabaseError> {
+    async fn get_block_by_id(&self, block_id: api::BlockID) -> Result<api::SignedBlock, DatabaseError> {
         let mut block_key = b"by_id_".to_vec();
         block_key.append(&mut block_id.to_vec());
 
@@ -87,7 +87,7 @@ impl Database for SledDB {
             .ok_or_else(|| DatabaseError::Specific("block not found".to_string()))
             .map_err(|e| DatabaseError::Specific(e.to_string()))?;
 
-        api::Block::decode(&*block.to_vec()).map_err(|e| DatabaseError::Specific(e.to_string()))
+        api::SignedBlock::decode(&*block.to_vec()).map_err(|e| DatabaseError::Specific(e.to_string()))
     }
 
     async fn get_transaction_by_id(
@@ -107,7 +107,10 @@ impl Database for SledDB {
         api::Transaction::decode(&*transaction.to_vec()).map_err(|e| DatabaseError::Specific(e.to_string()))
     }
 
-    async fn get_latest_block_by_account(&self, account_id: api::AccountID) -> Result<api::Block, DatabaseError> {
+    async fn get_latest_block_by_account(
+        &self,
+        account_id: api::AccountID,
+    ) -> Result<api::SignedBlock, DatabaseError> {
         let mut last_block_key = account_id.to_vec();
         last_block_key.append(&mut b"_last_blk".to_vec());
 
@@ -131,10 +134,10 @@ impl Database for SledDB {
             .ok_or_else(|| DatabaseError::Specific("block not found".to_string()))
             .map_err(|e| DatabaseError::Specific(e.to_string()))?;
 
-        api::Block::decode(&*block.to_vec()).map_err(|e| DatabaseError::Specific(e.to_string()))
+        api::SignedBlock::decode(&*block.to_vec()).map_err(|e| DatabaseError::Specific(e.to_string()))
     }
 
-    async fn add_block(&mut self, block: api::Block) -> Result<(), DatabaseError> {
+    async fn add_block(&mut self, block: api::SignedBlock) -> Result<(), DatabaseError> {
         let block_data = block.data.clone().expect("block should have valid data");
         let block_id = block.get_id().map_err(|e| DatabaseError::Specific(e.to_string()))?;
         let account_id = encoding::account::generate_account_address(block.public_key.clone())
@@ -200,7 +203,7 @@ impl Database for SledDB {
         &self,
         account_id: api::AccountID,
         block_height: &u64,
-    ) -> Result<Option<api::Block>, DatabaseError> {
+    ) -> Result<Option<api::SignedBlock>, DatabaseError> {
         let mut block_key = b"by_acc_".to_vec();
         block_key.append(&mut account_id.into());
         block_key.append(&mut b"_".to_vec());
@@ -213,7 +216,7 @@ impl Database for SledDB {
             None => return Ok(None),
         };
 
-        api::Block::decode(&*block.to_vec()).map(Some).map_err(|e| DatabaseError::Specific(e.to_string()))
+        api::SignedBlock::decode(&*block.to_vec()).map(Some).map_err(|e| DatabaseError::Specific(e.to_string()))
     }
 
     async fn get_account_delegate(&self, account_id: api::AccountID) -> Result<Option<api::AccountID>, DatabaseError> {
@@ -272,14 +275,14 @@ impl Database for SledDB {
         account_id: api::AccountID,
         unix_from: u64,
         unix_limit: u64,
-    ) -> Result<Option<api::Block>, DatabaseError> {
+    ) -> Result<Option<api::SignedBlock>, DatabaseError> {
         self.blocks
             .scan_prefix(b"by_id_")
             // reverse to make it faster for newer blocks
             .rev()
             .find_map(|res| {
                 let (_, value) = res.ok()?;
-                let block = api::Block::decode(&*value.to_vec()).ok()?;
+                let block = api::SignedBlock::decode(&*value.to_vec()).ok()?;
                 let block_account_id = encoding::account::generate_account_address(block.public_key.clone()).ok()?;
 
                 if block_account_id == account_id {

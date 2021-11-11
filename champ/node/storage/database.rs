@@ -108,12 +108,12 @@ pub trait Database: Send + Sync {
         Ok(())
     }
 
-    async fn get_block_by_id(&self, block_id: api::BlockID) -> Result<api::Block, DatabaseError>;
+    async fn get_block_by_id(&self, block_id: api::BlockID) -> Result<api::SignedBlock, DatabaseError>;
     async fn get_block_by_height(
         &self,
         account_id: api::AccountID,
         block_height: &u64,
-    ) -> Result<Option<api::Block>, DatabaseError>;
+    ) -> Result<Option<api::SignedBlock>, DatabaseError>;
     async fn get_transaction_by_id(
         &self,
         transaction_id: api::TransactionID,
@@ -122,7 +122,7 @@ pub trait Database: Send + Sync {
     /// Finds the latest block for a given address
     ///
     /// Only includes confirmed blocks
-    async fn get_latest_block_by_account(&self, acc_id: api::AccountID) -> Result<api::Block, DatabaseError>;
+    async fn get_latest_block_by_account(&self, acc_id: api::AccountID) -> Result<api::SignedBlock, DatabaseError>;
 
     /// Finds the latest block for a given address before a given date
     ///
@@ -135,7 +135,7 @@ pub trait Database: Send + Sync {
 
         // don't go further than this timestamp
         unix_limit: u64,
-    ) -> Result<Option<api::Block>, DatabaseError>;
+    ) -> Result<Option<api::SignedBlock>, DatabaseError>;
 
     // get_account_delegate finds out if an account is delegating their power to someone else
     async fn get_account_delegate(&self, account_id: api::AccountID) -> Result<Option<api::AccountID>, DatabaseError>;
@@ -145,5 +145,5 @@ pub trait Database: Send + Sync {
         -> Result<Vec<api::AccountID>, DatabaseError>;
 
     /// Adds a new block to the database
-    async fn add_block(&mut self, block: api::Block) -> Result<(), DatabaseError>;
+    async fn add_block(&mut self, block: api::SignedBlock) -> Result<(), DatabaseError>;
 }

@@ -9,7 +9,7 @@ use std::{
 
 #[derive(Default, Debug)]
 pub struct MockDB {
-    blocks: BTreeMap<api::BlockID, (api::Block, api::AccountID)>,
+    blocks: BTreeMap<api::BlockID, (api::SignedBlock, api::AccountID)>,
     accounts: HashMap<api::AccountID, (api::Account, Vec<api::BlockID>, Vec<api::TransactionID>)>,
     transactions: BTreeMap<api::TransactionID, (api::Transaction, api::AccountID)>,
 }
@@ -34,7 +34,7 @@ impl Database for MockDB {
         Ok(())
     }
 
-    async fn get_block_by_id(&self, block_id: api::BlockID) -> Result<api::Block, DatabaseError> {
+    async fn get_block_by_id(&self, block_id: api::BlockID) -> Result<api::SignedBlock, DatabaseError> {
         let (block, _) = self.blocks.get(&block_id).ok_or(DatabaseError::Unknown)?;
         Ok(block.to_owned())
     }
@@ -46,14 +46,17 @@ impl Database for MockDB {
         self.transactions.get(&transaction_id).ok_or(DatabaseError::Unknown).map(|(tx, _)| tx.to_owned())
     }
 
-    async fn get_latest_block_by_account(&self, account_id: api::AccountID) -> Result<api::Block, DatabaseError> {
+    async fn get_latest_block_by_account(
+        &self,
+        account_id: api::AccountID,
+    ) -> Result<api::SignedBlock, DatabaseError> {
         let (_account, blocks, _txs) = self.accounts.get(&account_id).ok_or(DatabaseError::Unknown)?;
 
         let last_block_id = blocks.last().ok_or(DatabaseError::NoLastBlock)?;
         self.get_block_by_id(*last_block_id).await
     }
 
-    async fn add_block(&mut self, block: api::Block) -> Result<(), DatabaseError> {
+    async fn add_block(&mut self, block: api::SignedBlock) -> Result<(), DatabaseError> {
         let block_data = block.data.clone().ok_or(DatabaseError::DataNotFound)?;
 
         let account_id = encoding::account::generate_account_address(block.public_key.clone())
@@ -109,7 +112,7 @@ impl Database for MockDB {
         &self,
         account_id: api::AccountID,
         block_height: &u64,
-    ) -> Result<Option<api::Block>, DatabaseError> {
+    ) -> Result<Option<api::SignedBlock>, DatabaseError> {
         self.blocks
             .iter()
             // reverse to make it faster for newer blocks
@@ -174,7 +177,7 @@ impl Database for MockDB {
         account_id: api::AccountID,
         unix_from: u64,
         unix_limit: u64,
-    ) -> Result<Option<api::Block>, DatabaseError> {
+    ) -> Result<Option<api::SignedBlock>, DatabaseError> {
         self.blocks
             .iter()
             // reverse to make it faster for newer blocks

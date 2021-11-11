@@ -13,7 +13,7 @@ use crate::{state::ChampStateArc, validation::block::validate};
 
 #[derive(Debug)]
 struct QueueItem {
-    block: pog_proto::api::Block,
+    block: pog_proto::api::SignedBlock,
 }
 
 #[derive(Debug)]
@@ -36,7 +36,7 @@ pub struct BlockpoolClient {
 }
 
 impl BlockpoolClient {
-    pub async fn process_block(&self, block: pog_proto::api::Block) -> Result<()> {
+    pub async fn process_block(&self, block: pog_proto::api::SignedBlock) -> Result<()> {
         let (resp_tx, resp_rx) = oneshot::channel();
         self.tx
             .send(Command::ProcessBlock {
@@ -137,7 +137,7 @@ type Responder<T> = oneshot::Sender<Result<T>>;
 #[derive(Debug)]
 pub enum Command {
     ProcessBlock {
-        block: pog_proto::api::Block,
+        block: pog_proto::api::SignedBlock,
         resp: Responder<()>,
     },
     ProcessVote {

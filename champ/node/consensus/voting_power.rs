@@ -121,14 +121,15 @@ mod tests {
         voting_power::BALANCE_WEIGHT,
         voting_power::CASHFLOW_WEIGHT,
     };
-    use pog_proto::api::{block::BlockData, Block};
+    use pog_proto::api::signed_block::BlockData;
+    use pog_proto::api::SignedBlock;
     #[test]
     fn check_voting_power() {
         // Switch on to output debug table
         const TEST_TABLE_ON: bool = false;
 
         let blocks = vec![
-            Block {
+            SignedBlock {
                 signature: b"signature".to_vec(),
                 public_key: b"key".to_vec(),
                 timestamp: 1,
@@ -141,7 +142,7 @@ mod tests {
                     transactions: vec![],
                 }),
             },
-            Block {
+            SignedBlock {
                 signature: b"signature".to_vec(),
                 public_key: b"key".to_vec(),
                 timestamp: 1,
@@ -154,7 +155,7 @@ mod tests {
                     transactions: vec![],
                 }),
             },
-            Block {
+            SignedBlock {
                 signature: b"signature".to_vec(),
                 public_key: b"key".to_vec(),
                 timestamp: 1,
@@ -167,7 +168,7 @@ mod tests {
                     transactions: vec![],
                 }),
             },
-            Block {
+            SignedBlock {
                 signature: b"signature".to_vec(),
                 public_key: b"key".to_vec(),
                 timestamp: 1,
@@ -180,7 +181,7 @@ mod tests {
                     transactions: vec![],
                 }),
             },
-            Block {
+            SignedBlock {
                 signature: b"signature".to_vec(),
                 public_key: b"key".to_vec(),
                 timestamp: 1,
@@ -193,7 +194,7 @@ mod tests {
                     transactions: vec![],
                 }),
             },
-            Block {
+            SignedBlock {
                 signature: b"signature".to_vec(),
                 public_key: b"key".to_vec(),
                 timestamp: 1,
@@ -206,7 +207,7 @@ mod tests {
                     transactions: vec![],
                 }),
             },
-            Block {
+            SignedBlock {
                 signature: b"signature".to_vec(),
                 public_key: b"key".to_vec(),
                 timestamp: 1,
@@ -219,7 +220,7 @@ mod tests {
                     transactions: vec![],
                 }),
             },
-            Block {
+            SignedBlock {
                 signature: b"signature".to_vec(),
                 public_key: b"key".to_vec(),
                 timestamp: 1,
@@ -232,7 +233,7 @@ mod tests {
                     transactions: vec![],
                 }),
             },
-            Block {
+            SignedBlock {
                 signature: b"signature".to_vec(),
                 public_key: b"key".to_vec(),
                 timestamp: 1,
@@ -245,7 +246,7 @@ mod tests {
                     transactions: vec![],
                 }),
             },
-            Block {
+            SignedBlock {
                 signature: b"signature".to_vec(),
                 public_key: b"key".to_vec(),
                 timestamp: 1,

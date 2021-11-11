@@ -1,4 +1,4 @@
-use pog_proto::api::Block;
+use pog_proto::api::SignedBlock;
 
 // so we can normalize the curves
 const TX_CURVE_MAX: i32 = 15;
@@ -27,7 +27,7 @@ pub fn cashflow_graph(new_block_balance: u64, old_block_balance: u64) -> f64 {
     -cashflow as f64 / NORMALIZE_CASHFLOW
 }
 
-pub fn block_graph(block_height: u64, new_block: &Block, old_block: Option<&Block>) -> f64 {
+pub fn block_graph(block_height: u64, new_block: &SignedBlock, old_block: Option<&SignedBlock>) -> f64 {
     let old_block_time = match old_block {
         Some(b) => b.timestamp,
         None => new_block.timestamp,

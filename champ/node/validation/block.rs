@@ -6,7 +6,7 @@ use crypto::{self, signatures::ed25519::verify_signature};
 use encoding::account::generate_account_address;
 use pog_proto::api::{
     transaction::{Data, TxClaim},
-    Block,
+    SignedBlock,
 };
 use prost::Message;
 use std::convert::TryInto;
@@ -48,7 +48,7 @@ pub enum Node {
 // Validate block
 #[allow(dead_code)]
 #[tracing::instrument]
-pub async fn validate(block: &Block, state: &ChampStateArc) -> Result<()> {
+pub async fn validate(block: &SignedBlock, state: &ChampStateArc) -> Result<()> {
     debug!("validating a block");
 
     let data = block.clone().data.ok_or(Node::BlockDataNotFound)?;
@@ -80,7 +80,7 @@ pub async fn validate(block: &Block, state: &ChampStateArc) -> Result<()> {
 
 // TODO: add error handling so validation error go to voting
 // Verifies the transactions and balances
-async fn verify_transactions(new_block: &Block, prev_block: &Block, state: &ChampStateArc) -> Result<()> {
+async fn verify_transactions(new_block: &SignedBlock, prev_block: &SignedBlock, state: &ChampStateArc) -> Result<()> {
     debug!("verify transactions");
     let db = &state.db.lock().await;
     // go through all tx in the block and do math to see new balance
@@ -121,7 +121,7 @@ async fn verify_transactions(new_block: &Block, prev_block: &Block, state: &Cham
 }
 
 // Verifies the block height and previous block
-fn verify_previous_block(new_block: &Block, prev_block: &Block) -> Result<()> {
+fn verify_previous_block(new_block: &SignedBlock, prev_block: &SignedBlock) -> Result<()> {
     debug!("verify previous block");
     let new_data = new_block.data.as_ref().ok_or(Node::BlockDataNotFound)?;
     let prev_data = prev_block.data.as_ref().ok_or(Node::BlockDataNotFound)?;
@@ -141,7 +141,7 @@ fn verify_account_genesis_block() -> Result<()> {
 }
 
 #[allow(clippy::borrowed_box)]
-async fn validate_collect(tx: &TxClaim, db: &Box<dyn Database>, block: &Block) -> Result<i128> {
+async fn validate_collect(tx: &TxClaim, db: &Box<dyn Database>, block: &SignedBlock) -> Result<i128> {
     // check DB for send with id tx_id
     // TODO: check already collected
     debug!("verify claim transactions");
@@ -176,14 +176,14 @@ mod tests {
     use anyhow::Result;
     // use pog_proto::api::transaction::TxClaim;
     use pog_proto::api::{
-        block::BlockData,
+        signed_block::BlockData,
         transaction::{Data, TxSend},
-        Block, Transaction,
+        SignedBlock, Transaction,
     };
 
     #[test]
     fn test_verify_previous_block() -> Result<()> {
-        let prev_block = Block {
+        let prev_block = SignedBlock {
             signature: b"thisIsNewSignature".to_vec(),
             public_key: b"someOtherKey".to_vec(),
             timestamp: 1,
@@ -196,7 +196,7 @@ mod tests {
                 transactions: [].to_vec(),
             }),
         };
-        let new_block = Block {
+        let new_block = SignedBlock {
             signature: b"signedByMe".to_vec(),
             public_key: b"someKey".to_vec(),
             timestamp: 1,
@@ -216,7 +216,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_verify_transactions() -> Result<()> {
-        let prev_block = Block {
+        let prev_block = SignedBlock {
             signature: b"thisIsNewSignature".to_vec(),
             public_key: b"someOtherKey".to_vec(),
             timestamp: 1,
@@ -229,7 +229,7 @@ mod tests {
                 transactions: vec![],
             }),
         };
-        let block = Block {
+        let block = SignedBlock {
             signature: b"signedByMe".to_vec(),
             public_key: b"someKey".to_vec(),
             timestamp: 1,
@@ -264,7 +264,7 @@ mod tests {
                 data: vec![],
             })),
         };
-        let data_block_1 = Block {
+        let data_block_1 = SignedBlock {
             signature: b"data_block_one".to_vec(),
             public_key: b"key_one".to_vec(),
             timestamp: 1,
