@@ -70,7 +70,7 @@
     > DDOS: We plan to add rate limiting and we will guide Node Operators for optimal setup as we won't run the nodes ourselves.
     <br>(_Denial of Service, High Severity_)
 
-    > Sybil: `Mitigated` because our consensus algorithm prioritizes accounts that lose money over a period of time which makes farmed account importance inconsistant.
+    > Sybil: `Mitigated` because our consensus algorithm prioritizes accounts that lose money over a period of time which makes farmed account importance inconsistant. We also plan to polish this algorithm and create another that attempts to recognize farming accounts.
     <br>(_Sybil, High Severity_)
 ## Contributions
 
