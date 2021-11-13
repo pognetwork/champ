@@ -62,16 +62,29 @@
 
 - ### Database
 
-    > Injection: `Mitigated` because we use the [Sled](https://github.com/spacejam/sled) database that works more as a key-value storage and is therefore not susceptible to injection.
+    > Injection: `Mitigated` because we use the [Sled](https://github.com/spacejam/sled) database that works more as a key-value storage and is therefore not susceptible to injection. Also, the data is serialized with protobuf.
     <br>(_Elevation of Privilege, High Severity_)
 
 - ### Peer to Peer
 
-    > DDOS: We plan to add rate limiting and we will guide Node Operators for optimal setup as we won't run the nodes ourselves.
+    > DDOS: We plan to add rate limiting and we will guide Node Operators for optimal setup as we won't run the Nodes ourselves.
     <br>(_Denial of Service, High Severity_)
 
     > Sybil: `Mitigated` because our consensus algorithm prioritizes accounts that lose money over a period of time which makes farmed account importance inconsistant. We also plan to polish this algorithm and create another that attempts to recognize farming accounts.
     <br>(_Sybil, High Severity_)
+
+    > Network Amplify: We plan to have Nodes wait until the Prime Delegates have voted. If they decide that the block is fraudulent, it can be ignored. Otherwise the Node with the gap in previous block will sync its chain with a Prime Delegate Node.
+    <br>(_Denial of Service, Low Severity_)
+
+    > Penny-spend Attack: `Mitigated` because we rate-limit transactions in a block. We also decrease an account importance when it starts spamming. In addition, we plan to add a way for Prime Delegates to remove accounts with low importance that act maliciously.
+    <br>(_Ledger bloat, Medium Severity_)
+
+    > \>50% Attack: `Mitigated` because the consensus algorithm favours the Wallets that are active in the network. These Wallets would not benefit from devaluing the coins. 
+    <br>(_Destructive, High Severity_)
+
+    > New-user DDOS: We plan to have chain syncing that needs confirmation from multiple Prime Delegates that ensure the validity of the chains sent. 
+    <br>(_Denial of Service, Low Severity_)
+
 ## Contributions
 
 - Alexander Gemmingen ([@Alyks1](https://github.com/Alyks1))
