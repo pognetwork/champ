@@ -1,3 +1,4 @@
+mod auth;
 mod blockpool;
 mod cli;
 mod config;
@@ -14,11 +15,18 @@ use http::server::HttpServer;
 use roughtime::server::RoughTime;
 use rpc::server::RpcServer;
 use tokio::try_join;
+use tracing::{debug, Level};
 
 use crate::{blockpool::Blockpool, state::ChampState};
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    tracing_subscriber::fmt()
+        // filter spans/events with level TRACE or higher.
+        .with_max_level(Level::DEBUG)
+        // build but do not install the subscriber.
+        .init();
+
     let matches = clap::App::new("champ-node")
         .version("0.0.1")
         .author("The POG Project <contact@pog.network>")
@@ -55,22 +63,36 @@ async fn main() -> Result<()> {
                                 .takes_value(true)
                                 .value_name("PASSWORD")
                                 .forbid_empty_values(true),
+                        )
+                        .arg(
+                            Arg::new("perms")
+                                .about("adds permissions")
+                                .takes_value(true)
+                                .multiple_values(true)
+                                .value_name("PERMISSIONS")
+                                .forbid_empty_values(false)
+                                .max_values(20)
+                                .min_values(0),
                         ),
                 )
                 .subcommand(clap::App::new("generate-key").about("generates a node private key used for JWTs")),
         )
         .get_matches();
 
+    debug!("loading config");
     let config = config::Config::new(Some(matches.clone()))?;
 
+    debug!("initializing database");
     let db = storage::new(&config.database).await?;
 
+    debug!("initializing blockpool");
     let mut blockpool = Blockpool::new();
 
     let state = ChampState::new(db, config, blockpool.get_client());
     blockpool.add_state(state.clone());
 
     if let Some(matches) = matches.subcommand_matches("admin") {
+        debug!("command matched to admin subcommand");
         cli::admin::run(matches, &state).await?;
         return Ok(());
     }
@@ -83,6 +105,7 @@ async fn main() -> Result<()> {
     let addr2 = "[::1]:50050".parse()?;
     let addr3 = "[::1]:50049".parse()?;
 
+    debug!("starting services");
     let _ = try_join!(
         rpc_server.start(addr),
         http_server.start(addr2, matches.value_of("web").is_some()),

@@ -3,16 +3,21 @@ authors = ["The POG Contributors <contact@pog.network>"]
 edition = "2021"
 name = "crypto"
 publish = false
-version = "0.0.8"
+version = "0.0.9"
 
 [dependencies]
 anyhow = "1.0"
 argon2 = "0.3"
 base64 = "0.13"
-pem = "0.8"
+chacha20poly1305 = "0.9"
+ed25519-zebra = "3"
+getrandom = {version = "0.2", features = ["js"]}
+pem = "1.0"
+rand = "0.8"
 ring = "0.16"
 sha3 = "0.9"
 thiserror = "1.0"
+sha-1 = "0.9"
 
 [lib]
 path = "lib.rs"

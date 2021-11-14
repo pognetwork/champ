@@ -4,7 +4,7 @@ edition = "2021"
 name = "roughtime"
 
 publish = false
-version = "0.0.8"
+version = "0.0.9"
 
 [dependencies]
 anyhow = "1.0"
@@ -12,6 +12,7 @@ async-trait = "0.1"
 hex = "0.4"
 roughenough = {git = "https://github.com/pognetwork/roughenough"}
 thiserror = "1.0"
+tracing = "0.1"
 
 [lib]
 path = "lib.rs"

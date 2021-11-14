@@ -5,15 +5,12 @@ use crate::state::ChampStateArc;
 use crate::storage;
 
 use pog_proto::api;
-use pog_proto::rpc::block::{
-    BalanceReply, BalanceRequest, BlockByIdReply, BlockByIdRequest, BlockHeightReply, BlockHeightRequest,
-    DelegateReply, DelegateRequest, Empty, PendingBlockReply, TxByIdReply, TxByIdRequest, TxByIndexReply,
-    TxByIndexRequest, UnacknowledgedTxReply, VotingPowerReply, VotingPowerRequest,
-};
+use pog_proto::rpc::block::*;
 
 pub use pog_proto::rpc::block::block_server::{Block, BlockServer};
 
 use tonic::{Request, Response, Status};
+use tracing::debug;
 #[derive(Debug)]
 pub struct BlockService {
     pub state: ChampStateArc,
@@ -31,6 +28,7 @@ impl BlockService {
 impl Block for BlockService {
     async fn get_balance(&self, request: Request<BalanceRequest>) -> Result<Response<BalanceReply>, Status> {
         // We must use .into_inner() as the fields of gRPC requests and responses are private
+        debug!("getting balance");
         let address: api::AccountID = match request.into_inner().address.try_into() {
             Ok(a) => a,
             Err(_) => return Err(Status::new(tonic::Code::Internal, "Address could not be parsed")),
@@ -52,6 +50,8 @@ impl Block for BlockService {
         &self,
         block_height_request: Request<BlockHeightRequest>,
     ) -> Result<Response<BlockHeightReply>, Status> {
+        debug!("getting block height");
+
         let request = block_height_request.into_inner();
         let get_next_block_height = request.get_next.unwrap_or(false) as u64;
 
@@ -81,6 +81,8 @@ impl Block for BlockService {
         &self,
         rpc_request: Request<VotingPowerRequest>,
     ) -> Result<Response<VotingPowerReply>, Status> {
+        debug!("getting voting power");
+
         let state = &self.state;
         let request = rpc_request.into_inner().clone();
 
@@ -101,6 +103,8 @@ impl Block for BlockService {
     }
 
     async fn get_block_by_id(&self, request: Request<BlockByIdRequest>) -> Result<Response<BlockByIdReply>, Status> {
+        debug!("getting block by id");
+
         let block_id: api::BlockID = request
             .into_inner()
             .hash
@@ -112,7 +116,7 @@ impl Block for BlockService {
         let block = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
 
         Ok(Response::new(BlockByIdReply {
-            block: Some(block.to_owned()),
+            block: Some(block),
         }))
     }
 
@@ -120,6 +124,8 @@ impl Block for BlockService {
         &self,
         request: tonic::Request<DelegateRequest>,
     ) -> Result<tonic::Response<DelegateReply>, tonic::Status> {
+        debug!("getting delegate of an account");
+
         let db = self.state.db.lock().await;
 
         let address: api::AccountID = match request.into_inner().address.try_into() {
@@ -128,7 +134,7 @@ impl Block for BlockService {
         };
 
         let db_response = db.get_account_delegate(address).await;
-        let response = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
+        let response = db_response.map_err(|_| Status::new(tonic::Code::Internal, "internal server error"))?;
 
         match &response {
             Some(address) => Ok(Response::new(DelegateReply {
@@ -156,6 +162,8 @@ impl Block for BlockService {
         &self,
         request: tonic::Request<TxByIdRequest>,
     ) -> Result<tonic::Response<TxByIdReply>, tonic::Status> {
+        debug!("getting transaction by id");
+
         let transaction_id: api::TransactionID = match request.into_inner().transaction_id.try_into() {
             Ok(a) => a,
             Err(_) => return Err(Status::new(tonic::Code::Internal, "Address could not be parsed")),
@@ -165,7 +173,7 @@ impl Block for BlockService {
         let transaction = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
 
         Ok(Response::new(TxByIdReply {
-            transaction: Some(transaction.to_owned()),
+            transaction: Some(transaction),
         }))
     }
 

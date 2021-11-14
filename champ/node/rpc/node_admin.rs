@@ -1,14 +1,10 @@
-use pog_proto::rpc::node_admin::{
-    Empty, GetBlockPoolSizeReply, GetChainReply, GetChainRequest, GetLogsReply, GetLogsRequest, GetModeReply,
-    GetModeRequest, GetNodeNameReply, GetNodeStatusReply, GetNodeStatusRequest, GetPeersRequest, GetPeersResponse,
-    GetPendingBlocksReply, GetPendingBlocksRequest, GetVersionResponse, SetModeReply, SetModeRequest,
-    SetNodeNameRequest, UpgradeNodeRequest, UpgradeNodeResponse,
-};
+use crate::auth::permissions::verify_perms;
+use crate::state::ChampStateArc;
+use pog_proto::rpc::node_admin::*;
 use tonic::{Response, Status};
 
-use crate::state::ChampStateArc;
-
 pub use pog_proto::rpc::node_admin::node_admin_server::{NodeAdmin, NodeAdminServer};
+use tracing::debug;
 
 #[derive(Debug)]
 pub struct NodeAdminService {
@@ -29,34 +25,44 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 impl NodeAdmin for NodeAdminService {
     async fn get_peers(
         &self,
-        _request: tonic::Request<GetPeersRequest>,
+        _request: tonic::Request<Empty>,
     ) -> Result<tonic::Response<GetPeersResponse>, tonic::Status> {
         unimplemented!()
     }
+
     async fn get_version(
         &self,
-        _request: tonic::Request<Empty>,
+        request: tonic::Request<Empty>,
     ) -> Result<tonic::Response<GetVersionResponse>, tonic::Status> {
+        verify_perms(&request, "admin.read")?;
+        debug!("getting node version");
+
         Ok(Response::new(GetVersionResponse {
             version: VERSION.to_string(),
         }))
     }
+
     async fn upgrade_node(
         &self,
         _request: tonic::Request<UpgradeNodeRequest>,
-    ) -> Result<tonic::Response<UpgradeNodeResponse>, tonic::Status> {
+    ) -> Result<tonic::Response<Empty>, tonic::Status> {
         unimplemented!()
     }
+
     async fn get_pending_blocks(
         &self,
-        _request: tonic::Request<GetPendingBlocksRequest>,
+        _request: tonic::Request<Empty>,
     ) -> Result<tonic::Response<GetPendingBlocksReply>, tonic::Status> {
         unimplemented!()
     }
+
     async fn get_block_pool_size(
         &self,
-        _request: tonic::Request<Empty>,
+        request: tonic::Request<Empty>,
     ) -> Result<tonic::Response<GetBlockPoolSizeReply>, tonic::Status> {
+        debug!("getting block pool size");
+
+        verify_perms(&request, "admin.read")?;
         Ok(Response::new(GetBlockPoolSizeReply {
             length: self
                 .state
@@ -68,26 +74,43 @@ impl NodeAdmin for NodeAdminService {
     }
     async fn get_node_status(
         &self,
-        _request: tonic::Request<GetNodeStatusRequest>,
+        _request: tonic::Request<Empty>,
     ) -> Result<tonic::Response<GetNodeStatusReply>, tonic::Status> {
         unimplemented!()
     }
-    async fn get_mode(
-        &self,
-        _request: tonic::Request<GetModeRequest>,
-    ) -> Result<tonic::Response<GetModeReply>, tonic::Status> {
-        unimplemented!()
+
+    async fn get_mode(&self, request: tonic::Request<Empty>) -> Result<tonic::Response<GetModeReply>, tonic::Status> {
+        debug!("getting node mode");
+
+        verify_perms(&request, "admin.read")?;
+        let mode = &self.state.config.read().await.consensus.mode;
+        Ok(Response::new(GetModeReply {
+            current_mode: *mode as i32,
+        }))
     }
+
     async fn set_mode(
         &self,
-        _request: tonic::Request<SetModeRequest>,
-    ) -> Result<tonic::Response<SetModeReply>, tonic::Status> {
-        unimplemented!()
+        request: tonic::Request<SetModeRequest>,
+    ) -> Result<tonic::Response<Empty>, tonic::Status> {
+        debug!("setting node mode");
+
+        verify_perms(&request, "admin.write")?;
+        let new_mode = Mode::from_i32(request.into_inner().mode)
+            .ok_or_else(|| Status::new(tonic::Code::Internal, "invalid mode"))?;
+        let mut config = self.state.config.write().await;
+        config.consensus.mode = new_mode;
+        config.write().map_err(|_| Status::new(tonic::Code::Internal, "could not update the node name"))?;
+        Ok(Response::new(Empty {}))
     }
+
     async fn get_node_name(
         &self,
-        _request: tonic::Request<Empty>,
+        request: tonic::Request<Empty>,
     ) -> Result<tonic::Response<GetNodeNameReply>, tonic::Status> {
+        debug!("getting node name");
+
+        verify_perms(&request, "admin.read")?;
         let name = &self.state.config.read().await.admin.node_name;
         Ok(Response::new(GetNodeNameReply {
             name: name.to_string(),
@@ -97,6 +120,9 @@ impl NodeAdmin for NodeAdminService {
         &self,
         request: tonic::Request<SetNodeNameRequest>,
     ) -> Result<tonic::Response<Empty>, tonic::Status> {
+        debug!("setting node name");
+
+        verify_perms(&request, "admin.write")?;
         let new_name = request.into_inner().new_name;
         //TODO: Add length checks
         let mut config = self.state.config.write().await;
@@ -104,16 +130,27 @@ impl NodeAdmin for NodeAdminService {
         config.write().map_err(|_| Status::new(tonic::Code::Internal, "could not update the node name"))?;
         Ok(Response::new(Empty {}))
     }
+
     async fn get_chain(
         &self,
-        _request: tonic::Request<GetChainRequest>,
+        request: tonic::Request<Empty>,
     ) -> Result<tonic::Response<GetChainReply>, tonic::Status> {
-        unimplemented!()
+        debug!("getting node chain");
+
+        verify_perms(&request, "admin.read")?;
+        let config = self.state.config.read().await;
+        Ok(Response::new(GetChainReply {
+            current_chain: config.consensus.chain.clone(),
+        }))
     }
+
     async fn get_logs(
         &self,
-        _request: tonic::Request<GetLogsRequest>,
+        request: tonic::Request<GetLogsRequest>,
     ) -> Result<tonic::Response<GetLogsReply>, tonic::Status> {
+        debug!("getting node logs (this)");
+
+        verify_perms(&request, "admin.logs")?;
         unimplemented!()
     }
 }

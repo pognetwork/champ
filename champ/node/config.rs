@@ -3,6 +3,7 @@ use anyhow::Result;
 use anyhow::{anyhow, Context};
 use clap::ArgMatches;
 use path_absolutize::Absolutize;
+use pog_proto::rpc::node_admin::Mode;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::fs::OpenOptions;
@@ -10,13 +11,23 @@ use std::io::Read;
 use std::io::Write;
 use std::path::PathBuf;
 
+// https://serde.rs/remote-derive.html
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(remote = "Mode")]
+enum ModeDef {
+    Prime,
+    Validating,
+    Observer,
+    Light,
+}
+
 fn default_accounts() -> BTreeMap<String, UserAccount> {
     BTreeMap::new()
 }
 
 fn default_admin() -> Admin {
     Admin {
-        enabled: false,
+        enabled: true,
         ..Default::default()
     }
 }
@@ -24,6 +35,12 @@ fn default_admin() -> Admin {
 fn default_database() -> DatabaseConfig {
     DatabaseConfig {
         kind: Databases::Sled,
+        ..Default::default()
+    }
+}
+
+fn default_consensus() -> ConsensusSettings {
+    ConsensusSettings {
         ..Default::default()
     }
 }
@@ -38,10 +55,13 @@ pub struct Config {
     pub admin: Admin,
 
     #[serde(default = "default_accounts", serialize_with = "toml::ser::tables_last")]
-    pub admin_accounts: BTreeMap<String, UserAccount>,
+    pub node_users: BTreeMap<String, UserAccount>,
 
     #[serde(default = "default_database")]
     pub database: DatabaseConfig,
+
+    #[serde(default = "default_consensus")]
+    pub consensus: ConsensusSettings,
 
     #[serde(skip_serializing)]
     config_path_override: Option<String>,
@@ -53,8 +73,26 @@ pub struct Config {
     pub config_path: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ConsensusSettings {
+    pub chain: String, // currently only `dev` is supported
+
+    #[serde(with = "ModeDef")]
+    pub mode: Mode,
+}
+
+impl Default for ConsensusSettings {
+    fn default() -> Self {
+        Self {
+            chain: "dev".to_string(),
+            mode: Mode::Validating,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct UserAccount {
+    pub permissions: Vec<String>,
     pub user_id: String,
     pub password_hash: String,
 }
@@ -70,7 +108,8 @@ pub struct Admin {
 
 impl Config {
     fn get_default_data_path() -> Result<PathBuf> {
-        let project_dir = directories::ProjectDirs::from("network", "pog", "champ").expect("failed to create data dir");
+        let project_dir =
+            directories::ProjectDirs::from("network", "pog", "champ").expect("failed to create data dir");
         let data_dir = project_dir.data_dir();
         std::fs::create_dir_all(data_dir)?;
         Ok(data_dir.to_path_buf())
@@ -112,7 +151,7 @@ impl Config {
         self.config_path = config_path.to_str().map(|p| p.to_string());
         self.database = config.database.clone();
         self.admin = config.admin;
-        self.admin_accounts = config.admin_accounts;
+        self.node_users = config.node_users;
 
         self.data_path = if let Some(path) = config.database.path {
             let path = path.parse::<PathBuf>()?;

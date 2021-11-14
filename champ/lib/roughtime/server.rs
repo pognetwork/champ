@@ -4,6 +4,7 @@ use hex;
 use roughenough::config::{MemoryConfig, ServerConfig, DEFAULT_BATCH_SIZE, DEFAULT_STATUS_INTERVAL};
 use roughenough::key::KmsProtection;
 use roughenough::server::{MioEvents, Server};
+use tracing::info;
 
 #[derive(Default, Debug)]
 pub struct RoughTime {}
@@ -38,7 +39,7 @@ impl RoughTime {
             fault_percentage: 0,
         };
 
-        println!("starting roughtime server at {}", addr);
+        info!("starting roughtime server at {}", addr);
         Self::polling_loop(Box::from(config)).await;
         Ok(())
     }
