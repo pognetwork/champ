@@ -17,7 +17,6 @@ pub async fn run(state: &ChampStateArc, user: &str, password: &str, perms: Vec<S
         return Err(CLIError::UserExists);
     }
 
-
     config.node_users.insert(
         user.to_string(),
         crate::config::UserAccount {
