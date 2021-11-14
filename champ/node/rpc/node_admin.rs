@@ -124,6 +124,7 @@ impl NodeAdmin for NodeAdminService {
 
         verify_perms(&request, "admin.write")?;
         let new_name = request.into_inner().new_name;
+        //TODO: Add length checks
         let mut config = self.state.config.write().await;
         config.admin.node_name = new_name;
         config.write().map_err(|_| Status::new(tonic::Code::Internal, "could not update the node name"))?;
