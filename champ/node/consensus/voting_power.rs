@@ -10,6 +10,7 @@ const BLOCK_WEIGHT: f64 = 1.2;
 const BALANCE_WEIGHT: f64 = 0.75;
 const CASHFLOW_WEIGHT: f64 = 1.0;
 const AGE_WEIGHT: f64 = 1.0;
+const INACTIVE_TAX_WEIGHT: f64 = 1.0;
 
 // so we can normalize the network affect
 const MAX_NETWORK_POWER: f64 = 0.3;
@@ -54,13 +55,17 @@ pub async fn get_actual_power(state: &ChampStateArc, account_id: api::AccountID)
     let cresult = cashflow_graph(new_block_balance, old_block_balance);
     let bbresult = block_graph(data.height, &block, old_block_result.as_ref());
     let aresult = age_graph(block.timestamp - first_block.timestamp);
+    let iresult = inactive_tax_graph(new_block_balance, old_block_balance);
 
     trace!("Graph results: balance={0}, cashflow={1}, block={2}, age={3}", bresult, cresult, bbresult, aresult);
     // TODO: Green Adresses?
 
     // Weights to change how much impact each factor should have
-    let graph_result =
-        bbresult * BLOCK_WEIGHT + bresult * BALANCE_WEIGHT + aresult * AGE_WEIGHT + cresult * CASHFLOW_WEIGHT;
+    let graph_result = bbresult * BLOCK_WEIGHT
+        + bresult * BALANCE_WEIGHT
+        + aresult * AGE_WEIGHT
+        + cresult * CASHFLOW_WEIGHT
+        + iresult * INACTIVE_TAX_WEIGHT;
 
     let result = if graph_result < 0.0 {
         0

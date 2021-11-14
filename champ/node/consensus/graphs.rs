@@ -7,7 +7,7 @@ const PLATEAU_SIZE: f64 = 350.0;
 const NORMALIZE_BALANCE: f64 = 1.0;
 // TODO: Add Cashflow normalization
 const NORMALIZE_CASHFLOW: f64 = 1.0;
-const INACTIVE_TAX_CUT: f64 = 5.0;
+const NORMALIZE_INACTIVE_TAX: f64 = 5.0;
 
 const WEEK_IN_SECONDS: f64 = 60.0 * 60.0 * 24.0 * 7.0;
 
@@ -18,13 +18,18 @@ pub fn balance_graph(balance: u64) -> f64 {
 pub fn cashflow_graph(new_block_balance: u64, old_block_balance: u64) -> f64 {
     let cashflow = new_block_balance as i128 - old_block_balance as i128;
 
+    -cashflow as f64 / NORMALIZE_CASHFLOW
+}
+
+pub fn inactive_tax_graph(new_block_balance: u64, old_block_balance: u64) -> f64 {
+    let cashflow = new_block_balance as i128 - old_block_balance as i128;
+
     tracing::trace!("real cashflow={}", cashflow);
     // Inactive Tax
     if cashflow == 0 && new_block_balance > 0 {
-        return -(new_block_balance as f64 / NORMALIZE_BALANCE) / INACTIVE_TAX_CUT;
+        return -(new_block_balance as f64 / NORMALIZE_INACTIVE_TAX);
     }
-
-    -cashflow as f64 / NORMALIZE_CASHFLOW
+    0.0
 }
 
 pub fn block_graph(block_height: u64, new_block: &SignedBlock, old_block: Option<&SignedBlock>) -> f64 {
