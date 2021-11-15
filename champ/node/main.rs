@@ -32,9 +32,9 @@ async fn main() -> Result<()> {
         .version("0.0.1")
         .author("The POG Project <contact@pog.network>")
         .about("POGs reference implementation in rust")
-        .arg(Arg::new("web").about("enables web interface"))
-        .arg(Arg::new("metrics").about("enables metrics api"))
-        .arg(Arg::new("roughtime").about("enables roughtime server"))
+        .arg(Arg::new("web").long("feat-web").takes_value(false).about("enables web interface"))
+        .arg(Arg::new("metrics").long("feat-metrics").takes_value(false).about("enables metrics api"))
+        .arg(Arg::new("roughtime").long("feat-roughtime").takes_value(false).about("enables roughtime server"))
         .arg(
             Arg::new("config")
                 .short('c')
@@ -112,9 +112,9 @@ async fn main() -> Result<()> {
     debug!("starting services");
     let _ = try_join!(
         rpc_server.start(rpc_addr),
-        metrics_server.start(metrics_addr, matches.value_of("metrics").is_some()),
-        http_server.start(http_addr, matches.value_of("web").is_some()),
-        rough_time_server.start(rough_time_addr, matches.value_of("roughtime").is_some()),
+        metrics_server.start(metrics_addr, matches.is_present("metrics")),
+        http_server.start(http_addr, matches.is_present("web")),
+        rough_time_server.start(rough_time_addr, matches.is_present("roughtime")),
         blockpool.start(),
     );
 

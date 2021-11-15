@@ -8,6 +8,7 @@ use hyper::{
 };
 
 use prometheus::{Encoder, TextEncoder};
+use tracing::info;
 
 #[derive(Debug)]
 pub struct MetricsServer {}
@@ -23,6 +24,8 @@ impl MetricsServer {
 
         let serve_future =
             Server::bind(&addr).serve(make_service_fn(|_| async { Ok::<_, hyper::Error>(service_fn(serve_req)) }));
+
+        info!("starting metrics at {}", addr);
 
         serve_future.await?;
         Ok(())
