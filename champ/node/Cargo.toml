@@ -46,6 +46,9 @@ version = "1"
 name = "champ-node"
 path = "main.rs"
 
+[lib]
+path = "lib.rs"
+
 [features]
 backend-rocksdb = ["rocksdb"]
 backend-scylla = ["scylla"]

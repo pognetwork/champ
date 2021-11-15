@@ -32,6 +32,9 @@ pub struct DatabaseConfig {
     pub kind: Databases,
     pub uri: Option<String>,
 
+    // the database is deleted after it is dropped
+    pub temporary: Option<bool>,
+
     /// absolute path or relative path (relative to the config file location)
     pub path: Option<String>,
 
@@ -44,6 +47,7 @@ impl Default for DatabaseConfig {
         Self {
             kind: Databases::Mock,
             path: None,
+            temporary: None,
             uri: None,
             data_path: None,
         }
