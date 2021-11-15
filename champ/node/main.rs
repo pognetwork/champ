@@ -4,6 +4,7 @@ mod cli;
 mod config;
 mod consensus;
 mod http;
+mod metrics;
 mod rpc;
 mod state;
 pub mod storage;
@@ -11,13 +12,13 @@ mod validation;
 
 use anyhow::Result;
 use clap::Arg;
-use http::server::HttpServer;
+use http::HttpServer;
 use roughtime::server::RoughTime;
 use rpc::server::RpcServer;
 use tokio::try_join;
 use tracing::{debug, Level};
 
-use crate::{blockpool::Blockpool, state::ChampState};
+use crate::{blockpool::Blockpool, metrics::MetricsServer, state::ChampState};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -31,8 +32,9 @@ async fn main() -> Result<()> {
         .version("0.0.1")
         .author("The POG Project <contact@pog.network>")
         .about("POGs reference implementation in rust")
-        .arg(Arg::new("web").about("enables web interface"))
-        .arg(Arg::new("roughtime").about("enables roughtime server"))
+        .arg(Arg::new("web").long("feat-web").takes_value(false).about("enables web interface"))
+        .arg(Arg::new("metrics").long("feat-metrics").takes_value(false).about("enables metrics api"))
+        .arg(Arg::new("roughtime").long("feat-roughtime").takes_value(false).about("enables roughtime server"))
         .arg(
             Arg::new("config")
                 .short('c')
@@ -100,16 +102,19 @@ async fn main() -> Result<()> {
     let rpc_server = RpcServer::new(state.clone());
     let http_server = HttpServer::new();
     let rough_time_server = RoughTime::new();
+    let metrics_server = MetricsServer::new();
 
-    let addr = "[::1]:50051".parse()?;
-    let addr2 = "[::1]:50050".parse()?;
-    let addr3 = "[::1]:50049".parse()?;
+    let rpc_addr = "[::1]:50051".parse()?;
+    let http_addr = "[::1]:50050".parse()?;
+    let rough_time_addr = "[::1]:50049".parse()?;
+    let metrics_addr = "[::1]:50048".parse()?;
 
     debug!("starting services");
     let _ = try_join!(
-        rpc_server.start(addr),
-        http_server.start(addr2, matches.value_of("web").is_some()),
-        rough_time_server.start(addr3, matches.value_of("roughtime").is_some()),
+        rpc_server.start(rpc_addr),
+        metrics_server.start(metrics_addr, matches.is_present("metrics")),
+        http_server.start(http_addr, matches.is_present("web")),
+        rough_time_server.start(rough_time_addr, matches.is_present("roughtime")),
         blockpool.start(),
     );
 
