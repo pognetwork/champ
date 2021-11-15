@@ -7,8 +7,7 @@ use hyper::{
     Body, Request, Response, Server,
 };
 
-use prometheus::{labels, opts, register_counter, register_gauge, register_histogram_vec};
-use prometheus::{Counter, Encoder, Gauge, HistogramVec, TextEncoder};
+use prometheus::{Encoder, TextEncoder};
 
 #[derive(Debug)]
 pub struct MetricsServer {}
