@@ -20,8 +20,15 @@ pub struct SledDB {
 
 impl SledDB {
     pub fn new(cfg: &DatabaseConfig) -> Result<Self> {
-        let db: sled::Db = sled::open(cfg.data_path.as_ref().expect("sled db path needs to be specified"))?;
+        let mut sled_cfg = sled::Config::default();
 
+        if cfg.temporary.unwrap_or(false) {
+            sled_cfg = sled_cfg.temporary(true);
+        } else {
+            sled_cfg = sled_cfg.path(cfg.data_path.as_ref().expect("sled db path needs to be specified"));
+        }
+
+        let db: sled::Db = sled_cfg.open()?;
         let pending_blocks = db.open_tree("pending_blocks")?;
         // pending_blocks contain:
         //

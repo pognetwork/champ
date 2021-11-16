@@ -1,10 +1,7 @@
-use ring::{
-    rand,
-    signature::{self, KeyPair},
-};
+use p256::SecretKey;
+use pkcs8::{ToPrivateKey, ToPublicKey};
+use rand::thread_rng;
 use thiserror::Error;
-
-pub use ring::signature::EcdsaKeyPair;
 
 #[derive(Error, Debug)]
 pub enum ECDSAError {
@@ -18,24 +15,14 @@ pub struct PEMKeyPair {
 }
 
 pub fn generate_key_pair() -> Result<PEMKeyPair, ECDSAError> {
-    let rng = rand::SystemRandom::new();
-    let key_bytes = signature::EcdsaKeyPair::generate_pkcs8(&signature::ECDSA_P256_SHA256_FIXED_SIGNING, &rng)
-        .map_err(|_| ECDSAError::KeyPairError)?;
-    let key_pair =
-        signature::EcdsaKeyPair::from_pkcs8(&signature::ECDSA_P256_SHA256_FIXED_SIGNING, key_bytes.as_ref())
-            .map_err(|_| ECDSAError::KeyPairError)?;
-    let private_key = pem::encode(&pem::Pem {
-        tag: "PRIVATE KEY".to_string(),
-        contents: key_bytes.as_ref().to_vec(),
-    });
-    let public_key = pem::encode(&pem::Pem {
-        tag: "PUBLIC KEY".to_string(),
-        contents: key_pair.public_key().as_ref().to_vec(),
-    });
+    let private_key = SecretKey::random(thread_rng());
+
+    let public_key = private_key.public_key().to_public_key_pem().map_err(|_| ECDSAError::KeyPairError)?;
+    let private_key = private_key.to_pkcs8_pem().map_err(|_| ECDSAError::KeyPairError)?;
 
     Ok(PEMKeyPair {
+        private_key: private_key.to_string(),
         public_key,
-        private_key,
     })
 }
 
@@ -45,6 +32,6 @@ mod test {
 
     #[test]
     fn it_works() {
-        generate_key_pair().expect("good key generation");
+        let _ = generate_key_pair().expect("good key generation");
     }
 }
