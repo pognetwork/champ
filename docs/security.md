@@ -70,7 +70,7 @@
     > DDOS: We plan to add rate limiting and we will guide Node Operators for optimal setup as we won't run the Nodes ourselves.
     <br>(_Denial of Service, High Severity_)
 
-    > Sybil: `Mitigated` because our consensus algorithm prioritizes accounts that lose money over a period of time which makes farmed account importance inconsistant. We also plan to polish this algorithm and create another that attempts to recognize farming accounts.
+    > Sybil: `Mitigated` because our consensus algorithm prioritizes accounts that lose money over a period of time which makes farmed account importance inconsistant. We also [plan](./developers/consensus/importance_farming.md) to polish this algorithm and create another that attempts to recognize farming accounts. 
     <br>(_Sybil, High Severity_)
 
     > Network Amplify: We plan to have Nodes wait until the Prime Delegates have voted. If they decide that the block is fraudulent, it can be ignored. Otherwise the Node with the gap in previous block will sync its chain with a Prime Delegate Node.
