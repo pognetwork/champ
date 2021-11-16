@@ -65,6 +65,11 @@ MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEw7JAoU/gJbZJvV+zCOvU9yFJq0FN
 C/edCMRM78P8eQTBCDUTK1ywSYaszvQZvneiW6gNtWEJndSreEcyyUdVvg==
 -----END PUBLIC KEY-----";
 
+    const PUBLIC_KEY_2: &[u8] = b"-----BEGIN PUBLIC KEY-----
+eFkwEwYHKeZIzj0CAQYIKoZIzj0DAQcDQgAew7JAoU/gJbZJvV+zCOvU9yFJq0FN
+C/edCMRM78P8eQTBCDUTK1ywSYaszvQZvneiW6gNtWEJndSreEcyyUdVve==
+-----END PUBLIC KEY-----";
+
     const PRIVATE_KEY: &[u8] = b"-----BEGIN PRIVATE KEY-----
 MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgWTFfCGljY6aw3Hrt
 kHmPRiazukxPLb6ilpRAewjW8nihRANCAATDskChT+Altkm9X7MI69T3IUmrQU0L
@@ -75,5 +80,11 @@ kHmPRiazukxPLb6ilpRAewjW8nihRANCAATDskChT+Altkm9X7MI69T3IUmrQU0L
     fn it_works() {
         let jwt = create("123", "test_user", 60 * 60 * 24, PRIVATE_KEY).expect("should create a jwt");
         verify(&jwt, PUBLIC_KEY).expect("should verify jwt");
+    }
+
+    #[test]
+    fn invalid_public_key() {
+        let jwt = create("123", "test_user", 60 * 60 * 24, PRIVATE_KEY).expect("should create a jwt");
+        verify(&jwt, PUBLIC_KEY_2).expect_err("should not verify jwt with wrong public key");
     }
 }
