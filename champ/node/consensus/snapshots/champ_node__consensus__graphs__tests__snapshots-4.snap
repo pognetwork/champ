@@ -1,0 +1,9 @@
+---
+source: champ/node/consensus/graphs.rs
+expression: "vec![age_graph(605000).to_string(), age_graph(100_000_000).to_string(),\n     age_graph(0).to_string()]"
+
+---
+- "-1.9382883181701178"
+- "2.635988521203979"
+- "-2.267949192431123"
+

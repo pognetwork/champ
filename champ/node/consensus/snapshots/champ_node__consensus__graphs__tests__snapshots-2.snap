@@ -1,0 +1,9 @@
+---
+source: champ/node/consensus/graphs.rs
+expression: "vec![cashflow_graph(500, 1000).to_string(),\n     cashflow_graph(1000, 1000).to_string(), cashflow_graph(0, 0).to_string()]"
+
+---
+- "500"
+- "0"
+- "0"
+

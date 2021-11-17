@@ -3,11 +3,11 @@ use pog_proto::api::SignedBlock;
 // so we can normalize the curves
 const TX_CURVE_MAX: i32 = 15;
 const PLATEAU_SIZE: f64 = 350.0;
-// TODO: Add Balance normalization
+
 const NORMALIZE_BALANCE: f64 = 1.0;
-// TODO: Add Cashflow normalization
 const NORMALIZE_CASHFLOW: f64 = 1.0;
 const NORMALIZE_INACTIVE_TAX: f64 = 5.0;
+const NORMALIZE_BLOCK: f64 = 10.0;
 
 const WEEK_IN_SECONDS: f64 = 60.0 * 60.0 * 24.0 * 7.0;
 
@@ -51,7 +51,7 @@ pub fn block_graph(block_height: u64, new_block: &SignedBlock, old_block: Option
     // this is between 0 and 1 where plateau starts at 0.5
     let graph_result = 1.0 / (blocks_per_week / (PLATEAU_SIZE / 2.0) - 1.0).powi(2 * TX_CURVE_MAX) + 1.0;
     // to normalize tx graph and balance graph
-    graph_result * 10.0
+    graph_result * NORMALIZE_BLOCK
 }
 
 pub fn age_graph(account_age: u64) -> f64 {
@@ -63,4 +63,87 @@ pub fn age_graph(account_age: u64) -> f64 {
     // - 4 to shift the start
     let account_age_weeks = (account_age as f64 / WEEK_IN_SECONDS).floor();
     (account_age_weeks + 1.0).log10() + (0.1 * account_age_weeks + 3.0).sqrt() - 4.0
+}
+
+#[cfg(test)]
+mod tests {
+    use insta::assert_yaml_snapshot;
+    use pog_proto::api::{signed_block::BlockData, SignedBlock};
+
+    use crate::consensus::graphs::{age_graph, balance_graph, block_graph, cashflow_graph, inactive_tax_graph};
+
+    #[test]
+    fn test_balance_graph() {
+        assert_eq!(1000.0, balance_graph(1000));
+        assert_eq!(5.0, balance_graph(5));
+    }
+    #[test]
+    fn test_cashflow_graph() {
+        assert_eq!(500.0, cashflow_graph(500, 1000));
+        assert_eq!(-500.0, cashflow_graph(1000, 500));
+        assert_eq!(0.0, cashflow_graph(1000, 1000));
+    }
+    #[test]
+    fn test_inactive_tax_graph() {
+        assert_eq!(0.0, inactive_tax_graph(500, 1000));
+        assert_eq!(-200.0, inactive_tax_graph(1000, 1000));
+    }
+    #[test]
+    fn test_block_graph() {
+        let new_block = SignedBlock {
+            signature: b"signature".to_vec(),
+            public_key: b"public_key".to_vec(),
+            timestamp: 100_000,
+            data: Some(BlockData {
+                version: 0,
+                signature_type: 1,
+                balance: 1000,
+                height: 20,
+                previous: Some(b"previous".to_vec()),
+                transactions: vec![],
+            }),
+        };
+        let old_block = Some(SignedBlock {
+            signature: b"signature".to_vec(),
+            public_key: b"public_key".to_vec(),
+            timestamp: 50_000,
+            data: Some(BlockData {
+                version: 0,
+                signature_type: 1,
+                balance: 500,
+                height: 19,
+                previous: Some(b"other_previous".to_vec()),
+                transactions: vec![],
+            }),
+        });
+        assert_eq!(20.17295623738592, block_graph(10, &new_block, old_block.as_ref()));
+    }
+    #[test]
+    fn test_age_graph() {
+        assert_eq!(-2.267949192431123, age_graph(100_000));
+        assert_eq!(2.635988521203979, age_graph(100_000_000));
+    }
+    #[test]
+    fn test_snapshots() {
+        assert_yaml_snapshot!(vec![
+            balance_graph(1000).to_string(),
+            balance_graph(0).to_string(),
+            balance_graph(2500).to_string()
+        ]);
+        assert_yaml_snapshot!(vec![
+            cashflow_graph(500, 1000).to_string(),
+            cashflow_graph(1000, 1000).to_string(),
+            cashflow_graph(0, 0).to_string()
+        ]);
+        assert_yaml_snapshot!(vec![
+            inactive_tax_graph(1000, 1000).to_string(),
+            inactive_tax_graph(0, 0).to_string(),
+            inactive_tax_graph(1000, 1500).to_string()
+        ]);
+        assert_yaml_snapshot!(vec![
+            age_graph(605000).to_string(),
+            age_graph(100_000_000).to_string(),
+            age_graph(0).to_string()
+        ]);
+    }
 }
