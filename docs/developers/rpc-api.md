@@ -2,11 +2,11 @@
 
 The following document contains general information and caveats about all endpoints available in champ's gRPC API.
 
-If you are interested in the specific message types and parameters, check out [pog-proto](https://github.com/pognetwork/proto) which contains all `proto` service definitions and prebuild libraries for rust, typescript and javascript.
+If you are interested in the specific message types and parameters, check out [pog-proto](https://github.com/pognetwork/proto) which contains all `proto` service definitions and prebuilt libraries for rust, typescript and javascript.
 
 The gRPC API is exposed (by default) on `[::1]:50051`. For interactions via websites, `grpc-web` support is available.
 
-In short, the 3 different services provided by Pog.Network are the _Block Service_, _Node Wallet Manager Service_ and the _Node Admin Service_. 
+In short, the 3 different services provided by Pog.Network are the _Block Service_, _Node Wallet Manager Service_ and the _Node Admin Service_.
 
 ## Authentication and Authorization
 
@@ -31,9 +31,8 @@ The Block Service acts as the public interface of a node which external applicat
 <!-- prettier-ignore -->
 ??? info "getVotingPower"
     Gets either the actual or the active voting power.
-    
-- Active voting power includes delegate voting power.
-- Actual voting power excludes delegate voting power.
+    - Active voting power includes delegate voting power.
+    - Actual voting power excludes delegate voting power.
 
 <!-- prettier-ignore -->
 ??? warning "[not yet implemented] getAccountBlockCount"
@@ -138,7 +137,7 @@ The Node Admin Service provides endpoints for managing and administering a node.
 <!-- prettier-ignore -->
 ??? info "getPendingBlockCount"
     Gets the count of unvalidated blocks.
-    
+
 <!-- prettier-ignore -->
 ??? warning "[not yet implemented] setPendingBlockLimit"
     Sets a limit to the amount of blocks that are unvalidated.
