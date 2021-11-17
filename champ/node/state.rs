@@ -40,7 +40,7 @@ impl ChampState {
         Arc::new(Self {
             db,
             config: RwLock::new(Config::default()),
-            blockpool_client: blockpool_client,
+            blockpool_client,
         })
     }
 }

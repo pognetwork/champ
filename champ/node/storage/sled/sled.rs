@@ -6,7 +6,6 @@ use async_trait::async_trait;
 use pog_proto::api::{self, AccountID, BlockID};
 use prost::Message;
 use sled::Transactional;
-use sled::{self};
 
 #[derive(Debug)]
 pub struct SledDB {

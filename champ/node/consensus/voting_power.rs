@@ -295,6 +295,6 @@ mod tests {
             );
             old_data = new_data;
         }
-        assert_eq!(false, TEST_TABLE_ON);
+        assert!(!TEST_TABLE_ON);
     }
 }

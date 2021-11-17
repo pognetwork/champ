@@ -9,5 +9,4 @@ enabled = true
 name = "test-coverage"
 
 [[transformers]]
-enabled = true
-name = "rustfmt"
+enabled = false
