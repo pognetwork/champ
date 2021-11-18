@@ -116,12 +116,15 @@ mod tests {
                 transactions: vec![],
             }),
         });
-        assert_eq!(20.17295623738592, block_graph(10, &new_block, old_block.as_ref()));
+        assert_eq!(
+            (20.17295623738592 * 100_000_f64) as u64,
+            (block_graph(10, &new_block, old_block.as_ref()) * 100_000_f64) as u64
+        );
     }
     #[test]
     fn test_age_graph() {
-        assert_eq!(-2.267949192431123, age_graph(100_000));
-        assert_eq!(2.635988521203979, age_graph(100_000_000));
+        assert_eq!((-2.267949192431123 * 100_000_f64) as u64, (age_graph(100_000) * 100_000_f64) as u64);
+        assert_eq!((2.635988521203979 * 100_000_f64) as u64, (age_graph(100_000_000) * 100_000_f64) as u64);
     }
     #[test]
     fn test_snapshots() {
