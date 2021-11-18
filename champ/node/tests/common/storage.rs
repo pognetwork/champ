@@ -41,7 +41,7 @@ impl TestStorage {
             let genesis_block = BlockData {
                 balance: n + 1 * 100,
                 height: 0,
-                previous: None,
+                previous: b"000000000000000000000000000000000000000".to_vec(),
                 signature_type: pog_proto::api::SigType::Ed25519.into(),
                 version: pog_proto::api::BlockVersion::V1.into(),
                 transactions: vec![Transaction {
