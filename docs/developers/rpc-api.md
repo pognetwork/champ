@@ -8,6 +8,23 @@ The gRPC API is exposed (by default) on `[::1]:50051`. For interactions via webs
 
 In short, the 3 different services provided by Pog.Network are the _Block Service_, _Node Wallet Manager Service_ and the _Node Admin Service_.
 
+## Canary Build
+
+We provide an automated canary build with all the recent features and Henry Gressmann also hosts this build on his home server for testing.
+
+The test-server is available at:
+
+https://pog-metrics.explodingcamera.com
+https://pog-grpc.explodingcamera.com
+
+To try out the grpc api, I've set up our preliminary admin panel here:
+
+https://ecstatic-jackson-dd16f9.netlify.app/
+
+| user  | password                     |
+| ----- | ---------------------------- |
+| admin | correct-horse-battery-staple |
+
 ## Admin interface
 
 While the admin interface is not yet ready for primetime, the general login/authentication flow is fully implemented. Instructions for running it locally are available [here](https://github.com/pognetwork/catjam). Once the webinterface reaches a more stable state, it will be automatically bundled with champ for release builds.
