@@ -129,7 +129,7 @@ fn verify_previous_block(new_block: &SignedBlock, prev_block: &SignedBlock) -> R
     if new_data.height - 1 != prev_data.height {
         return Err(Validation::BlockHeightError.into());
     }
-    if new_data.previous != Some(prev_block.get_id()?.to_vec()) {
+    if new_data.previous != prev_block.get_id()?.to_vec() {
         return Err(Validation::PreviousBlockError.into());
     }
     Ok(())
