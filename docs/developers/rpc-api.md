@@ -1,16 +1,35 @@
 # gRPC API
 
-The following document contains general information and caveats about all endpoints available in champ's gRPC API.
+The following document contains general information and caveats about champ's gRPC API.
 
-If you are interested in the specific message types and parameters, check out [pog-proto](https://github.com/pognetwork/proto) which contains all `proto` service definitions and prebuilt libraries for rust, typescript and javascript.
+If you are interested in the specific message types and parameters, check out [pog-proto](https://pog.network/proto/) which contains all `proto` service definitions and prebuilt libraries for rust, typescript and javascript. An auto-generated API documentation is also available ([BlockService](https://pog.network/proto/proto/block/), [NodeAdminService](https://pog.network/proto/proto/node_admin/), [NodeUserService](https://pog.network/proto/proto/node_user/), [NodeWalletManager](https://pog.network/proto/proto/node_wallet_manager/)).
 
 The gRPC API is exposed (by default) on `[::1]:50051`. For interactions via websites, `grpc-web` support is available.
 
 In short, the 3 different services provided by Pog.Network are the _Block Service_, _Node Wallet Manager Service_ and the _Node Admin Service_.
 
+## Admin interface
+
+While the admin interface is not yet ready for primetime, the general login/authentication flow is fully implemented. Instructions for running it locally are available [here](https://github.com/pognetwork/catjam). Once the webinterface reaches a more stable state, it will be automatically bundled with champ for release builds.
+
 ## Authentication and Authorization
 
-Work in Progress
+Authentication is done with JSON-Web-Tokens. New users can only created through the champ cli using `champ user create`.
+
+This is the case since all of our authenticated APIs are essentially for `intranet` type usage and should not be exposed to the public internet. More on that in our _securing your champ node_ section.
+
+After a new account has been created, `NodeUser.Login` can be called with your username and password to obtain a jwt.
+From this endpoint you will recieve your token which you can include in the the `authorization` metadata field to authenticate your request. For endpoints requiring authentication, the node will then validate your token and check if you have the neccecary permisions. Currently, the following permissions are available and can be configured in your `champ.toml` config file.
+
+```ini
+"admin.read"         -> Read-access to the NodeAdmin Service
+"admin.write"        -> Write-access to the NodeAdmin Service
+"wallet.create"      -> Create a wallet on a node
+"wallet.{id}.sign"   -> Write.access to a wallet with {id}
+"wallet.{id}.manage" -> Edit.access to a wallet with {id}
+"wallet.{id}.unlock" -> Write.access to a wallet with {id}
+"superadmin"         -> Access to all
+```
 
 ## Block Service
 

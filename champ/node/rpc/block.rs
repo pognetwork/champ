@@ -53,7 +53,7 @@ impl Block for BlockService {
         debug!("getting block height");
 
         let request = block_height_request.into_inner();
-        let get_next_block_height = request.get_next.unwrap_or(false) as u64;
+        let get_next_block_height = request.get_next as u64;
 
         let address: api::AccountID = match request.address.try_into() {
             Ok(a) => a,
@@ -91,7 +91,7 @@ impl Block for BlockService {
             Err(_) => return Err(Status::new(tonic::Code::Internal, "Address could not be parsed")),
         };
 
-        let power_result = match request.get_active.unwrap_or(false) {
+        let power_result = match request.get_active {
             true => get_active_power(state, address).await,
             false => get_actual_power(state, address).await,
         };

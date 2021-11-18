@@ -21,12 +21,6 @@ use tracing::{debug, Level};
 use crate::{blockpool::Blockpool, metrics::MetricsServer, state::ChampState};
 
 pub async fn run() -> Result<()> {
-    tracing_subscriber::fmt()
-        // filter spans/events with level TRACE or higher.
-        .with_max_level(Level::DEBUG)
-        // build but do not install the subscriber.
-        .init();
-
     let matches = clap::App::new("champ-node")
         .version("0.0.1")
         .author("The POG Project <contact@pog.network>")
@@ -34,6 +28,14 @@ pub async fn run() -> Result<()> {
         .arg(Arg::new("web").long("feat-web").takes_value(false).about("enables web interface"))
         .arg(Arg::new("metrics").long("feat-metrics").takes_value(false).about("enables metrics api"))
         .arg(Arg::new("roughtime").long("feat-roughtime").takes_value(false).about("enables roughtime server"))
+        .arg(
+            Arg::new("loglevel")
+                .short('l')
+                .long("loglevel")
+                .value_name("LOGLEVEL")
+                .about("Sets a log level. Can be one of `trace`, `debug`, `info`, `warn`, `error` ")
+                .takes_value(true),
+        )
         .arg(
             Arg::new("config")
                 .short('c')
@@ -80,6 +82,21 @@ pub async fn run() -> Result<()> {
         )
         .get_matches();
 
+    let log_level = match matches.value_of("loglevel") {
+        Some("trace") => Level::TRACE,
+        Some("debug") => Level::DEBUG,
+        Some("info") => Level::INFO,
+        Some("warn") => Level::WARN,
+        Some("error") => Level::ERROR,
+        _ => Level::INFO,
+    };
+
+    tracing_subscriber::fmt()
+        // filter spans/events with level TRACE or higher.
+        .with_max_level(log_level)
+        // build but do not install the subscriber.
+        .init();
+
     debug!("loading config");
     let config = config::Config::new(Some(matches.clone()))?;
 
@@ -103,13 +120,14 @@ pub async fn run() -> Result<()> {
     let rough_time_server = RoughTime::new();
     let metrics_server = MetricsServer::new();
 
-    let rpc_addr = "[::1]:50051".parse()?;
-    let http_addr = "[::1]:50050".parse()?;
-    let rough_time_addr = "[::1]:50049".parse()?;
-    let metrics_addr = "[::1]:50048".parse()?;
+    // should default to ipv4 addresses since docker doesn't support ipv6 by default
+    let rpc_addr = "0.0.0.0:50051".parse()?;
+    let http_addr = "0.0.0.0:50050".parse()?;
+    let rough_time_addr = "0.0.0.0:50049".parse()?;
+    let metrics_addr = "0.0.0.0:50048".parse()?;
 
     debug!("starting services");
-    let _ = try_join!(
+    let err = try_join!(
         rpc_server.start(rpc_addr),
         metrics_server.start(metrics_addr, matches.is_present("metrics")),
         http_server.start(http_addr, matches.is_present("web")),
@@ -117,5 +135,6 @@ pub async fn run() -> Result<()> {
         blockpool.start(),
     );
 
+    tracing::error!("exiting, error occurred while starting services: {:?}", err);
     Ok(())
 }

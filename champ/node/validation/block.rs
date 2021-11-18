@@ -129,7 +129,7 @@ fn verify_previous_block(new_block: &SignedBlock, prev_block: &SignedBlock) -> R
     if new_data.height - 1 != prev_data.height {
         return Err(Validation::BlockHeightError.into());
     }
-    if new_data.previous != Some(prev_block.get_id()?.to_vec()) {
+    if new_data.previous != prev_block.get_id()?.to_vec() {
         return Err(Validation::PreviousBlockError.into());
     }
     Ok(())
@@ -192,7 +192,7 @@ mod tests {
                 signature_type: 0,
                 balance: 100,
                 height: 4,
-                previous: Some(b"blockBeforeMe".to_vec()),
+                previous: b"blockBeforeMe".to_vec(),
                 transactions: [].to_vec(),
             }),
         };
@@ -205,7 +205,7 @@ mod tests {
                 signature_type: 0,
                 balance: 100,
                 height: 5,
-                previous: Some(prev_block.get_id().expect("get Block ID").to_vec()),
+                previous: prev_block.get_id().expect("get Block ID").to_vec(),
                 transactions: [].to_vec(),
             }),
         };
@@ -225,7 +225,7 @@ mod tests {
                 signature_type: 0,
                 balance: 100,
                 height: 4,
-                previous: Some(b"blockBeforeMe".to_vec()),
+                previous: b"blockBeforeMe".to_vec(),
                 transactions: vec![],
             }),
         };
@@ -238,7 +238,7 @@ mod tests {
                 signature_type: 0,
                 balance: 40,
                 height: 5,
-                previous: Some(prev_block.get_id().expect("get Block ID").to_vec()),
+                previous: prev_block.get_id().expect("get Block ID").to_vec(),
                 transactions: vec![
                     Transaction {
                         data: Some(Data::TxSend(TxSend {
@@ -273,7 +273,7 @@ mod tests {
                 signature_type: 0,
                 balance: 40,
                 height: 0,
-                previous: Some(prev_block.get_id().expect("get Block ID").to_vec()),
+                previous: prev_block.get_id().expect("get Block ID").to_vec(),
                 transactions: vec![check_claim_tx.clone()],
             }),
         };

@@ -7,6 +7,3 @@ name = "rust"
 [[analyzers]]
 enabled = true
 name = "test-coverage"
-
-[[transformers]]
-enabled = false
