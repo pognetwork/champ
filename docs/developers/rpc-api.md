@@ -19,7 +19,7 @@ https://pog-grpc.explodingcamera.com
 
 To try out the grpc api, I've set up our preliminary admin panel here:
 
-https://ecstatic-jackson-dd16f9.netlify.app/
+https://champ-admin-demo.netlify.app/
 
 | user  | password                     |
 | ----- | ---------------------------- |
