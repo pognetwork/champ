@@ -8,6 +8,10 @@ The gRPC API is exposed (by default) on `[::1]:50051`. For interactions via webs
 
 In short, the 3 different services provided by Pog.Network are the _Block Service_, _Node Wallet Manager Service_ and the _Node Admin Service_.
 
+## Admin interface
+
+While the admin interface is not yet ready for primetime, the general login/authentication flow is fully implemented. Instructions for running it locally are available [here](https://github.com/pognetwork/catjam). Once the webinterface reaches a more stable state, it will be automatically bundled with champ for release builds.
+
 ## Authentication and Authorization
 
 Authentication is done with JSON-Web-Tokens. New users can only created through the champ cli using `champ user create`.
