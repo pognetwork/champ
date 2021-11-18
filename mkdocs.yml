@@ -7,6 +7,7 @@ nav:
       - RPC API: "developers/rpc-api.md"
       - CI/CD: "developers/cicd.md"
       - Voting: "developers/voting.md"
+      - Security: "developers/security.md"
   - Operators:
       - Installation: "operators/installation.md"
       - Security: "operators/security.md"
