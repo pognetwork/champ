@@ -73,7 +73,7 @@
     > Sybil: `Mitigated` because our consensus algorithm prioritizes accounts that lose money over a period of time which makes farmed account importance inconsistant. We also [plan](./developers/consensus/importance_farming.md) to polish this algorithm and create another that attempts to recognize farming accounts. 
     <br>(_Sybil, High Severity_)
 
-    > Network Amplify: We plan to have Nodes wait until the Prime Delegates have voted. If they decide that the block is fraudulent, it can be ignored. Otherwise the Node with the gap in previous block will sync its chain with a Prime Delegate Node.
+    > Block Gap Sync: We plan to have Nodes wait until the Prime Delegates have voted. If they decide that the block is fraudulent, it can be ignored. Otherwise the Node with the gap in previous block will sync its chain with a Prime Delegate Node.
     <br>(_Denial of Service, Low Severity_)
 
     > Penny-spend Attack: `Mitigated` because we rate-limit transactions in a block. We also decrease an account importance when it starts spamming. In addition, we plan to add a way for Prime Delegates to remove accounts with low importance that act maliciously.
