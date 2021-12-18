@@ -18,6 +18,7 @@ pub enum PasswordError {
     RandomFillError,
 }
 
+// password hash data for Node Admins
 pub fn hash(password: &[u8], salt: &[u8]) -> Result<String, PasswordError> {
     let salt_str = SaltString::b64_encode(salt).map_err(|_| PasswordError::Hash("error encoding salt".to_string()))?;
     let argon2 = Argon2::default();
@@ -25,6 +26,7 @@ pub fn hash(password: &[u8], salt: &[u8]) -> Result<String, PasswordError> {
     Ok(hash.to_string())
 }
 
+// password hash to encrypt/decrypt the wallet
 pub fn hash_digest(password: &[u8], salt: &[u8]) -> Result<Vec<u8>, PasswordError> {
     let salt_str = SaltString::b64_encode(salt).map_err(|_| PasswordError::Hash("error encoding salt".to_string()))?;
     let argon2 = Argon2::default();

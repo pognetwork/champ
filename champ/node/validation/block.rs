@@ -277,7 +277,7 @@ mod tests {
                 transactions: vec![check_claim_tx.clone()],
             }),
         };
-        // TODO: Fix this test with development driven tests
+        // TODO: Fix this
         // let check_claim_previous = Block {
         //     signature: b"data_block_one".to_vec(),
         //     public_key: b"key_one".to_vec(),

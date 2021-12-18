@@ -52,7 +52,7 @@
     > Credential Cracking: `Mitigated` because we hash passwords that take longer to compare and we plan to implement a rate limiting mechanism.
     <br> (_Elevation of Privilege, High Severity_)
 
-- ### Block Service
+- ### Wallet and Public API
 
     **Description:**
     This is the endpoint to the Wallet Web Client that handels user requests to view their wallet or chain information.
@@ -60,6 +60,9 @@
     > High Complexity Queries: We plan to add size limits to requests to preventing users from executing high workload requests.
     <br> (_Denial of Service, Medium Severity_)
 
+    > Credential Cracking: `Mitigated` because the attacker will need to have access to the Wallet file that should never leave the users PC. If the attacker has access to the Wallet file on the PC, the attacker would also be able to install a password logger.
+    <br> (_Elevation of Privilege, Low Severity_)
+    
 - ### Database
 
     > Injection: `Mitigated` because we use the [Sled](https://github.com/spacejam/sled) database that works more as a key-value storage and is therefore not susceptible to injection. Also, the data is serialized with protobuf.
