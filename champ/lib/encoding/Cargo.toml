@@ -8,7 +8,7 @@ version = "0.0.9"
 
 [dependencies]
 crypto = {path = "../crypto", version = "^0.0.9"}
-sha3 = "0.9"
+sha3 = "0.10"
 thiserror = "1.0"
 
 [lib]

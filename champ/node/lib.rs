@@ -25,15 +25,15 @@ pub async fn run() -> Result<()> {
         .version("0.0.1")
         .author("The POG Project <contact@pog.network>")
         .about("POGs reference implementation in rust")
-        .arg(Arg::new("web").long("feat-web").takes_value(false).about("enables web interface"))
-        .arg(Arg::new("metrics").long("feat-metrics").takes_value(false).about("enables metrics api"))
-        .arg(Arg::new("roughtime").long("feat-roughtime").takes_value(false).about("enables roughtime server"))
+        .arg(Arg::new("web").long("feat-web").takes_value(false).help("enables web interface"))
+        .arg(Arg::new("metrics").long("feat-metrics").takes_value(false).help("enables metrics api"))
+        .arg(Arg::new("roughtime").long("feat-roughtime").takes_value(false).help("enables roughtime server"))
         .arg(
             Arg::new("loglevel")
                 .short('l')
                 .long("loglevel")
                 .value_name("LOGLEVEL")
-                .about("Sets a log level. Can be one of `trace`, `debug`, `info`, `warn`, `error` ")
+                .help("Sets a log level. Can be one of `trace`, `debug`, `info`, `warn`, `error` ")
                 .takes_value(true),
         )
         .arg(
@@ -41,7 +41,7 @@ pub async fn run() -> Result<()> {
                 .short('c')
                 .long("config")
                 .value_name("FILE")
-                .about("Sets a custom config file")
+                .help("Sets a custom config file")
                 .takes_value(true),
         )
         .subcommand(
@@ -54,7 +54,7 @@ pub async fn run() -> Result<()> {
                         .arg(
                             Arg::new("username")
                                 .short('u')
-                                .about("new username")
+                                .help("new username")
                                 .takes_value(true)
                                 .value_name("USERNAME")
                                 .forbid_empty_values(true),
@@ -62,14 +62,14 @@ pub async fn run() -> Result<()> {
                         .arg(
                             Arg::new("password")
                                 .short('p')
-                                .about("new password")
+                                .help("new password")
                                 .takes_value(true)
                                 .value_name("PASSWORD")
                                 .forbid_empty_values(true),
                         )
                         .arg(
                             Arg::new("perms")
-                                .about("adds permissions")
+                                .help("adds permissions")
                                 .takes_value(true)
                                 .multiple_values(true)
                                 .value_name("PERMISSIONS")
