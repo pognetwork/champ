@@ -5,83 +5,30 @@ mod config;
 mod consensus;
 mod http;
 mod metrics;
+mod p2p;
 mod rpc;
 mod state;
 pub mod storage;
 pub mod validation;
+pub mod wallets;
 
 use anyhow::Result;
-use clap::Arg;
 use http::HttpServer;
 use roughtime::server::RoughTime;
-use rpc::server::RpcServer;
-use tokio::try_join;
-use tracing::{debug, Level};
+use tokio::{sync::RwLock, try_join};
+use tracing::{debug, trace, Level};
 
-use crate::{blockpool::Blockpool, metrics::MetricsServer, state::ChampState};
+use crate::{
+    blockpool::Blockpool,
+    metrics::MetricsServer,
+    p2p::server::P2PServer,
+    rpc::server::RpcServer,
+    state::{ChampState, ChampStateArgs},
+    wallets::WalletManager,
+};
 
 pub async fn run() -> Result<()> {
-    let matches = clap::App::new("champ-node")
-        .version("0.0.1")
-        .author("The POG Project <contact@pog.network>")
-        .about("POGs reference implementation in rust")
-        .arg(Arg::new("web").long("feat-web").takes_value(false).help("enables web interface"))
-        .arg(Arg::new("metrics").long("feat-metrics").takes_value(false).help("enables metrics api"))
-        .arg(Arg::new("roughtime").long("feat-roughtime").takes_value(false).help("enables roughtime server"))
-        .arg(
-            Arg::new("loglevel")
-                .short('l')
-                .long("loglevel")
-                .value_name("LOGLEVEL")
-                .help("Sets a log level. Can be one of `trace`, `debug`, `info`, `warn`, `error` ")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::new("config")
-                .short('c')
-                .long("config")
-                .value_name("FILE")
-                .help("Sets a custom config file")
-                .takes_value(true),
-        )
-        .subcommand(
-            clap::App::new("admin")
-                .about("access to the admin interface")
-                .subcommand(
-                    clap::App::new("create-user")
-                        .about("creates a user for the web api")
-                        .after_help("Format: -u [username] -p [password]")
-                        .arg(
-                            Arg::new("username")
-                                .short('u')
-                                .help("new username")
-                                .takes_value(true)
-                                .value_name("USERNAME")
-                                .forbid_empty_values(true),
-                        )
-                        .arg(
-                            Arg::new("password")
-                                .short('p')
-                                .help("new password")
-                                .takes_value(true)
-                                .value_name("PASSWORD")
-                                .forbid_empty_values(true),
-                        )
-                        .arg(
-                            Arg::new("perms")
-                                .help("adds permissions")
-                                .takes_value(true)
-                                .multiple_values(true)
-                                .value_name("PERMISSIONS")
-                                .forbid_empty_values(false)
-                                .max_values(20)
-                                .min_values(0),
-                        ),
-                )
-                .subcommand(clap::App::new("generate-key").about("generates a node private key used for JWTs")),
-        )
-        .get_matches();
-
+    let matches = cli::parser::new();
     let log_level = match matches.value_of("loglevel") {
         Some("trace") => Level::TRACE,
         Some("debug") => Level::DEBUG,
@@ -99,14 +46,28 @@ pub async fn run() -> Result<()> {
 
     debug!("loading config");
     let config = config::Config::new(Some(matches.clone()))?;
+    let config = RwLock::new(config);
 
     debug!("initializing database");
-    let db = storage::new(&config.database).await?;
+    let database_config = &config.read().await.database.clone();
+    let db = storage::new(database_config).await?;
 
     debug!("initializing blockpool");
     let mut blockpool = Blockpool::new();
 
-    let state = ChampState::new(db, config, blockpool.get_client());
+    debug!("initializing wallet manager");
+    let wallet_manager = WalletManager::new(config.read().await.wallets.clone());
+    let wallet_manager = RwLock::new(wallet_manager);
+
+    debug!("initializing champ state");
+    let state = ChampState::new(ChampStateArgs {
+        db,
+        config,
+        wallet_manager,
+        blockpool_client: blockpool.get_client(),
+    });
+
+    trace!("injecting state into blockpool");
     blockpool.add_state(state.clone());
 
     if let Some(matches) = matches.subcommand_matches("admin") {
@@ -115,6 +76,7 @@ pub async fn run() -> Result<()> {
         return Ok(());
     }
 
+    let p2p_server = P2PServer::new(state.clone());
     let rpc_server = RpcServer::new(state.clone());
     let http_server = HttpServer::new();
     let rough_time_server = RoughTime::new();
@@ -128,6 +90,7 @@ pub async fn run() -> Result<()> {
 
     debug!("starting services");
     let err = try_join!(
+        p2p_server.start(),
         rpc_server.start(rpc_addr),
         metrics_server.start(metrics_addr, matches.is_present("metrics")),
         http_server.start(http_addr, matches.is_present("web")),

@@ -6,9 +6,9 @@ name = "champ-dev"
 publish = false
 
 [dev-dependencies]
-cargo-release = "0.18"
+cargo-release = "0.19"
 convco = "0.3"
 
 [dev-dependencies.cargo-husky]
 features = ["user-hooks"]
-version = "1"
+version = "1.5"

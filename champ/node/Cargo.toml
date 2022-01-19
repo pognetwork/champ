@@ -7,40 +7,39 @@ publish = false
 version = "0.0.9"
 
 [dependencies]
-anyhow = "1.0"
-async-trait = "0.1"
-clap = "3.0.0-beta.5"
 crypto = {path = "../lib/crypto"}
-directories = "4.0"
 encoding = {path = "../lib/encoding"}
-futures = "0.3"
-hyper = "0.14"
-lazy_static = "1.4"
-path-absolutize = "3.0"
 pog-jwt = {path = "../lib/jwt"}
-pog-proto = {git = "https://github.com/pognetwork/proto"}
-prometheus = {version = "0.13", features = ["process"]}
-prost = "0.9"
 pwned = {path = "../lib/pwned"}
 roughtime = {path = "../lib/roughtime"}
+
+anyhow = "1.0"
+async-trait = "0.1"
+clap = "3.0.7"
+pog-proto = {git = "https://github.com/pognetwork/proto"}
+prometheus = {version = "0.13", features = ["process"]}
 serde = "1"
 thiserror = "1.0"
 tokio = {version = "1.0", features = ["macros", "rt-multi-thread"]}
 toml = "0.5"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+# /CONFIG
+directories = "4.0"
+path-absolutize = "3.0"
+
+# /RPC
+hyper = "0.14"
+prost = "0.9"
 tonic = {version = "0.6", features = ["transport", "prost"]}
 tonic-web = "0.2"
 tower = "0.4"
-tracing = "0.1"
-tracing-subscriber = "0.3"
 
 # /STORAGE
 rocksdb = {version = "0.17", optional = true}
 scylla = {version = "0.3", optional = true}
 sled = {version = "0.34", optional = true}
-
-[dev-dependencies.cargo-husky]
-features = ["user-hooks"]
-version = "1"
 
 [[bin]]
 name = "champ-node"

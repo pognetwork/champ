@@ -1,4 +1,4 @@
-use crate::storage::Database;
+use crate::{storage::Database, wallets::WalletManager};
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};
 
@@ -8,15 +8,24 @@ use crate::{blockpool::BlockpoolClient, config::Config};
 pub struct ChampState {
     pub db: Mutex<Box<dyn Database>>,
     pub config: RwLock<Config>,
+    pub wallet_manager: RwLock<WalletManager>,
+    pub blockpool_client: BlockpoolClient,
+}
+
+pub struct ChampStateArgs {
+    pub db: Box<dyn Database>,
+    pub config: RwLock<Config>,
+    pub wallet_manager: RwLock<WalletManager>,
     pub blockpool_client: BlockpoolClient,
 }
 
 impl ChampState {
-    pub fn new(db: Box<dyn Database>, config: Config, blockpool_client: BlockpoolClient) -> ChampStateArc {
+    pub fn new(args: ChampStateArgs) -> ChampStateArc {
         Arc::new(Self {
-            db: Mutex::new(db),
-            config: RwLock::new(config),
-            blockpool_client,
+            db: Mutex::new(args.db),
+            config: args.config,
+            wallet_manager: args.wallet_manager,
+            blockpool_client: args.blockpool_client,
         })
     }
 
@@ -40,6 +49,7 @@ impl ChampState {
         Arc::new(Self {
             db,
             config: RwLock::new(Config::default()),
+            wallet_manager: RwLock::new(WalletManager::mock()),
             blockpool_client,
         })
     }
