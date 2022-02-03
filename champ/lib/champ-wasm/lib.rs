@@ -4,6 +4,7 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 pub struct Wallet {}
 
+#[allow(clippy::unused_unit)]
 #[wasm_bindgen]
 impl Wallet {
     #[wasm_bindgen(catch, js_name = "generate")]

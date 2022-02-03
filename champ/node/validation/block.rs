@@ -210,7 +210,7 @@ mod tests {
             }),
         };
 
-        assert_eq!(verify_previous_block(&new_block, &prev_block).expect("previous should be checked"), ());
+        assert!(verify_previous_block(&new_block, &prev_block).is_ok());
         Ok(())
     }
 
@@ -314,11 +314,7 @@ mod tests {
 
         let state = ChampState::mock().await;
         state.db.lock().await.add_block(data_block_1).await.expect("block should be added");
-
-        assert_eq!(
-            verify_transactions(&block, &prev_block, &state).await.expect("tx should be verified. Tx Nr: 1"),
-            ()
-        );
+        assert!(verify_transactions(&block, &prev_block, &state).await.is_ok());
         // assert_eq!(
         //    verify_transactions(&check_claim, &check_claim_previous, &state)
         //        .await
