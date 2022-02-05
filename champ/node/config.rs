@@ -45,11 +45,15 @@ fn default_consensus() -> ConsensusSettings {
     }
 }
 
+fn default_wallets() -> WalletManagerConfig {
+    WalletManagerConfig::default()
+}
+
 fn default_node_name() -> String {
     "PogNetwork Node".to_string()
 }
 
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct Config {
     #[serde(default = "default_admin")]
     pub admin: Admin,
@@ -59,6 +63,9 @@ pub struct Config {
 
     #[serde(default = "default_database")]
     pub database: DatabaseConfig,
+
+    #[serde(default = "default_wallets")]
+    pub wallets: WalletManagerConfig,
 
     #[serde(default = "default_consensus")]
     pub consensus: ConsensusSettings,
@@ -72,6 +79,9 @@ pub struct Config {
     #[serde(skip_serializing)]
     pub config_path: Option<String>,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+pub struct WalletManagerConfig {}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ConsensusSettings {
@@ -97,7 +107,7 @@ pub struct UserAccount {
     pub password_hash: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct Admin {
     pub enabled: bool,
     pub jwt_private_key: String,

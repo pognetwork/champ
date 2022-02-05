@@ -129,7 +129,7 @@ fn verify_previous_block(new_block: &SignedBlock, prev_block: &SignedBlock) -> R
     if new_data.height - 1 != prev_data.height {
         return Err(Validation::BlockHeightError.into());
     }
-    if new_data.previous != Some(prev_block.get_id()?.to_vec()) {
+    if new_data.previous != prev_block.get_id()?.to_vec() {
         return Err(Validation::PreviousBlockError.into());
     }
     Ok(())
@@ -192,7 +192,7 @@ mod tests {
                 signature_type: 0,
                 balance: 100,
                 height: 4,
-                previous: Some(b"blockBeforeMe".to_vec()),
+                previous: b"blockBeforeMe".to_vec(),
                 transactions: [].to_vec(),
             }),
         };
@@ -205,12 +205,12 @@ mod tests {
                 signature_type: 0,
                 balance: 100,
                 height: 5,
-                previous: Some(prev_block.get_id().expect("get Block ID").to_vec()),
+                previous: prev_block.get_id().expect("get Block ID").to_vec(),
                 transactions: [].to_vec(),
             }),
         };
 
-        assert_eq!(verify_previous_block(&new_block, &prev_block).expect("previous should be checked"), ());
+        assert!(verify_previous_block(&new_block, &prev_block).is_ok());
         Ok(())
     }
 
@@ -225,7 +225,7 @@ mod tests {
                 signature_type: 0,
                 balance: 100,
                 height: 4,
-                previous: Some(b"blockBeforeMe".to_vec()),
+                previous: b"blockBeforeMe".to_vec(),
                 transactions: vec![],
             }),
         };
@@ -238,7 +238,7 @@ mod tests {
                 signature_type: 0,
                 balance: 40,
                 height: 5,
-                previous: Some(prev_block.get_id().expect("get Block ID").to_vec()),
+                previous: prev_block.get_id().expect("get Block ID").to_vec(),
                 transactions: vec![
                     Transaction {
                         data: Some(Data::TxSend(TxSend {
@@ -273,11 +273,11 @@ mod tests {
                 signature_type: 0,
                 balance: 40,
                 height: 0,
-                previous: Some(prev_block.get_id().expect("get Block ID").to_vec()),
+                previous: prev_block.get_id().expect("get Block ID").to_vec(),
                 transactions: vec![check_claim_tx.clone()],
             }),
         };
-        // TODO: Fix this test with development driven tests
+        // TODO: Fix this
         // let check_claim_previous = Block {
         //     signature: b"data_block_one".to_vec(),
         //     public_key: b"key_one".to_vec(),
@@ -314,11 +314,7 @@ mod tests {
 
         let state = ChampState::mock().await;
         state.db.lock().await.add_block(data_block_1).await.expect("block should be added");
-
-        assert_eq!(
-            verify_transactions(&block, &prev_block, &state).await.expect("tx should be verified. Tx Nr: 1"),
-            ()
-        );
+        assert!(verify_transactions(&block, &prev_block, &state).await.is_ok());
         // assert_eq!(
         //    verify_transactions(&check_claim, &check_claim_previous, &state)
         //        .await

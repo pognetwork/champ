@@ -1,5 +1,5 @@
 use p256::SecretKey;
-use pkcs8::{ToPrivateKey, ToPublicKey};
+use pkcs8::{EncodePrivateKey, EncodePublicKey};
 use rand::thread_rng;
 use thiserror::Error;
 
@@ -17,8 +17,9 @@ pub struct PEMKeyPair {
 pub fn generate_key_pair() -> Result<PEMKeyPair, ECDSAError> {
     let private_key = SecretKey::random(thread_rng());
 
-    let public_key = private_key.public_key().to_public_key_pem().map_err(|_| ECDSAError::KeyPairError)?;
-    let private_key = private_key.to_pkcs8_pem().map_err(|_| ECDSAError::KeyPairError)?;
+    let public_key =
+        private_key.public_key().to_public_key_pem(pkcs8::LineEnding::CRLF).map_err(|_| ECDSAError::KeyPairError)?;
+    let private_key = private_key.to_pkcs8_pem(pkcs8::LineEnding::CRLF).map_err(|_| ECDSAError::KeyPairError)?;
 
     Ok(PEMKeyPair {
         private_key: private_key.to_string(),

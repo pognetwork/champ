@@ -1,0 +1,9 @@
+version = 1
+
+[[analyzers]]
+enabled = true
+name = "rust"
+
+[[analyzers]]
+enabled = true
+name = "test-coverage"

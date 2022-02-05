@@ -1,6 +1,6 @@
-# pog-wasm
+# champ-wasm
 
-pog-wasm exposes champ's wallet generation and decryption/encryption to JavaScript and TypeScript applications.
+champ-wasm exposes champ's wallet generation and decryption/encryption to JavaScript and TypeScript applications.
 
 ## Usage
 

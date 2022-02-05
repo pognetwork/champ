@@ -26,7 +26,7 @@ release:
 
 build-docker:
   docker run --rm -v "$(pwd)":/home/rust/src messense/rust-musl-cross:x86_64-musl cargo build --bin champ-node --release --target x86_64-unknown-linux-musl
-  docker build . -t ghcr.io/pognetwork/champ:canary -f scripts/Dockerfile
+  docker build target/x86_64-unknown-linux-musl/release/ -t ghcr.io/pognetwork/champ:canary -f ./scripts/Dockerfile
 
 canary-release:
   just build-docker

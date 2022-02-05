@@ -66,6 +66,6 @@ mod tests {
         let password = b"hunter2";
         let (encrypted_data, salt, nonce) = encrypt(data, password).expect("should encrypt");
         let decryption_err = decrypt(&encrypted_data, b"hunter3", salt, nonce).is_err();
-        assert_eq!(decryption_err, true);
+        assert!(decryption_err);
     }
 }

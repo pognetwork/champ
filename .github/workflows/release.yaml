@@ -125,6 +125,12 @@ jobs:
         working-directory: ./champ/lib/champ-wasm
         run: wasm-pack build --release --target web
 
+      - name: Build wasm
+        working-directory: ./champ/lib/champ-wasm
+        shell: bash
+        run: |
+          sed -i -e 's/"module": "champ_wasm.js",/"type": "module",\n  "main": "champ_wasm.js",/g' pkg/package.json
+
       - name: Publish wasm
         working-directory: ./champ/lib/champ-wasm
         run: wasm-pack publish --access public

@@ -52,7 +52,7 @@
     > Credential Cracking: `Mitigated` because we hash passwords that take longer to compare and we plan to implement a rate limiting mechanism.
     <br> (_Elevation of Privilege, High Severity_)
 
-- ### Block Service
+- ### Wallet and Public API
 
     **Description:**
     This is the endpoint to the Wallet Web Client that handels user requests to view their wallet or chain information.
@@ -60,6 +60,9 @@
     > High Complexity Queries: We plan to add size limits to requests to preventing users from executing high workload requests.
     <br> (_Denial of Service, Medium Severity_)
 
+    > Credential Cracking: `Mitigated` because the attacker will need to have access to the Wallet file that should never leave the users PC. If the attacker has access to the Wallet file on the PC, the attacker would also be able to install a password logger.
+    <br> (_Elevation of Privilege, Low Severity_)
+    
 - ### Database
 
     > Injection: `Mitigated` because we use the [Sled](https://github.com/spacejam/sled) database that works more as a key-value storage and is therefore not susceptible to injection. Also, the data is serialized with protobuf.
@@ -73,7 +76,7 @@
     > Sybil: `Mitigated` because our consensus algorithm prioritizes accounts that lose money over a period of time which makes farmed account importance inconsistant. We also [plan](./developers/consensus/importance_farming.md) to polish this algorithm and create another that attempts to recognize farming accounts. 
     <br>(_Sybil, High Severity_)
 
-    > Network Amplify: We plan to have Nodes wait until the Prime Delegates have voted. If they decide that the block is fraudulent, it can be ignored. Otherwise the Node with the gap in previous block will sync its chain with a Prime Delegate Node.
+    > Block Gap Sync: We plan to have Nodes wait until the Prime Delegates have voted. If they decide that the block is fraudulent, it can be ignored. Otherwise the Node with the gap in previous block will sync its chain with a Prime Delegate Node.
     <br>(_Denial of Service, Low Severity_)
 
     > Penny-spend Attack: `Mitigated` because we rate-limit transactions in a block. We also decrease an account importance when it starts spamming. In addition, we plan to add a way for Prime Delegates to remove accounts with low importance that act maliciously.

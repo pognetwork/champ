@@ -6,16 +6,15 @@ use async_trait::async_trait;
 use pog_proto::api::{self, AccountID, BlockID};
 use prost::Message;
 use sled::Transactional;
-use sled::{self};
 
 #[derive(Debug)]
 pub struct SledDB {
-    db: sled::Db,
-    pending_blocks: sled::Tree,
+    // db: sled::Db,
+    // pending_blocks: sled::Tree,
     blocks: sled::Tree,
     accounts: sled::Tree,
     transactions: sled::Tree,
-    meta: sled::Tree,
+    // meta: sled::Tree,
 }
 
 impl SledDB {
@@ -29,7 +28,7 @@ impl SledDB {
         }
 
         let db: sled::Db = sled_cfg.open()?;
-        let pending_blocks = db.open_tree("pending_blocks")?;
+        // let pending_blocks = db.open_tree("pending_blocks")?;
         // pending_blocks contain:
         //
         // key: generate_id
@@ -67,15 +66,15 @@ impl SledDB {
         // key: "by_blk_id_" + block_id + "block_index"
         // val: transaction proto
 
-        let meta = db.open_tree("meta")?;
+        // let meta = db.open_tree("meta")?;
 
         Ok(Self {
-            db,
-            pending_blocks,
+            // db,
+            // pending_blocks,
             blocks,
             accounts,
             transactions,
-            meta,
+            // meta,
         })
     }
 }
