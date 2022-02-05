@@ -41,6 +41,13 @@ rocksdb = {version = "0.17", optional = true}
 scylla = {version = "0.4", optional = true}
 sled = {version = "0.34", optional = true}
 
+[dev-dependencies]
+insta = "1.8.0"
+
+[dev-dependencies.cargo-husky]
+features = ["user-hooks"]
+version = "1"
+
 [[bin]]
 name = "champ-node"
 path = "main.rs"

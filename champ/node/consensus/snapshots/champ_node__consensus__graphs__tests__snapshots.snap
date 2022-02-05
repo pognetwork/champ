@@ -1,0 +1,9 @@
+---
+source: champ/node/consensus/graphs.rs
+expression: "vec![balance_graph(1000).to_string(), balance_graph(0).to_string(),\n     balance_graph(2500).to_string()]"
+
+---
+- "1000"
+- "0"
+- "2500"
+
