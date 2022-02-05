@@ -9,7 +9,7 @@ use tracing::info;
 
 use std::collections::VecDeque;
 
-use crate::{state::ChampStateArc, validation::block::validate};
+use crate::{state::ChampStateArc, validation::block};
 
 #[derive(Debug)]
 struct QueueItem {
@@ -107,13 +107,20 @@ impl Blockpool {
                     block,
                     resp,
                 } => {
-                    if validate(&block, &state).await.is_ok() {
-                        self.block_queue.push_back(QueueItem {
-                            block,
-                        });
-                        let _ = resp.send(Ok(()));
-                    } else {
-                        let _ = resp.send(Err(anyhow!("invalid block")));
+                    let result = block::validate(&block, &state).await;
+                    match result {
+                        Ok(_) => {
+                            self.block_queue.push_back(QueueItem {
+                                block,
+                            });
+                            let _ = resp.send(Ok(()));
+                        } //TODO: Vote yes
+                        Err(block::BlockValidationError::Invalid(_)) => {
+                            let _ = resp.send(Ok(()));
+                        } //TODO: maybe retry or handle errors and then Start a vote
+                        Err(block::BlockValidationError::Error(err)) => {
+                            let _ = resp.send(Err(anyhow!("error {err}")));
+                        }
                     }
                 }
                 ProcessVote {

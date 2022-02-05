@@ -1,7 +1,6 @@
 use crate::state::ChampStateArc;
 use crate::storage;
 
-use anyhow::Result;
 use crypto::{self, signatures::ed25519::verify_signature};
 use encoding::account::generate_account_address;
 use pog_proto::api::{
@@ -43,19 +42,31 @@ pub enum Node {
     BlockNotFound,
     #[error{"tx not found"}]
     TxNotFound,
+    #[error{"unknown crypto error"}]
+    CryptoError,
+    #[error{"error generating account address"}]
+    AccountError,
+}
+
+#[derive(Error, Debug)]
+pub enum BlockValidationError {
+    #[error(transparent)]
+    Invalid(#[from] Validation),
+    #[error(transparent)]
+    Error(#[from] Node),
 }
 
 // Validate block
 #[allow(dead_code)]
 #[tracing::instrument]
-pub async fn validate(block: &SignedBlock, state: &ChampStateArc) -> Result<()> {
+pub async fn validate(block: &SignedBlock, state: &ChampStateArc) -> Result<(), BlockValidationError> {
     debug!("validating a block");
 
     let data = block.clone().data.ok_or(Node::BlockDataNotFound)?;
     let public_key = &block.public_key;
     let signature = &block.signature;
     let db = &state.db.lock().await;
-    let account_id = generate_account_address(public_key.to_vec())?;
+    let account_id = generate_account_address(public_key.to_vec()).map_err(|_| Node::CryptoError)?;
 
     let response = db.get_latest_block_by_account(account_id).await;
 
@@ -67,7 +78,7 @@ pub async fn validate(block: &SignedBlock, state: &ChampStateArc) -> Result<()> 
 
     // TODO: verify block doesn't already exist
     // signature
-    verify_signature(&data.encode_to_vec(), public_key, signature)?;
+    verify_signature(&data.encode_to_vec(), public_key, signature).map_err(|_| Node::CryptoError)?;
     // height / previous block
     verify_previous_block(block, &latest_block)?;
     // transactions / balance
@@ -80,7 +91,11 @@ pub async fn validate(block: &SignedBlock, state: &ChampStateArc) -> Result<()> 
 
 // TODO: add error handling so validation error go to voting
 // Verifies the transactions and balances
-async fn verify_transactions(new_block: &SignedBlock, prev_block: &SignedBlock, state: &ChampStateArc) -> Result<()> {
+async fn verify_transactions(
+    new_block: &SignedBlock,
+    prev_block: &SignedBlock,
+    state: &ChampStateArc,
+) -> Result<(), BlockValidationError> {
     debug!("verify transactions");
     let db = &state.db.lock().await;
     // go through all tx in the block and do math to see new balance
@@ -98,7 +113,8 @@ async fn verify_transactions(new_block: &SignedBlock, prev_block: &SignedBlock, 
     let mut new_balance: i128 = prev_data.balance as i128;
     for transaction in &new_data.transactions {
         // validate that transaction is not duplicated
-        let txid = transaction.get_id(new_block.get_id()?)?;
+        let blockid = new_block.get_id().map_err(|_| Node::BlockNotFound)?;
+        let txid = transaction.get_id(blockid).map_err(|_| Node::TxNotFound)?;
         if transaction_ids.contains(&txid) {
             return Err(Validation::DuplicatedTx.into());
         }
@@ -121,7 +137,7 @@ async fn verify_transactions(new_block: &SignedBlock, prev_block: &SignedBlock, 
 }
 
 // Verifies the block height and previous block
-fn verify_previous_block(new_block: &SignedBlock, prev_block: &SignedBlock) -> Result<()> {
+fn verify_previous_block(new_block: &SignedBlock, prev_block: &SignedBlock) -> Result<(), BlockValidationError> {
     debug!("verify previous block");
     let new_data = new_block.data.as_ref().ok_or(Node::BlockDataNotFound)?;
     let prev_data = prev_block.data.as_ref().ok_or(Node::BlockDataNotFound)?;
@@ -129,19 +145,23 @@ fn verify_previous_block(new_block: &SignedBlock, prev_block: &SignedBlock) -> R
     if new_data.height - 1 != prev_data.height {
         return Err(Validation::BlockHeightError.into());
     }
-    if new_data.previous != prev_block.get_id()?.to_vec() {
+    if new_data.previous != prev_block.get_id().map_err(|_| Node::BlockNotFound)?.to_vec() {
         return Err(Validation::PreviousBlockError.into());
     }
     Ok(())
 }
 
 // Verifies the block height and previous block
-fn verify_account_genesis_block() -> Result<()> {
+fn verify_account_genesis_block() -> Result<(), BlockValidationError> {
     unimplemented!()
 }
 
 #[allow(clippy::borrowed_box)]
-async fn validate_collect(tx: &TxClaim, db: &Box<dyn Database>, block: &SignedBlock) -> Result<i128> {
+async fn validate_collect(
+    tx: &TxClaim,
+    db: &Box<dyn Database>,
+    block: &SignedBlock,
+) -> Result<i128, BlockValidationError> {
     // check DB for send with id tx_id
     // TODO: check already collected
     debug!("verify claim transactions");
@@ -161,7 +181,7 @@ async fn validate_collect(tx: &TxClaim, db: &Box<dyn Database>, block: &SignedBl
         None => return Err(Validation::SendTxNotFound.into()),
     };
 
-    let account_id = generate_account_address(block.public_key.to_vec())?;
+    let account_id = generate_account_address(block.public_key.to_vec()).map_err(|_| Node::AccountError)?;
     if account_id.to_vec() != sendtrx.receiver {
         return Err(Validation::TxValidationError.into());
     }
