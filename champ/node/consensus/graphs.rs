@@ -99,7 +99,7 @@ mod tests {
                 signature_type: 1,
                 balance: 1000,
                 height: 20,
-                previous: Some(b"previous".to_vec()),
+                previous: b"previous".to_vec(),
                 transactions: vec![],
             }),
         };
@@ -112,7 +112,7 @@ mod tests {
                 signature_type: 1,
                 balance: 500,
                 height: 19,
-                previous: Some(b"other_previous".to_vec()),
+                previous: b"other_previous".to_vec(),
                 transactions: vec![],
             }),
         });

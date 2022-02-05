@@ -471,6 +471,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1db59621ec70f09c5e9b597b220c7a2b43611f4710dc03ceb8748637775692c"
 
 [[package]]
+name = "cargo-husky"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7b02b629252fe8ef6460461409564e2c21d0c8e77e0944f3d189ff06c4e932ad"
+
+[[package]]
 name = "cc"
 version = "1.0.72"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -556,13 +562,13 @@ version = "0.0.9"
 dependencies = [
  "anyhow",
  "async-trait",
+ "cargo-husky",
  "clap 3.0.14",
  "crypto",
  "directories",
  "encoding",
  "hyper",
  "insta",
- "lazy_static",
  "path-absolutize",
  "pog-jwt",
  "pog-proto",
@@ -968,6 +974,12 @@ dependencies = [
  "byteorder",
  "quick-error",
 ]
+
+[[package]]
+name = "dtoa"
+version = "0.4.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "56899898ce76aaf4a0f24d914c97ea6ed976d42fec6ad33fcbb0a1103e07b2b0"
 
 [[package]]
 name = "dtoa"
@@ -2833,7 +2845,7 @@ version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f85842b073145726190373213c63f852020fb884c841a3a1f390637267a2fb8c"
 dependencies = [
- "dtoa",
+ "dtoa 1.0.2",
  "itoa 1.0.1",
  "open-metrics-client-derive-text-encode",
  "owning_ref",
@@ -3934,7 +3946,7 @@ version = "0.8.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8c608a35705a5d3cdc9fbe403147647ff34b921f8e833e49306df898f9b20af"
 dependencies = [
- "dtoa",
+ "dtoa 0.4.8",
  "indexmap",
  "serde",
  "yaml-rust",
