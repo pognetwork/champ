@@ -50,8 +50,10 @@ impl SledDB {
         // blocks contain:
         //
         // key: "by_id_" + block_id
-        // key: "by_acc_" + account_id + "_" + block_height
         // val: block proto
+        //
+        // key: "by_acc_" + account_id + "_" + block_height
+        // val: block_id
 
         // transactions provides a list of transactions as a fast way to get transactions by their transaction id
         let transactions = db.open_tree("transactions")?;
@@ -154,6 +156,11 @@ impl Database for SledDB {
                 let mut block_key = b"by_id_".to_vec();
                 block_key.append(&mut block_id.to_vec());
 
+                let mut block_by_acc_key = b"by_acc_".to_vec();
+                block_by_acc_key.append(&mut account_id.to_vec());
+                block_by_acc_key.append(&mut b"_".to_vec());
+                block_by_acc_key.append(&mut block_data.height.to_be_bytes().to_vec());
+
                 // Set as latest block
                 let mut account_key = account_id.to_vec();
                 account_key.append(&mut b"_last_blk".to_vec());
@@ -161,6 +168,7 @@ impl Database for SledDB {
 
                 // Add Block
                 blocks.insert(block_key, block.encode_to_vec())?;
+                blocks.insert(block_by_acc_key, block_id.to_vec())?;
 
                 // Add Block Transactions
                 let mut batch = sled::Batch::default();
@@ -215,8 +223,16 @@ impl Database for SledDB {
         block_key.append(&mut b"_".to_vec());
         block_key.append(&mut block_height.to_be_bytes().into());
 
-        let block = self.blocks.get(block_key).map_err(|e| DatabaseError::Specific(e.to_string()))?;
+        let block_id = self.blocks.get(block_key).map_err(|e| DatabaseError::Specific(e.to_string()))?;
+        let block_id = match block_id {
+            Some(block_id) => block_id,
+            None => return Ok(None),
+        };
 
+        let mut block_key = b"by_id_".to_vec();
+        block_key.append(&mut block_id.to_vec());
+
+        let block = self.blocks.get(block_key).map_err(|e| DatabaseError::Specific(e.to_string()))?;
         let block = match block {
             Some(block) => block,
             None => return Ok(None),
