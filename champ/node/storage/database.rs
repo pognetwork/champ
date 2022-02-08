@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use anyhow::Result;
 use async_trait::async_trait;
-use pog_proto::api;
+use pog_proto::api::{self, Account};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -146,10 +146,16 @@ pub trait Database: Send + Sync {
     // get_account_delegate finds out if an account is delegating their power to someone else
     async fn get_account_delegate(&self, account_id: api::AccountID) -> Result<Option<api::AccountID>, DatabaseError>;
 
-    /// Finds who is delegating power to an account
+    // Finds who is delegating power to an account
     async fn get_delegates_by_account(&self, account_id: api::AccountID)
         -> Result<Vec<api::AccountID>, DatabaseError>;
 
-    /// Adds a new block to the database
+    // Adds a new block to the database
     async fn add_block(&mut self, block: api::SignedBlock) -> Result<(), DatabaseError>;
+
+    // Get the transaction id claiming a send transaction
+    async fn get_send_recepient(
+        &self,
+        send_transaction_id: api::TransactionID,
+    ) -> Result<Option<api::TransactionID>, DatabaseError>;
 }

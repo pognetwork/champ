@@ -1,7 +1,10 @@
 use crate::storage::{Database, DatabaseConfig, DatabaseError};
 use anyhow::Result;
 use async_trait::async_trait;
-use pog_proto::api::{self, transaction::Data::TxDelegate};
+use pog_proto::api::{
+    self,
+    transaction::Data::{TxCollect, TxDelegate},
+};
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
     convert::TryInto,
@@ -32,6 +35,37 @@ impl MockDB {
 impl Database for MockDB {
     async fn init(&mut self, _: &DatabaseConfig) -> Result<()> {
         Ok(())
+    }
+
+    async fn get_send_recepient(
+        &self,
+        send_tx: api::TransactionID,
+    ) -> Result<Option<api::TransactionID>, DatabaseError> {
+        let claim = self
+            .transactions
+            .iter()
+            // reverse since only the newest transaction counts
+            .rev()
+            .find_map(|(tx_id, (tx, _))| {
+                if let Some(TxCollect(claim_tx)) = &tx.data {
+                    if claim_tx.transaction_id == send_tx {
+                        return Some(Some(tx_id));
+                    }
+                }
+                None
+            })
+            .ok_or(DatabaseError::Unknown)?;
+
+        match claim {
+            Some(tx_id) => {
+                let id: api::TransactionID = tx_id
+                    .to_vec()
+                    .try_into()
+                    .map_err(|_| DatabaseError::Specific("invalid transaction id".to_string()))?;
+                Ok(Some(id))
+            }
+            None => Ok(None),
+        }
     }
 
     async fn get_block_by_id(&self, block_id: api::BlockID) -> Result<api::SignedBlock, DatabaseError> {
