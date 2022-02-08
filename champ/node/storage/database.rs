@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use anyhow::Result;
 use async_trait::async_trait;
-use pog_proto::api::{self, Account};
+use pog_proto::api::{self};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -66,6 +66,8 @@ pub enum DatabaseError {
     InvalidKind,
     #[error("no last block")]
     NoLastBlock,
+    #[error("Block not found")]
+    BlockNotFound,
     #[error("db insert failed at {0}")]
     DBInsertFailed(u32),
     #[error("An error occured: {0}")]
@@ -152,7 +154,7 @@ pub trait Database: Send + Sync {
     async fn add_block(&mut self, block: api::SignedBlock) -> Result<(), DatabaseError>;
 
     // Get the transaction id claiming a send transaction
-    async fn get_send_recepient(
+    async fn get_send_recipient(
         &self,
         send_transaction_id: api::TransactionID,
     ) -> Result<Option<api::TransactionID>, DatabaseError>;

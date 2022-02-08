@@ -91,7 +91,7 @@ impl SledDB {
 
 #[async_trait]
 impl Database for SledDB {
-    async fn get_send_recepient(&self, tx: api::TransactionID) -> Result<Option<api::TransactionID>, DatabaseError> {
+    async fn get_send_recipient(&self, tx: api::TransactionID) -> Result<Option<api::TransactionID>, DatabaseError> {
         let claim = self.claims.get(tx).map_err(|e| DatabaseError::Specific(e.to_string()))?;
 
         match claim {
@@ -114,7 +114,7 @@ impl Database for SledDB {
             .blocks
             .get(block_key)
             .map_err(|e| DatabaseError::Specific(e.to_string()))?
-            .ok_or_else(|| DatabaseError::Specific("block not found".to_string()))
+            .ok_or(DatabaseError::BlockNotFound)
             .map_err(|e| DatabaseError::Specific(e.to_string()))?;
 
         api::SignedBlock::decode(&*block.to_vec()).map_err(|e| DatabaseError::Specific(e.to_string()))
@@ -131,7 +131,7 @@ impl Database for SledDB {
             .transactions
             .get(transaction_key)
             .map_err(|e| DatabaseError::Specific(e.to_string()))?
-            .ok_or_else(|| DatabaseError::Specific("block not found".to_string()))
+            .ok_or(DatabaseError::BlockNotFound)
             .map_err(|e| DatabaseError::Specific(e.to_string()))?;
 
         api::Transaction::decode(&*transaction.to_vec()).map_err(|e| DatabaseError::Specific(e.to_string()))
@@ -148,11 +148,11 @@ impl Database for SledDB {
             .accounts
             .get(last_block_key)
             .map_err(|e| DatabaseError::Specific(e.to_string()))?
-            .ok_or_else(|| DatabaseError::Specific("block not found".to_string()))
+            .ok_or(DatabaseError::BlockNotFound)
             .map_err(|e| DatabaseError::Specific(e.to_string()))?
             .to_vec()
             .try_into()
-            .map_err(|_| DatabaseError::Specific("invalid block id".to_string()))?;
+            .map_err(|_| DatabaseError::BlockNotFound)?;
 
         let mut block_key = b"by_id_".to_vec();
         block_key.append(&mut latest_block_id.to_vec());
@@ -161,7 +161,7 @@ impl Database for SledDB {
             .blocks
             .get(block_key)
             .map_err(|e| DatabaseError::Specific(e.to_string()))?
-            .ok_or_else(|| DatabaseError::Specific("block not found".to_string()))
+            .ok_or(DatabaseError::BlockNotFound)
             .map_err(|e| DatabaseError::Specific(e.to_string()))?;
 
         api::SignedBlock::decode(&*block.to_vec()).map_err(|e| DatabaseError::Specific(e.to_string()))

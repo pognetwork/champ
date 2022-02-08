@@ -46,6 +46,8 @@ pub enum Node {
     CryptoError,
     #[error{"error generating account address"}]
     AccountError,
+    #[error{"some DB error"}]
+    DBError,
 }
 
 #[derive(Error, Debug)]
@@ -162,20 +164,24 @@ async fn validate_collect(
     db: &Box<dyn Database>,
     block: &SignedBlock,
 ) -> Result<i128, BlockValidationError> {
-    // check DB for send with id tx_id
-    // TODO: check already collected
     debug!("verify claim transactions");
-    let tx_id = match tx.transaction_id.clone().try_into() {
+    let recipient_id = match tx.transaction_id.clone().try_into() {
         Ok(a) => a,
         Err(_) => return Err(Node::TxNotFound.into()),
     };
-    let db_response = db.get_transaction_by_id(tx_id).await;
-    let transaction = match db_response {
+
+    let resp = db.get_send_recipient(recipient_id).await;
+    if resp.map_err(|_| Node::DBError)?.is_some() {
+        return Err(Validation::TxValidationError.into());
+    }
+
+    let db_response = db.get_transaction_by_id(recipient_id).await;
+    let receive_tx = match db_response {
         Ok(t) => t,
         Err(_) => return Err(Validation::TxValidationError.into()),
     };
 
-    let sendtrx = match &transaction.data {
+    let sendtrx = match &receive_tx.data {
         Some(Data::TxSend(t)) => t,
         Some(_) => return Err(Validation::MissmatchedTx.into()),
         None => return Err(Validation::SendTxNotFound.into()),
