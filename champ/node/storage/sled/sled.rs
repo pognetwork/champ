@@ -14,6 +14,7 @@ pub struct SledDB {
     blocks: sled::Tree,
     accounts: sled::Tree,
     transactions: sled::Tree,
+    claims: sled::Tree,
     // meta: sled::Tree,
 }
 
@@ -46,6 +47,12 @@ impl SledDB {
         // key: account_id + "_rep"
         // val: representative account_id
 
+        // claims provides some convenient pointers to data relevant to claim transactions
+        let claims = db.open_tree("claims")?;
+        // claims contain
+        // key: send_transaction_id
+        // val: recieve_transaction_id
+
         let blocks = db.open_tree("blocks")?;
         // blocks contain:
         //
@@ -76,6 +83,7 @@ impl SledDB {
             blocks,
             accounts,
             transactions,
+            claims,
             // meta,
         })
     }
@@ -83,7 +91,21 @@ impl SledDB {
 
 #[async_trait]
 impl Database for SledDB {
-    // impl SledDB {
+    async fn get_send_recepient(&self, tx: api::TransactionID) -> Result<Option<api::TransactionID>, DatabaseError> {
+        let claim = self.claims.get(tx).map_err(|e| DatabaseError::Specific(e.to_string()))?;
+
+        match claim {
+            Some(tx_id) => {
+                let id: api::TransactionID = tx_id
+                    .to_vec()
+                    .try_into()
+                    .map_err(|_| DatabaseError::Specific("invalid transaction id".to_string()))?;
+                Ok(Some(id))
+            }
+            None => Ok(None),
+        }
+    }
+
     async fn get_block_by_id(&self, block_id: api::BlockID) -> Result<api::SignedBlock, DatabaseError> {
         let mut block_key = b"by_id_".to_vec();
         block_key.append(&mut block_id.to_vec());
@@ -151,64 +173,73 @@ impl Database for SledDB {
         let account_id = encoding::account::generate_account_address(block.public_key.clone())
             .map_err(|_| DatabaseError::Specific("account ID could not be generated".to_string()))?;
 
-        let res: sled::transaction::TransactionResult<()> = (&self.accounts, &self.blocks, &self.transactions)
-            .transaction(|(accounts, blocks, transactions)| {
-                let mut block_key = b"by_id_".to_vec();
-                block_key.append(&mut block_id.to_vec());
+        let res: sled::transaction::TransactionResult<()> =
+            (&self.accounts, &self.blocks, &self.transactions, &self.claims).transaction(
+                |(accounts, blocks, transactions, claims)| {
+                    let mut block_key = b"by_id_".to_vec();
+                    block_key.append(&mut block_id.to_vec());
 
-                let mut block_by_acc_key = b"by_acc_".to_vec();
-                block_by_acc_key.append(&mut account_id.to_vec());
-                block_by_acc_key.append(&mut b"_".to_vec());
-                block_by_acc_key.append(&mut block_data.height.to_be_bytes().to_vec());
+                    let mut block_by_acc_key = b"by_acc_".to_vec();
+                    block_by_acc_key.append(&mut account_id.to_vec());
+                    block_by_acc_key.append(&mut b"_".to_vec());
+                    block_by_acc_key.append(&mut block_data.height.to_be_bytes().to_vec());
 
-                // Set as latest block
-                let mut account_key = account_id.to_vec();
-                account_key.append(&mut b"_last_blk".to_vec());
-                accounts.insert(account_key, &block_id.clone())?;
+                    // Set as latest block
+                    let mut account_key = account_id.to_vec();
+                    account_key.append(&mut b"_last_blk".to_vec());
+                    accounts.insert(account_key, &block_id.clone())?;
 
-                // Add Block
-                blocks.insert(block_key, block.encode_to_vec())?;
-                blocks.insert(block_by_acc_key, block_id.to_vec())?;
+                    // Add Block
+                    blocks.insert(block_key, block.encode_to_vec())?;
+                    blocks.insert(block_by_acc_key, block_id.to_vec())?;
 
-                // Add Block Transactions
-                let mut batch = sled::Batch::default();
-                for (i, tx) in block_data.transactions.iter().enumerate() {
-                    let tx_data = tx.data.clone().expect("transaction should have valid data");
+                    // Add Block Transactions
+                    let mut batch = sled::Batch::default();
+                    for (i, tx) in block_data.transactions.iter().enumerate() {
+                        let tx_data = tx.data.clone().expect("transaction should have valid data");
 
-                    // Set representative
-                    if let api::transaction::Data::TxDelegate(tx) = tx_data {
-                        let mut account_rep_key = b"rep_".to_vec();
-                        account_rep_key.append(&mut account_id.to_vec());
-                        accounts.insert(account_rep_key, tx.representative)?;
+                        let transaction_id = match tx.get_id(block_id) {
+                            Ok(x) => x,
+                            Err(_) => return sled::transaction::abort(()),
+                        };
+
+                        match tx_data {
+                            // Set representative
+                            api::transaction::Data::TxDelegate(tx) => {
+                                let mut account_rep_key = b"rep_".to_vec();
+                                account_rep_key.append(&mut account_id.to_vec());
+                                accounts.insert(account_rep_key, tx.representative)?;
+                            }
+                            // Set claims
+                            api::transaction::Data::TxCollect(tx) => {
+                                claims.insert(tx.transaction_id, transaction_id.to_vec())?;
+                            }
+                            _ => {}
+                        };
+
+                        let tx = tx.encode_to_vec();
+
+                        // "by_id_" + transaction_id
+                        let mut tx_key = b"by_id_".to_vec();
+                        tx_key.append(&mut transaction_id.into());
+                        batch.insert(tx_key, tx.clone());
+
+                        // "by_id_" + transaction_id + "_blk"
+                        let mut tx_key = b"blk_by_id_".to_vec();
+                        tx_key.append(&mut transaction_id.into());
+                        batch.insert(tx_key, &block_id);
+
+                        // "by_blk_id_" + block_id + "block_index"
+                        let mut tx_key = b"by_blk_id_".to_vec();
+                        tx_key.append(&mut block_id.into());
+                        tx_key.append(&mut i.to_be_bytes().into());
+                        batch.insert(tx_key, tx);
                     }
+                    transactions.apply_batch(&batch)?;
 
-                    let transaction_id = match tx.get_id(block_id) {
-                        Ok(x) => x,
-                        Err(_) => return sled::transaction::abort(()),
-                    };
-
-                    let tx = tx.encode_to_vec();
-
-                    // "by_id_" + transaction_id
-                    let mut tx_key = b"by_id_".to_vec();
-                    tx_key.append(&mut transaction_id.into());
-                    batch.insert(tx_key, tx.clone());
-
-                    // "by_id_" + transaction_id + "_blk"
-                    let mut tx_key = b"blk_by_id_".to_vec();
-                    tx_key.append(&mut transaction_id.into());
-                    batch.insert(tx_key, &block_id);
-
-                    // "by_blk_id_" + block_id + "block_index"
-                    let mut tx_key = b"by_blk_id_".to_vec();
-                    tx_key.append(&mut block_id.into());
-                    tx_key.append(&mut i.to_be_bytes().into());
-                    batch.insert(tx_key, tx);
-                }
-                transactions.apply_batch(&batch)?;
-
-                Ok(())
-            });
+                    Ok(())
+                },
+            );
 
         res.map_err(|_| DatabaseError::DBInsertFailed(line!()))
     }
