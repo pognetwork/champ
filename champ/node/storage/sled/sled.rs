@@ -114,7 +114,7 @@ impl Database for SledDB {
             .blocks
             .get(block_key)
             .map_err(|e| DatabaseError::Specific(e.to_string()))?
-            .ok_or_else(|| DatabaseError::BlockNotFound)
+            .ok_or(DatabaseError::BlockNotFound)
             .map_err(|e| DatabaseError::Specific(e.to_string()))?;
 
         api::SignedBlock::decode(&*block.to_vec()).map_err(|e| DatabaseError::Specific(e.to_string()))
@@ -131,7 +131,7 @@ impl Database for SledDB {
             .transactions
             .get(transaction_key)
             .map_err(|e| DatabaseError::Specific(e.to_string()))?
-            .ok_or_else(|| DatabaseError::BlockNotFound)
+            .ok_or(DatabaseError::BlockNotFound)
             .map_err(|e| DatabaseError::Specific(e.to_string()))?;
 
         api::Transaction::decode(&*transaction.to_vec()).map_err(|e| DatabaseError::Specific(e.to_string()))
@@ -148,7 +148,7 @@ impl Database for SledDB {
             .accounts
             .get(last_block_key)
             .map_err(|e| DatabaseError::Specific(e.to_string()))?
-            .ok_or_else(|| DatabaseError::BlockNotFound)
+            .ok_or(DatabaseError::BlockNotFound)
             .map_err(|e| DatabaseError::Specific(e.to_string()))?
             .to_vec()
             .try_into()
@@ -161,7 +161,7 @@ impl Database for SledDB {
             .blocks
             .get(block_key)
             .map_err(|e| DatabaseError::Specific(e.to_string()))?
-            .ok_or_else(|| DatabaseError::BlockNotFound)
+            .ok_or(DatabaseError::BlockNotFound)
             .map_err(|e| DatabaseError::Specific(e.to_string()))?;
 
         api::SignedBlock::decode(&*block.to_vec()).map_err(|e| DatabaseError::Specific(e.to_string()))
