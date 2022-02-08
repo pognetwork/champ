@@ -66,6 +66,8 @@ pub enum DatabaseError {
     InvalidKind,
     #[error("no last block")]
     NoLastBlock,
+    #[error("Block not found")]
+    BlockNotFound,
     #[error("db insert failed at {0}")]
     DBInsertFailed(u32),
     #[error("An error occured: {0}")]
