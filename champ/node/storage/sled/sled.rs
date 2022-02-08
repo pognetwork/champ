@@ -91,7 +91,7 @@ impl SledDB {
 
 #[async_trait]
 impl Database for SledDB {
-    async fn get_send_recepient(&self, tx: api::TransactionID) -> Result<Option<api::TransactionID>, DatabaseError> {
+    async fn get_send_recipient(&self, tx: api::TransactionID) -> Result<Option<api::TransactionID>, DatabaseError> {
         let claim = self.claims.get(tx).map_err(|e| DatabaseError::Specific(e.to_string()))?;
 
         match claim {

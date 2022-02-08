@@ -46,6 +46,8 @@ pub enum Node {
     CryptoError,
     #[error{"error generating account address"}]
     AccountError,
+    #[error{"some DB error"}]
+    DBError,
 }
 
 #[derive(Error, Debug)]
@@ -168,7 +170,8 @@ async fn validate_collect(
         Err(_) => return Err(Node::TxNotFound.into()),
     };
 
-    if db.get_send_recipient(recipient_id).is_some() {
+    let resp = db.get_send_recipient(recipient_id).await;
+    if resp.map_err(|_| Node::DBError)?.is_some() {
         return Err(Validation::TxValidationError.into());
     }
 

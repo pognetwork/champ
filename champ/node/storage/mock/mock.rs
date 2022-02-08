@@ -37,7 +37,7 @@ impl Database for MockDB {
         Ok(())
     }
 
-    async fn get_send_recepient(
+    async fn get_send_recipient(
         &self,
         send_tx: api::TransactionID,
     ) -> Result<Option<api::TransactionID>, DatabaseError> {

@@ -154,7 +154,7 @@ pub trait Database: Send + Sync {
     async fn add_block(&mut self, block: api::SignedBlock) -> Result<(), DatabaseError>;
 
     // Get the transaction id claiming a send transaction
-    async fn get_send_recepient(
+    async fn get_send_recipient(
         &self,
         send_transaction_id: api::TransactionID,
     ) -> Result<Option<api::TransactionID>, DatabaseError>;
