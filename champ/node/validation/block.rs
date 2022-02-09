@@ -5,12 +5,11 @@ use crypto::{self, signatures::ed25519::verify_signature};
 use encoding::account::generate_account_address;
 use pog_proto::api::{
     transaction::{Data, TxClaim},
-    SignedBlock,
+    SignedBlock, Transaction,
 };
 use prost::Message;
-use std::convert::TryInto;
-use storage::Database;
 use thiserror::Error;
+use tokio::task::JoinHandle;
 use tracing::{debug, trace};
 
 #[derive(Error, Debug)]
@@ -46,8 +45,10 @@ pub enum Node {
     CryptoError,
     #[error{"error generating account address"}]
     AccountError,
-    #[error{"some DB error"}]
+    #[error{"db error"}]
     DBError,
+    #[error{"async error"}]
+    AsyncError,
 }
 
 #[derive(Error, Debug)]
@@ -99,11 +100,10 @@ async fn verify_transactions(
     state: &ChampStateArc,
 ) -> Result<(), BlockValidationError> {
     debug!("verify transactions");
-    let db = &state.db.lock().await;
     // go through all tx in the block and do math to see new balance
     // check against block balance
-    let new_data = new_block.data.as_ref().ok_or(Node::BlockDataNotFound)?;
-    let prev_data = prev_block.data.as_ref().ok_or(Node::BlockDataNotFound)?;
+    let new_data = new_block.data.clone().ok_or(Node::BlockDataNotFound)?;
+    let prev_data = prev_block.data.clone().ok_or(Node::BlockDataNotFound)?;
 
     let mut transaction_ids: Vec<[u8; 32]> = vec![];
 
@@ -111,24 +111,30 @@ async fn verify_transactions(
         return Err(Validation::TooManyTransactions.into());
     }
 
-    // TODO: Run concurrently
     let mut new_balance: i128 = prev_data.balance as i128;
-    for transaction in &new_data.transactions {
+    let mut tokio_tasks: Vec<JoinHandle<Result<i128, BlockValidationError>>> = vec![];
+
+    for t_action in &new_data.transactions {
         // validate that transaction is not duplicated
         let blockid = new_block.get_id().map_err(|_| Node::BlockNotFound)?;
-        let txid = transaction.get_id(blockid).map_err(|_| Node::TxNotFound)?;
+        let txid = t_action.get_id(blockid).map_err(|_| Node::TxNotFound)?;
         if transaction_ids.contains(&txid) {
             return Err(Validation::DuplicatedTx.into());
         }
         transaction_ids.push(txid);
 
-        // calculate the new balance after all transactions are processed
-        let tx_type = transaction.data.as_ref().ok_or(Validation::TransactionDataNotFound)?;
-        new_balance += match tx_type {
-            Data::TxSend(t) => -(t.amount as i128),
-            Data::TxCollect(t) => validate_collect(t, db, new_block).await?,
-            _ => new_balance,
-        };
+        let s = state.clone();
+        let trx = t_action.clone();
+        let block = new_block.clone();
+        let balance = new_balance.clone();
+        // concurrent verification
+        let task: JoinHandle<Result<i128, BlockValidationError>> =
+            tokio::spawn(async move { trx_verification(&s, block, &balance, &trx).await });
+        tokio_tasks.push(task);
+    }
+
+    for t in tokio_tasks {
+        new_balance += t.await.map_err(|_| Node::AsyncError)??;
     }
 
     if new_balance == new_data.balance as i128 && new_balance >= 0 {
@@ -136,6 +142,22 @@ async fn verify_transactions(
     }
 
     Err(Validation::TxValidationError.into())
+}
+
+async fn trx_verification(
+    state: &ChampStateArc,
+    new_block: SignedBlock,
+    new_balance: &i128,
+    transaction: &Transaction,
+) -> Result<i128, BlockValidationError> {
+    // calculate the new balance after all transactions are processed
+    let tx_type = transaction.data.as_ref().ok_or(Validation::TransactionDataNotFound)?;
+    let result_balance = match tx_type {
+        Data::TxSend(t) => -(t.amount as i128),
+        Data::TxCollect(t) => validate_collect(state, t, &new_block).await?,
+        _ => *new_balance,
+    };
+    Ok(result_balance)
 }
 
 // Verifies the block height and previous block
@@ -160,8 +182,8 @@ fn verify_account_genesis_block() -> Result<(), BlockValidationError> {
 
 #[allow(clippy::borrowed_box)]
 async fn validate_collect(
+    state: &ChampStateArc,
     tx: &TxClaim,
-    db: &Box<dyn Database>,
     block: &SignedBlock,
 ) -> Result<i128, BlockValidationError> {
     debug!("verify claim transactions");
@@ -170,6 +192,7 @@ async fn validate_collect(
         Err(_) => return Err(Node::TxNotFound.into()),
     };
 
+    let db = &state.db.lock().await;
     let resp = db.get_send_recipient(recipient_id).await;
     if resp.map_err(|_| Node::DBError)?.is_some() {
         return Err(Validation::TxValidationError.into());
