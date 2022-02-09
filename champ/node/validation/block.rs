@@ -124,12 +124,12 @@ async fn verify_transactions(
         transaction_ids.push(txid);
 
         let s = state.clone();
-        let trx = transaction.clone();
+        let tx = transaction.clone();
         let block = new_block.clone();
         let balance = new_balance;
         // concurrent verification
         let task: JoinHandle<Result<i128, BlockValidationError>> =
-            tokio::spawn(async move { trx_verification(&s, block, &balance, &trx).await });
+            tokio::spawn(async move { tx_verification(&s, block, &balance, &tx).await });
         tokio_tasks.push(task);
     }
 
@@ -144,7 +144,7 @@ async fn verify_transactions(
     Err(Validation::TxValidationError.into())
 }
 
-async fn trx_verification(
+async fn tx_verification(
     state: &ChampStateArc,
     new_block: SignedBlock,
     new_balance: &i128,
@@ -153,8 +153,8 @@ async fn trx_verification(
     // calculate the new balance after all transactions are processed
     let tx_type = transaction.data.as_ref().ok_or(Validation::TransactionDataNotFound)?;
     let result_balance = match tx_type {
-        Data::TxSend(t) => -(t.amount as i128),
-        Data::TxCollect(t) => validate_collect(state, t, &new_block).await?,
+        Data::TxSend(tx) => -(tx.amount as i128),
+        Data::TxCollect(tx) => validate_collect(state, tx, &new_block).await?,
         _ => *new_balance,
     };
     Ok(result_balance)
@@ -204,18 +204,18 @@ async fn validate_collect(
         Err(_) => return Err(Validation::TxValidationError.into()),
     };
 
-    let sendtrx = match &receive_tx.data {
+    let sendtx = match &receive_tx.data {
         Some(Data::TxSend(t)) => t,
         Some(_) => return Err(Validation::MissmatchedTx.into()),
         None => return Err(Validation::SendTxNotFound.into()),
     };
 
     let account_id = generate_account_address(block.public_key.to_vec()).map_err(|_| Node::AccountError)?;
-    if account_id.to_vec() != sendtrx.receiver {
+    if account_id.to_vec() != sendtx.receiver {
         return Err(Validation::TxValidationError.into());
     }
 
-    Ok(sendtrx.amount.into())
+    Ok(sendtx.amount.into())
 }
 
 #[cfg(test)]
