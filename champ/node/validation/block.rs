@@ -114,19 +114,19 @@ async fn verify_transactions(
     let mut new_balance: i128 = prev_data.balance as i128;
     let mut tokio_tasks: Vec<JoinHandle<Result<i128, BlockValidationError>>> = vec![];
 
-    for t_action in &new_data.transactions {
+    for transaction in &new_data.transactions {
         // validate that transaction is not duplicated
         let blockid = new_block.get_id().map_err(|_| Node::BlockNotFound)?;
-        let txid = t_action.get_id(blockid).map_err(|_| Node::TxNotFound)?;
+        let txid = transaction.get_id(blockid).map_err(|_| Node::TxNotFound)?;
         if transaction_ids.contains(&txid) {
             return Err(Validation::DuplicatedTx.into());
         }
         transaction_ids.push(txid);
 
         let s = state.clone();
-        let trx = t_action.clone();
+        let trx = transaction.clone();
         let block = new_block.clone();
-        let balance = new_balance.clone();
+        let balance = new_balance;
         // concurrent verification
         let task: JoinHandle<Result<i128, BlockValidationError>> =
             tokio::spawn(async move { trx_verification(&s, block, &balance, &trx).await });
