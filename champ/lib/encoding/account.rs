@@ -36,8 +36,12 @@ pub fn validate_account_address_string(addr: &str) -> Result<(), AccountError> {
 }
 
 pub fn validate_account_address(address: Vec<u8>) -> Result<(), AccountError> {
-    let (address, checksum) = address.split_at(20);
-    if checksum != &sha3(address)[20..] {
+    if address.len() != 24 {
+        return Err(AccountError::InvalidSizeError);
+    }
+    let (address, checksum) = address.split_at(21);
+
+    if checksum != &sha3(&address)[0..3] {
         return Err(AccountError::InvalidChecksum);
     }
 
@@ -50,10 +54,36 @@ mod tests {
     use crate::zbase32::FromZbase;
 
     #[test]
-    fn account_address() {
+    fn test_generate_account_address() {
         assert_eq!(
             generate_account_address(b"test".to_vec()).unwrap().to_vec(),
             Vec::from_zbase("yy5xyknabqan31b8fkpyrd4nydtwpausi3kxgta").unwrap()
+        );
+    }
+
+    #[test]
+    fn test_validate_account_address_string() {
+        validate_account_address_string("pog-yy5xyknabqan31b8fkpyrd4nydtwpausi3kxgta").expect("no error");
+        validate_account_address_string("yy5xyknabqan31b8fkpyrd4nydtwpausi3kxgta").expect("no error");
+        // negative tests
+        assert_eq!(
+            validate_account_address_string("yy5xyknabqan31b8fkpyrd4nydtwpausi3kxg%"),
+            Err(AccountError::Unknown)
+        );
+    }
+
+    #[test]
+    fn test_validate_account_address() {
+        validate_account_address(Vec::from_zbase("yy5xyknabqan31b8fkpyrd4nydtwpausi3kxgta").unwrap())
+            .expect("no error");
+        // negative tests
+        assert_eq!(
+            validate_account_address(Vec::from_zbase("yy5xyknabqan31b8fkpyrd4nydtwpausi3kxgtb").unwrap()),
+            Err(AccountError::InvalidChecksum)
+        );
+        assert_eq!(
+            validate_account_address(Vec::from_zbase("yy5xyknabqan31b8fkpyrd4nydtwpausi3kxgtaa").unwrap()),
+            Err(AccountError::InvalidSizeError)
         );
     }
 }
