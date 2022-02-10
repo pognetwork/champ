@@ -2,7 +2,7 @@ use crate::state::ChampStateArc;
 use crate::storage;
 
 use crypto::{self, signatures::ed25519::verify_signature};
-use encoding::account::generate_account_address;
+use encoding::account::{generate_account_address, validate_account_address};
 use pog_proto::api::{
     transaction::{Data, TxClaim, TxSend},
     SignedBlock, Transaction,
@@ -190,9 +190,12 @@ fn verify_account_genesis_block(block: &SignedBlock) -> Result<(), BlockValidati
 }
 
 fn validate_send(amount: u64, tx: &TxSend, new_block: SignedBlock) -> Result<i128, BlockValidationError> {
-    if tx.receiver == generate_account_address(new_block.public_key).map_err(|_| Node::AccountError)? {
+    let receiver = tx.receiver.clone();
+    if receiver == generate_account_address(new_block.public_key).map_err(|_| Node::AccountError)? {
         return Err(Validation::ReceiverAccountError.into());
     }
+
+    validate_account_address(receiver).map_err(|_| Validation::ReceiverAccountError)?;
 
     Ok(-(amount as i128))
 }

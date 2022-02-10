@@ -35,7 +35,6 @@ impl ChampState {
 
         let mut pool = Blockpool::new();
         let blockpool_client = pool.get_client();
-        tokio::spawn(async move { pool.start().await });
 
         let db = Mutex::new(
             storage::new(&storage::DatabaseConfig {
@@ -46,12 +45,15 @@ impl ChampState {
             .unwrap(),
         );
 
-        Arc::new(Self {
+        let state = Arc::new(Self {
             db,
             config: RwLock::new(Config::default()),
             wallet_manager: RwLock::new(WalletManager::mock()),
             blockpool_client,
-        })
+        });
+        pool.add_state(state.clone());
+        tokio::spawn(async move { pool.start().await });
+        state
     }
 }
 
