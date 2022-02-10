@@ -195,6 +195,7 @@ fn validate_send(amount: u64, tx: &TxSend, new_block: SignedBlock) -> Result<i12
         return Err(Validation::ReceiverAccountError.into());
     }
 
+    println!("{:?}", receiver);
     validate_account_address(receiver).map_err(|_| Validation::ReceiverAccountError)?;
 
     Ok(-(amount as i128))
@@ -312,14 +313,14 @@ mod tests {
                 transactions: vec![
                     Transaction {
                         data: Some(Data::TxSend(TxSend {
-                            receiver: b"somereceiver".to_vec(),
+                            receiver: Vec::from_zbase("yy5xyknabqan31b8fkpyrd4nydtwpausi3kxgta").unwrap(),
                             amount: 10,
                             data: [].to_vec(),
                         })),
                     },
                     Transaction {
                         data: Some(Data::TxSend(TxSend {
-                            receiver: b"somereceiver".to_vec(),
+                            receiver: Vec::from_zbase("yy5xyknabqan31b8fkpyrd4nydtwpausi3kxgta").unwrap(),
                             amount: 50,
                             data: [].to_vec(),
                         })),
@@ -384,7 +385,7 @@ mod tests {
 
         let state = ChampState::mock().await;
         state.db.lock().await.add_block(data_block_1).await.expect("block should be added");
-        assert!(verify_transactions(&block, &prev_block, &state).await.is_ok());
+        verify_transactions(&block, &prev_block, &state).await.expect("should work");
         // assert_eq!(
         //    verify_transactions(&check_claim, &check_claim_previous, &state)
         //        .await
