@@ -243,6 +243,7 @@ mod tests {
     use crate::validation::block::{verify_previous_block, verify_transactions};
     use crate::ChampState;
     use anyhow::Result;
+    use encoding::zbase32::FromZbase;
     // use pog_proto::api::transaction::TxClaim;
     use pog_proto::api::{
         signed_block::BlockData,
@@ -328,7 +329,7 @@ mod tests {
         };
         let check_claim_tx = Transaction {
             data: Some(Data::TxSend(TxSend {
-                receiver: b"somereceiver".to_vec(),
+                receiver: Vec::from_zbase("yy5xyknabqan31b8fkpyrd4nydtwpausi3kxgta").unwrap(),
                 amount: 10,
                 data: vec![],
             })),
