@@ -32,6 +32,8 @@ pub enum Validation {
     TooManyTransactions,
     #[error("send receiver cannot be block account")]
     ReceiverAccountError,
+    #[error("block already exists")]
+    BlockDuplicate,
 }
 
 #[derive(Error, Debug)]
@@ -51,6 +53,8 @@ pub enum Node {
     DBError,
     #[error{"async error"}]
     AsyncError,
+    #[error{"block id could not be created"}]
+    BlockIdError,
 }
 
 #[derive(Error, Debug)]
@@ -81,7 +85,13 @@ pub async fn validate(block: &SignedBlock, state: &ChampStateArc) -> Result<(), 
         _ => return Err(Node::BlockNotFound.into()),
     };
 
-    // TODO: verify block doesn't already exist
+    let id = block.get_id().map_err(|_| Node::BlockIdError)?;
+    match db.get_block_by_id(id).await {
+        Ok(_) => return Err(Validation::BlockDuplicate.into()),
+        Err(storage::DatabaseError::BlockNotFound) => (),
+        _ => return Err(Node::DBError.into()),
+    }
+
     // signature
     verify_signature(&data.encode_to_vec(), public_key, signature).map_err(|_| Node::CryptoError)?;
     // height / previous block
