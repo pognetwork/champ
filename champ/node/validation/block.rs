@@ -4,7 +4,7 @@ use crate::storage;
 use crypto::{self, signatures::ed25519::verify_signature};
 use encoding::account::generate_account_address;
 use pog_proto::api::{
-    transaction::{Data, TxClaim},
+    transaction::{Data, TxClaim, TxSend},
     SignedBlock, Transaction,
 };
 use prost::Message;
@@ -30,6 +30,8 @@ pub enum Validation {
     DuplicatedTx,
     #[error("too many transactions")]
     TooManyTransactions,
+    #[error("send receiver cannot be block account")]
+    ReceiverAccountError,
 }
 
 #[derive(Error, Debug)]
@@ -75,7 +77,7 @@ pub async fn validate(block: &SignedBlock, state: &ChampStateArc) -> Result<(), 
 
     let latest_block = match response {
         Ok(block) => block,
-        Err(storage::DatabaseError::NoLastBlock) => return verify_account_genesis_block(),
+        Err(storage::DatabaseError::NoLastBlock) => return verify_account_genesis_block(block),
         _ => return Err(Node::BlockNotFound.into()),
     };
 
@@ -152,8 +154,9 @@ async fn tx_verification(
 ) -> Result<i128, BlockValidationError> {
     // calculate the new balance after all transactions are processed
     let tx_type = transaction.data.as_ref().ok_or(Validation::TransactionDataNotFound)?;
+
     let result_balance = match tx_type {
-        Data::TxSend(tx) => -(tx.amount as i128),
+        Data::TxSend(tx) => validate_send(tx.amount, tx, new_block)?,
         Data::TxCollect(tx) => validate_collect(state, tx, &new_block).await?,
         _ => *new_balance,
     };
@@ -176,8 +179,22 @@ fn verify_previous_block(new_block: &SignedBlock, prev_block: &SignedBlock) -> R
 }
 
 // Verifies the block height and previous block
-fn verify_account_genesis_block() -> Result<(), BlockValidationError> {
-    unimplemented!()
+fn verify_account_genesis_block(block: &SignedBlock) -> Result<(), BlockValidationError> {
+    let data = block.data.clone().ok_or(BlockValidationError::Error(Node::BlockDataNotFound))?;
+
+    if data.height != 0 {
+        return Err(Validation::BlockHeightError.into());
+    }
+
+    Ok(())
+}
+
+fn validate_send(amount: u64, tx: &TxSend, new_block: SignedBlock) -> Result<i128, BlockValidationError> {
+    if tx.receiver == generate_account_address(new_block.public_key).map_err(|_| Node::AccountError)? {
+        return Err(Validation::ReceiverAccountError.into());
+    }
+
+    Ok(-(amount as i128))
 }
 
 #[allow(clippy::borrowed_box)]

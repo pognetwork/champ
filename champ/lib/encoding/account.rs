@@ -3,6 +3,8 @@ use std::convert::TryInto;
 use crypto::hash::sha3;
 use thiserror::Error;
 
+use crate::zbase32::FromZbase;
+
 const ACCOUNT_ADDRESS_PREFIX: u8 = 0b0000_0000; // type_version
 
 #[derive(Error, Debug, PartialEq)]
@@ -11,6 +13,8 @@ pub enum AccountError {
     Unknown,
     #[error("invalid size")]
     InvalidSizeError,
+    #[error("invalid checksum")]
+    InvalidChecksum,
 }
 
 pub fn generate_account_address(public_key: Vec<u8>) -> Result<[u8; 24], AccountError> {
@@ -18,6 +22,26 @@ pub fn generate_account_address(public_key: Vec<u8>) -> Result<[u8; 24], Account
     account_address.extend(&sha3(public_key)[0..20]);
     account_address.extend(&sha3(&account_address)[0..3]);
     account_address.try_into().map_err(|_| AccountError::InvalidSizeError)
+}
+
+pub fn validate_account_address_string(addr: &str) -> Result<(), AccountError> {
+    let address = match addr.strip_prefix("pog-") {
+        Some(a) => a,
+        None => addr,
+    };
+
+    let decoded_address = Vec::from_zbase(address).map_err(|_| AccountError::Unknown)?;
+    validate_account_address(decoded_address)?;
+    Ok(())
+}
+
+pub fn validate_account_address(address: Vec<u8>) -> Result<(), AccountError> {
+    let (address, checksum) = address.split_at(20);
+    if checksum != &sha3(address)[20..] {
+        return Err(AccountError::InvalidChecksum);
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
