@@ -9,7 +9,7 @@ async fn test_mock() {
 }
 
 #[tokio::test]
-async fn add_and_find_blocks() {
+async fn test_add_block() {
     let mut db = TestStorage::new().await.db;
 
     let block = SignedBlock {
@@ -23,4 +23,9 @@ async fn add_and_find_blocks() {
     db.add_block(block.clone()).await.expect("should add block to database");
     let block_res = db.get_block_by_id(block_id).await.expect("should return block");
     assert_eq!(block_res, block);
+}
+
+#[tokio::test]
+async fn test_get_send_recipient() {
+    let mut db = TestStorage::new().await.db;
 }

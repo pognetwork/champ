@@ -38,7 +38,8 @@ impl ChampState {
 
         let db = Mutex::new(
             storage::new(&storage::DatabaseConfig {
-                kind: storage::Databases::Mock,
+                kind: storage::Databases::Sled,
+                temporary: Some(true),
                 ..Default::default()
             })
             .await
@@ -51,6 +52,7 @@ impl ChampState {
             wallet_manager: RwLock::new(WalletManager::mock()),
             blockpool_client,
         });
+
         pool.add_state(state.clone());
         tokio::spawn(async move { pool.start().await });
         state
