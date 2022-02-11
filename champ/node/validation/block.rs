@@ -167,7 +167,7 @@ async fn tx_verification(
 
     let result_balance = match tx_type {
         Data::TxSend(tx) => validate_send(tx.amount, tx, new_block)?,
-        Data::TxCollect(tx) => validate_collect(state, tx, &new_block).await?,
+        Data::TxClaim(tx) => validate_collect(state, tx, &new_block).await?,
         _ => *new_balance,
     };
     Ok(result_balance)
@@ -217,7 +217,7 @@ async fn validate_collect(
     block: &SignedBlock,
 ) -> Result<i128, BlockValidationError> {
     debug!("verify claim transactions");
-    let send_id = match tx.transaction_id.clone().try_into() {
+    let send_id = match tx.send_transaction_id.clone().try_into() {
         Ok(a) => a,
         Err(_) => return Err(Node::TxNotFound.into()),
     };
@@ -382,8 +382,8 @@ mod tests {
                 height: 6,
                 previous: check_claim_previous.get_id().expect("get block ID").to_vec(),
                 transactions: vec![Transaction {
-                    data: Some(Data::TxCollect(TxClaim {
-                        transaction_id: check_claim_tx
+                    data: Some(Data::TxClaim(TxClaim {
+                        send_transaction_id: check_claim_tx
                             .get_id(data_block_1.get_id().expect("get block ID"))
                             .expect("get Tx ID")
                             .to_vec(),
