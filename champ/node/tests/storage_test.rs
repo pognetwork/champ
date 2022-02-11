@@ -25,7 +25,7 @@ async fn test_add_block() {
     assert_eq!(block_res, block);
 }
 
-#[tokio::test]
-async fn test_get_send_recipient() {
-    let mut db = TestStorage::new().await.db;
-}
+// #[tokio::test]
+// async fn test_get_send_recipient() {
+//     let mut db = TestStorage::new().await.db;
+// }
