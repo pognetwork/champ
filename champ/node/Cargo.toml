@@ -37,8 +37,7 @@ tonic-web = "0.2"
 tower = "0.4"
 
 # /STORAGE
-rocksdb = {version = "0.17", optional = true}
-scylla = {version = "0.4", optional = true}
+# rocksdb = {version = "0.18", optional = true}
 sled = {version = "0.34", optional = true}
 
 [dev-dependencies]
@@ -56,7 +55,6 @@ path = "main.rs"
 path = "lib.rs"
 
 [features]
-backend-rocksdb = ["rocksdb"]
-backend-scylla = ["scylla"]
+# backend-rocksdb = ["rocksdb"]
 backend-sled = ["sled"]
 default = ["backend-sled"]
