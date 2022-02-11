@@ -2,9 +2,9 @@ use crate::state::ChampStateArc;
 use crate::storage;
 
 use crypto::{self, signatures::ed25519::verify_signature};
-use encoding::account::generate_account_address;
+use encoding::account::{generate_account_address, validate_account_address};
 use pog_proto::api::{
-    transaction::{Data, TxClaim},
+    transaction::{Data, TxClaim, TxSend},
     SignedBlock, Transaction,
 };
 use prost::Message;
@@ -30,6 +30,10 @@ pub enum Validation {
     DuplicatedTx,
     #[error("too many transactions")]
     TooManyTransactions,
+    #[error("send receiver cannot be block account")]
+    ReceiverAccountError,
+    #[error("block already exists")]
+    BlockDuplicate,
 }
 
 #[derive(Error, Debug)]
@@ -49,6 +53,8 @@ pub enum Node {
     DBError,
     #[error{"async error"}]
     AsyncError,
+    #[error{"block id could not be created"}]
+    BlockIdError,
 }
 
 #[derive(Error, Debug)]
@@ -75,11 +81,17 @@ pub async fn validate(block: &SignedBlock, state: &ChampStateArc) -> Result<(), 
 
     let latest_block = match response {
         Ok(block) => block,
-        Err(storage::DatabaseError::NoLastBlock) => return verify_account_genesis_block(),
+        Err(storage::DatabaseError::NoLastBlock) => return verify_account_genesis_block(block),
         _ => return Err(Node::BlockNotFound.into()),
     };
 
-    // TODO: verify block doesn't already exist
+    let id = block.get_id().map_err(|_| Node::BlockIdError)?;
+    match db.get_block_by_id(id).await {
+        Ok(_) => return Err(Validation::BlockDuplicate.into()),
+        Err(storage::DatabaseError::BlockNotFound) => (),
+        _ => return Err(Node::DBError.into()),
+    }
+
     // signature
     verify_signature(&data.encode_to_vec(), public_key, signature).map_err(|_| Node::CryptoError)?;
     // height / previous block
@@ -152,8 +164,9 @@ async fn tx_verification(
 ) -> Result<i128, BlockValidationError> {
     // calculate the new balance after all transactions are processed
     let tx_type = transaction.data.as_ref().ok_or(Validation::TransactionDataNotFound)?;
+
     let result_balance = match tx_type {
-        Data::TxSend(tx) => -(tx.amount as i128),
+        Data::TxSend(tx) => validate_send(tx.amount, tx, new_block)?,
         Data::TxCollect(tx) => validate_collect(state, tx, &new_block).await?,
         _ => *new_balance,
     };
@@ -176,8 +189,26 @@ fn verify_previous_block(new_block: &SignedBlock, prev_block: &SignedBlock) -> R
 }
 
 // Verifies the block height and previous block
-fn verify_account_genesis_block() -> Result<(), BlockValidationError> {
-    unimplemented!()
+fn verify_account_genesis_block(block: &SignedBlock) -> Result<(), BlockValidationError> {
+    let data = block.data.clone().ok_or(BlockValidationError::Error(Node::BlockDataNotFound))?;
+
+    if data.height != 0 {
+        return Err(Validation::BlockHeightError.into());
+    }
+
+    Ok(())
+}
+
+fn validate_send(amount: u64, tx: &TxSend, new_block: SignedBlock) -> Result<i128, BlockValidationError> {
+    let receiver = tx.receiver.clone();
+    if receiver == generate_account_address(new_block.public_key).map_err(|_| Node::AccountError)? {
+        return Err(Validation::ReceiverAccountError.into());
+    }
+
+    println!("{:?}", receiver);
+    validate_account_address(receiver).map_err(|_| Validation::ReceiverAccountError)?;
+
+    Ok(-(amount as i128))
 }
 
 #[allow(clippy::borrowed_box)]
@@ -223,6 +254,7 @@ mod tests {
     use crate::validation::block::{verify_previous_block, verify_transactions};
     use crate::ChampState;
     use anyhow::Result;
+    use encoding::zbase32::FromZbase;
     // use pog_proto::api::transaction::TxClaim;
     use pog_proto::api::{
         signed_block::BlockData,
@@ -291,14 +323,14 @@ mod tests {
                 transactions: vec![
                     Transaction {
                         data: Some(Data::TxSend(TxSend {
-                            receiver: b"somereceiver".to_vec(),
+                            receiver: Vec::from_zbase("yy5xyknabqan31b8fkpyrd4nydtwpausi3kxgta").unwrap(),
                             amount: 10,
                             data: [].to_vec(),
                         })),
                     },
                     Transaction {
                         data: Some(Data::TxSend(TxSend {
-                            receiver: b"somereceiver".to_vec(),
+                            receiver: Vec::from_zbase("yy5xyknabqan31b8fkpyrd4nydtwpausi3kxgta").unwrap(),
                             amount: 50,
                             data: [].to_vec(),
                         })),
@@ -308,7 +340,7 @@ mod tests {
         };
         let check_claim_tx = Transaction {
             data: Some(Data::TxSend(TxSend {
-                receiver: b"somereceiver".to_vec(),
+                receiver: Vec::from_zbase("yy5xyknabqan31b8fkpyrd4nydtwpausi3kxgta").unwrap(),
                 amount: 10,
                 data: vec![],
             })),
@@ -363,7 +395,7 @@ mod tests {
 
         let state = ChampState::mock().await;
         state.db.lock().await.add_block(data_block_1).await.expect("block should be added");
-        assert!(verify_transactions(&block, &prev_block, &state).await.is_ok());
+        verify_transactions(&block, &prev_block, &state).await.expect("should work");
         // assert_eq!(
         //    verify_transactions(&check_claim, &check_claim_previous, &state)
         //        .await
