@@ -224,7 +224,7 @@ async fn validate_collect(
 
     let db = &state.db.lock().await;
     let resp = db.get_send_recipient(send_id).await;
-    if resp.map_err(|e| Node::DBError(e))?.is_some() {
+    if resp.map_err(Node::DBError)?.is_some() {
         return Err(Validation::TxValidationError("validate collect 1".to_string()).into());
     }
 
