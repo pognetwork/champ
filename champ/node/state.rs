@@ -52,6 +52,7 @@ impl ChampState {
             wallet_manager: RwLock::new(WalletManager::mock()),
             blockpool_client,
         });
+
         pool.add_state(state.clone());
         tokio::spawn(async move { pool.start().await });
         state

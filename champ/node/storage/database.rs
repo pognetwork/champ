@@ -6,11 +6,8 @@ use pog_proto::api::{self};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use super::mock;
-#[cfg(feature = "backend-rocksdb")]
-use super::rocksdb;
-#[cfg(feature = "backend-scylla")]
-use super::scylla;
+// #[cfg(feature = "backend-rocksdb")]
+// use super::rocksdb;
 #[cfg(feature = "backend-sled")]
 use super::sled;
 
@@ -18,11 +15,8 @@ use super::sled;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[non_exhaustive]
 pub enum Databases {
-    Mock,
-    #[cfg(feature = "backend-rocksdb")]
-    RocksDB,
-    #[cfg(feature = "backend-scylla")]
-    Scylla,
+    // #[cfg(feature = "backend-rocksdb")]
+    // RocksDB,
     #[cfg(feature = "backend-sled")]
     Sled,
 }
@@ -45,9 +39,9 @@ pub struct DatabaseConfig {
 impl Default for DatabaseConfig {
     fn default() -> Self {
         Self {
-            kind: Databases::Mock,
+            kind: Databases::Sled,
             path: None,
-            temporary: None,
+            temporary: Some(true),
             uri: None,
             data_path: None,
         }
@@ -75,25 +69,16 @@ pub enum DatabaseError {
 }
 
 pub async fn new(cfg: &DatabaseConfig) -> Result<Box<dyn Database>, DatabaseError> {
-    let mut db: Box<dyn Database>;
+    let db: Box<dyn Database>;
     match cfg.kind {
-        #[cfg(feature = "backend-rocksdb")]
-        Databases::RocksDB => {
-            db = Box::new(rocksdb::RocksDB::new());
-            db.init(cfg).await.map_err(|_e| DatabaseError::Unknown)?;
-        }
-        #[cfg(feature = "backend-scylla")]
-        Databases::Scylla => {
-            db = Box::new(scylla::Scylla::new());
-            db.init(cfg).await.map_err(|_e| DatabaseError::Unknown)?;
-        }
+        // #[cfg(feature = "backend-rocksdb")]
+        // Databases::RocksDB => {
+        //     db = Box::new(rocksdb::RocksDB::new());
+        //     db.init(cfg).await.map_err(|_e| DatabaseError::Unknown)?;
+        // }
         #[cfg(feature = "backend-sled")]
         Databases::Sled => {
             db = Box::new(sled::SledDB::new(cfg).expect("should find sled files"));
-        }
-        Databases::Mock => {
-            db = Box::new(mock::MockDB::new());
-            db.init(cfg).await.map_err(|_e| DatabaseError::Unknown)?;
         }
         #[allow(unreachable_patterns)]
         _ => return Err(DatabaseError::InvalidKind),
