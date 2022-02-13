@@ -1,9 +1,12 @@
 ---
 source: champ/node/consensus/graphs.rs
-expression: "vec![inactive_tax_graph(1000, 1000).to_string(),\n     inactive_tax_graph(0, 0).to_string(),\n     inactive_tax_graph(1000, 1500).to_string()]"
+assertion_line: 150
+expression: "vec![inactive_tax_graph(1000, 1000, 500.0).to_string(),\n     inactive_tax_graph(0, 0, 0.0).to_string(),\n     inactive_tax_graph(1000, 1500, 1000.0).to_string(),\n     inactive_tax_graph(1000, 1100, 1000.0).to_string(),\n     inactive_tax_graph(1000, 1009, 1000.0).to_string()]"
 
 ---
-- "-200"
+- "-50"
 - "0"
 - "0"
+- "0"
+- "-100"
 
