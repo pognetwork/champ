@@ -1,6 +1,7 @@
 use crate::state::ChampStateArc;
 
 pub struct P2PServer {
+    #[allow(dead_code)]
     state: ChampStateArc,
 }
 
