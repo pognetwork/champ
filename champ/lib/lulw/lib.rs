@@ -3,6 +3,8 @@ use std::convert::TryInto;
 
 use base64::{decode, encode};
 use crypto::aead::chacha::{decrypt, encrypt};
+use encoding::account::generate_account_address;
+use encoding::zbase32::ToZbase;
 use thiserror::Error;
 use tracing::debug;
 use versions::v0::{Cipher, CipherParams, CryptoOptions, KDFParams, Lulw, KDF};
@@ -11,7 +13,7 @@ use versions::v0::{Cipher, CipherParams, CryptoOptions, KDFParams, Lulw, KDF};
 pub enum WalletError {
     #[error("error calculating public key: {0}")]
     CreatePublicKeyError(String),
-    #[error("error generating private key: {0}")]
+    #[error("error generating public key: {0}")]
     GeneratePrivateKeyError(String),
     #[error("error encrypting private key: {0}")]
     EncryptionError(String),
@@ -31,13 +33,20 @@ pub enum WalletError {
     DecryptionError(String),
 }
 
-pub fn generate_wallet(password: String) -> Result<String, WalletError> {
+pub type WalletAndAddress = (String, String);
+
+pub fn generate_wallet(password: String) -> Result<WalletAndAddress, WalletError> {
     debug!("generating wallet");
-    let (ciphertext, salt, nonce) = {
+    let (public_key, (ciphertext, salt, nonce)) = {
         let private_key = crypto::signatures::ed25519::generate_private_key()
             .map_err(|e| WalletError::GeneratePrivateKeyError(e.to_string()))?;
 
-        encrypt(&private_key, password.as_bytes()).map_err(|e| WalletError::EncryptionError(e.to_string()))?
+        let public_key = crypto::signatures::ed25519::create_public_key(&private_key)
+            .map_err(|e| WalletError::CreatePublicKeyError(e.to_string()))?;
+        (
+            public_key,
+            encrypt(&private_key, password.as_bytes()).map_err(|e| WalletError::EncryptionError(e.to_string()))?,
+        )
     };
 
     let ciphertext = encode(ciphertext);
@@ -66,7 +75,11 @@ pub fn generate_wallet(password: String) -> Result<String, WalletError> {
     };
 
     let json = serde_json::to_string_pretty(&wallet).map_err(|e| WalletError::SerializationError(e.to_string()))?;
-    Ok(json)
+    let account_address = generate_account_address(public_key.to_vec())
+        .expect("Valid public key couldn't generate account address")
+        .encode_zbase()
+        .expect("Valid account address couldn't be converted to ZBase");
+    Ok((json, account_address))
 }
 
 pub fn unlock_wallet(wallet: &str, password: String) -> Result<Vec<u8>, WalletError> {
