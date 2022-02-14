@@ -106,5 +106,3 @@ pub async fn run() -> Result<()> {
     tracing::error!("exiting, error occurred while starting services: {:?}", err);
     Ok(())
 }
-//let lol = WalletManager::new(config.read().await.wallets.clone());
-//let lol = RwLock::new(wallet_manager);
