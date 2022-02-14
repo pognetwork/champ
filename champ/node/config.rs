@@ -194,9 +194,18 @@ pub fn read_or_create_file(path: PathBuf) -> Result<String> {
     Ok(file)
 }
 
+//overwrites contents and creates a file if not already present
 pub fn write_file(path: PathBuf, data: &str) -> Result<()> {
     let mut file = OpenOptions::new().write(true).create(true).open(path)?;
     file.write_all(data.as_bytes())?;
     drop(file);
     Ok(())
+}
+
+pub fn read_file(path: PathBuf) -> Result<String> {
+    let mut file_content = String::new();
+    let mut file = OpenOptions::new().read(true).open(path)?;
+    file.read_to_string(&mut file_content).expect("should read file to string");
+    drop(file);
+    Ok(file_content)
 }
