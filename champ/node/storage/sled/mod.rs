@@ -1,3 +1,3 @@
 #[allow(clippy::module_inception)]
-mod sled;
-pub use self::sled::SledDB;
+mod main;
+pub use self::main::SledDB;

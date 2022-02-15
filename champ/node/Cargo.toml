@@ -37,7 +37,7 @@ tonic-web = "0.2"
 tower = "0.4"
 
 # /STORAGE
-# rocksdb = {version = "0.18", optional = true}
+entities = {path = "./storage/sql/entities", optional = true}
 sled = {version = "0.34", optional = true}
 
 [dev-dependencies]
@@ -55,6 +55,8 @@ path = "main.rs"
 path = "lib.rs"
 
 [features]
-# backend-rocksdb = ["rocksdb"]
+backend-mysql = ["entities", "entities/mysql"]
+backend-postgres = ["entities", "entities/postgres"]
 backend-sled = ["sled"]
-default = ["backend-sled"]
+backend-sqlite = ["entities", "entities/sqlite"]
+default = ["backend-sled", "backend-sqlite"]
