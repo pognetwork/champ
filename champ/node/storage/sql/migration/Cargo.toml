@@ -1,12 +1,17 @@
 [package]
 edition = "2021"
+main = "main.rs"
 name = "migration"
 publish = false
 version = "0.1.0"
 
 [lib]
 name = "migration"
-path = "src/lib.rs"
+path = "lib.rs"
+
+[[bin]]
+name = "champ-node-sql-migrate"
+path = "main.rs"
 
 [dependencies]
 sea-schema = {version = "0.5.0", default-features = false, features = ["migration", "debug-print"]}
