@@ -2,6 +2,7 @@
 members = [
   "champ/node",
   "champ/node/storage/sql/migration",
+  "champ/node/storage/sql/entity",
   "champ/lib/*",
 ]
 

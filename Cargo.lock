@@ -574,7 +574,7 @@ dependencies = [
  "crypto",
  "directories",
  "encoding",
- "entities",
+ "entity",
  "hyper",
  "insta",
  "path-absolutize",
@@ -1144,7 +1144,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "entities"
+name = "entity"
 version = "0.1.0"
 dependencies = [
  "sea-orm",

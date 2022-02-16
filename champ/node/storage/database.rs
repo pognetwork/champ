@@ -6,8 +6,9 @@ use pog_proto::api::{self};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-// #[cfg(feature = "backend-rocksdb")]
-// use super::rocksdb;
+// #[cfg(feature = "sql")]
+// use super::sql;
+
 #[cfg(feature = "backend-sled")]
 use super::sled;
 
@@ -15,8 +16,12 @@ use super::sled;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[non_exhaustive]
 pub enum Databases {
-    // #[cfg(feature = "backend-rocksdb")]
-    // RocksDB,
+    #[cfg(feature = "backend-sqlite")]
+    SQLite,
+    #[cfg(feature = "backend-postgres")]
+    Postgres,
+    #[cfg(feature = "backend-mysql")]
+    MySQL,
     #[cfg(feature = "backend-sled")]
     Sled,
 }

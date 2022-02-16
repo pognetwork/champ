@@ -1,6 +1,5 @@
 [package]
 edition = "2021"
-main = "main.rs"
 name = "migration"
 publish = false
 version = "0.1.0"
