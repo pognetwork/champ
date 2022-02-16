@@ -8,6 +8,8 @@ nav:
       - CI/CD: "developers/cicd.md"
       - Voting: "developers/voting.md"
       - Security: "developers/security.md"
+      - Storage:
+          - SQL: "developers/storage/sql.md"
   - Operators:
       - Installation: "operators/installation.md"
       - Security: "operators/security.md"
