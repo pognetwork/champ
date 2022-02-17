@@ -2,12 +2,16 @@ use pog_proto::api::SignedBlock;
 
 // so we can normalize the curves
 const TX_CURVE_MAX: i32 = 15;
-const PLATEAU_SIZE: f64 = 350.0;
+const PLATEAU_SIZE: f64 = 175.0;
+// 0.1 = 10%
+const INACTIVE_TAX_PERCENTAGE: f64 = 0.1;
+const INACTIVE_TAX_BOUND: f64 = 0.1;
 
 const NORMALIZE_BALANCE: f64 = 1.0;
 const NORMALIZE_CASHFLOW: f64 = 1.0;
-const NORMALIZE_INACTIVE_TAX: f64 = 5.0;
+const NORMALIZE_INACTIVE_TAX: f64 = 1.0;
 const NORMALIZE_BLOCK: f64 = 10.0;
+const NORMALIZE_AGE: f64 = 1.0;
 
 const WEEK_IN_SECONDS: f64 = 60.0 * 60.0 * 24.0 * 7.0;
 
@@ -21,13 +25,17 @@ pub fn cashflow_graph(new_block_balance: u64, old_block_balance: u64) -> f64 {
     -cashflow as f64 / NORMALIZE_CASHFLOW
 }
 
-pub fn inactive_tax_graph(new_block_balance: u64, old_block_balance: u64) -> f64 {
+pub fn inactive_tax_graph(new_block_balance: u64, old_block_balance: u64, net_importance: f64) -> f64 {
     let cashflow = new_block_balance as i128 - old_block_balance as i128;
+    let percentage_buffer = (new_block_balance as f64 * INACTIVE_TAX_BOUND) as i128;
+
+    let upperbound = percentage_buffer;
+    let lowerbound = -percentage_buffer;
 
     tracing::trace!("real cashflow={}", cashflow);
     // Inactive Tax
-    if cashflow == 0 && new_block_balance > 0 {
-        return -(new_block_balance as f64 / NORMALIZE_INACTIVE_TAX);
+    if cashflow < upperbound && cashflow > lowerbound && new_block_balance > 0 {
+        return -(net_importance * INACTIVE_TAX_PERCENTAGE) * NORMALIZE_INACTIVE_TAX;
     }
     0.0
 }
@@ -49,7 +57,7 @@ pub fn block_graph(block_height: u64, new_block: &SignedBlock, old_block: Option
     // https://www.geogebra.org/calculator/ymkv5ew6
     let blocks_per_week = (time / block_height as f64) / WEEK_IN_SECONDS;
     // this is between 0 and 1 where plateau starts at 0.5
-    let graph_result = 1.0 / (blocks_per_week / (PLATEAU_SIZE / 2.0) - 1.0).powi(2 * TX_CURVE_MAX) + 1.0;
+    let graph_result = 1.0 / (blocks_per_week / PLATEAU_SIZE - 1.0).powi(2 * TX_CURVE_MAX) + 1.0;
     // to normalize tx graph and balance graph
     graph_result * NORMALIZE_BLOCK
 }
@@ -62,7 +70,8 @@ pub fn age_graph(account_age: u64) -> f64 {
     // 0.1x + 3 to allow the graph to go through 31 (month ish)
     // - 4 to shift the start
     let account_age_weeks = (account_age as f64 / WEEK_IN_SECONDS).floor();
-    (account_age_weeks + 1.0).log10() + (0.1 * account_age_weeks + 3.0).sqrt() - 4.0
+    let graph_result = (account_age_weeks + 1.0).log10() + (0.1 * account_age_weeks + 3.0).sqrt() - 4.0;
+    graph_result * NORMALIZE_AGE
 }
 
 #[cfg(test)]
@@ -85,8 +94,8 @@ mod tests {
     }
     #[test]
     fn test_inactive_tax_graph() {
-        assert_eq!(0.0, inactive_tax_graph(500, 1000));
-        assert_eq!(-200.0, inactive_tax_graph(1000, 1000));
+        assert_eq!(0.0, inactive_tax_graph(500, 1000, 1000.0));
+        assert_eq!(-50.0, inactive_tax_graph(1000, 1000, 500.0));
     }
     #[test]
     fn test_block_graph() {
@@ -139,9 +148,11 @@ mod tests {
             cashflow_graph(0, 0).to_string()
         ]);
         assert_yaml_snapshot!(vec![
-            inactive_tax_graph(1000, 1000).to_string(),
-            inactive_tax_graph(0, 0).to_string(),
-            inactive_tax_graph(1000, 1500).to_string()
+            inactive_tax_graph(1000, 1000, 500.0).to_string(),
+            inactive_tax_graph(0, 0, 0.0).to_string(),
+            inactive_tax_graph(1000, 1500, 1000.0).to_string(),
+            inactive_tax_graph(1000, 1100, 1000.0).to_string(),
+            inactive_tax_graph(1000, 1009, 1000.0).to_string()
         ]);
         assert_yaml_snapshot!(vec![
             age_graph(605000).to_string(),

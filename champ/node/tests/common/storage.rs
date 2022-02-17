@@ -80,8 +80,8 @@ impl TestStorage {
         let count = 10;
         let accounts = TestStorage::mock_accounts(count);
 
-        let genesis_tx = pog_proto::api::transaction::Data::TxCollect(TxClaim {
-            transaction_id: GENESIS_ID.to_vec(),
+        let genesis_tx = pog_proto::api::transaction::Data::TxClaim(TxClaim {
+            send_transaction_id: GENESIS_ID.to_vec(),
         });
         let genesis_txs = vec![Transaction {
             data: Some(genesis_tx),

@@ -211,8 +211,8 @@ impl Database for SledDB {
                                 accounts.insert(account_rep_key, tx.representative)?;
                             }
                             // Set claims
-                            api::transaction::Data::TxCollect(tx) => {
-                                claims.insert(tx.transaction_id, transaction_id.to_vec())?;
+                            api::transaction::Data::TxClaim(tx) => {
+                                claims.insert(tx.send_transaction_id, transaction_id.to_vec())?;
                             }
                             _ => {}
                         };
