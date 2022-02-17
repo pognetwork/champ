@@ -8,6 +8,8 @@ version = "0.1.0"
 path = "lib.rs"
 
 [dependencies]
+chrono = "0.4"
+pog-proto = {git = "https://github.com/pognetwork/proto"}
 sea-orm = {version = "0.6", features = ["runtime-tokio-rustls", "macros"], default-features = false}
 
 [features]
