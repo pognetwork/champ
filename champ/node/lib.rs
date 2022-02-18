@@ -70,7 +70,7 @@ pub async fn run() -> Result<()> {
     debug!("initializing wallet manager step 2/2");
     let wallet_manager = &mut *wallet_lock.write().await;
     wallet_manager.add_state(state.clone());
-    wallet_manager.initialize().await;
+    wallet_manager.initialize().await?;
 
     trace!("injecting state into blockpool");
     blockpool.add_state(state.clone());
