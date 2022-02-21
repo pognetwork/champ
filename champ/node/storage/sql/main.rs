@@ -1,7 +1,9 @@
 use crate::storage::{Database, DatabaseConfig, DatabaseError};
 use anyhow::Result;
 use async_trait::async_trait;
-use entity::sea_orm::{self, ConnectOptions, DatabaseConnection};
+use entity::sea_orm::{
+    self, sea_query::TableCreateStatement, ConnectOptions, ConnectionTrait, DatabaseConnection, DbBackend, Schema,
+};
 use pog_proto::api;
 
 #[derive(Debug)]
@@ -10,6 +12,19 @@ pub struct Sql {
 }
 
 impl Sql {
+    pub async fn connect_mock() -> Result<Sql> {
+        let opt = ConnectOptions::new("sqlite::memory:".to_string());
+
+        let db = sea_orm::Database::connect(opt).await?;
+        let sql = Sql {
+            db,
+        };
+
+        sql.setup_schema(sea_orm::DatabaseBackend::Sqlite).await?;
+
+        Ok(sql)
+    }
+
     pub async fn connect_sqlite(_cfg: &DatabaseConfig) -> Result<Sql> {
         let opt = ConnectOptions::new("".to_string());
 
@@ -18,6 +33,23 @@ impl Sql {
         Ok(Sql {
             db,
         })
+    }
+
+    // not required after we've setup migrations
+    pub async fn setup_schema(&self, backend: DbBackend) -> Result<()> {
+        let schema = Schema::new(backend);
+
+        let block: TableCreateStatement = schema.create_table_from_entity(entity::block::Entity);
+        let pending_block: TableCreateStatement = schema.create_table_from_entity(entity::pending_block::Entity);
+        let transaction: TableCreateStatement = schema.create_table_from_entity(entity::transaction::Entity);
+        let tx_claim: TableCreateStatement = schema.create_table_from_entity(entity::tx_claim::Entity);
+
+        self.db.execute(self.db.get_database_backend().build(&block)).await?;
+        self.db.execute(self.db.get_database_backend().build(&pending_block)).await?;
+        self.db.execute(self.db.get_database_backend().build(&transaction)).await?;
+        self.db.execute(self.db.get_database_backend().build(&tx_claim)).await?;
+
+        Ok(())
     }
 }
 

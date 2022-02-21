@@ -1,5 +1,4 @@
 mod entities;
-
 pub use entities::*;
 
 pub mod sea_orm {

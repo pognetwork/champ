@@ -79,7 +79,8 @@ pub async fn new(cfg: &DatabaseConfig) -> Result<Box<dyn Database>, DatabaseErro
     match cfg.kind {
         #[cfg(feature = "backend-sqlite")]
         Databases::SQLite => {
-            let database = sql::Sql::connect_sqlite(cfg).await.map_err(|e| DatabaseError::Specific(e.to_string()))?;
+            // let database = sql::Sql::connect_sqlite(cfg).await.map_err(|e| DatabaseError::Specific(e.to_string()))?;
+            let database = sql::Sql::connect_mock().await.map_err(|e| DatabaseError::Specific(e.to_string()))?;
             db = Box::new(database);
         }
         #[cfg(feature = "backend-sled")]

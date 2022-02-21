@@ -1,4 +1,4 @@
-mod block;
-mod pending_block;
-mod transaction;
-mod tx_claim;
+pub mod block;
+pub mod pending_block;
+pub mod transaction;
+pub mod tx_claim;
