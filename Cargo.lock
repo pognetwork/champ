@@ -524,6 +524,7 @@ dependencies = [
  "encoding",
  "hyper",
  "insta",
+ "lazy_static",
  "path-absolutize",
  "pog-jwt",
  "pog-proto",
