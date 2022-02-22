@@ -7,8 +7,21 @@ use hyper::{
     Body, Request, Response, Server,
 };
 
-use prometheus::{Encoder, TextEncoder};
 use tracing::info;
+
+use lazy_static::lazy_static;
+use prometheus::{register_int_gauge, Encoder, TextEncoder};
+
+lazy_static! {
+    static ref METRICS_HEALTH: prometheus::IntGauge =
+        register_int_gauge!("metrics_health", "metrics service help").unwrap();
+}
+
+pub enum ServiceStatus {
+    Starting = 0,
+    Healthy,
+    Broken,
+}
 
 #[derive(Debug)]
 pub struct MetricsServer {}
@@ -22,12 +35,20 @@ impl MetricsServer {
             return Ok(());
         }
 
-        let serve_future =
-            Server::bind(&addr).serve(make_service_fn(|_| async { Ok::<_, hyper::Error>(service_fn(serve_req)) }));
+        METRICS_HEALTH.set(ServiceStatus::Starting as i64);
+
+        let metrics_service = make_service_fn(|_| async { Ok::<_, hyper::Error>(service_fn(serve_req)) });
+        let server = Server::bind(&addr).serve(metrics_service);
 
         info!("starting metrics at {}", addr);
 
-        serve_future.await?;
+        METRICS_HEALTH.set(ServiceStatus::Healthy as i64);
+
+        if let Err(e) = server.await {
+            tracing::error!("error while starting metrics server: {}", e);
+            METRICS_HEALTH.set(ServiceStatus::Broken as i64);
+        }
+
         Ok(())
     }
 }

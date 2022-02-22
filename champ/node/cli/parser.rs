@@ -1,7 +1,7 @@
 use clap::{self, Arg};
 
 pub fn new() -> clap::ArgMatches {
-    clap::App::new("champ-node")
+    clap::Command::new("champ-node")
         .version("0.0.1")
         .author("The POG Project <contact@pog.network>")
         .about("POGs reference implementation in rust")
@@ -25,10 +25,10 @@ pub fn new() -> clap::ArgMatches {
                 .takes_value(true),
         )
         .subcommand(
-            clap::App::new("admin")
+            clap::Command::new("admin")
                 .about("access to the admin interface")
                 .subcommand(
-                    clap::App::new("create-user")
+                    clap::Command::new("create-user")
                         .about("creates a user for the web api")
                         .after_help("Format: -u [username] -p [password]")
                         .arg(
@@ -58,7 +58,7 @@ pub fn new() -> clap::ArgMatches {
                                 .min_values(0),
                         ),
                 )
-                .subcommand(clap::App::new("generate-key").about("generates a node private key used for JWTs")),
+                .subcommand(clap::Command::new("generate-key").about("generates a node private key used for JWTs")),
         )
         .get_matches()
 }

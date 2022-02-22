@@ -391,16 +391,12 @@ mod tests {
                 }],
             }),
         };
-
         let state = ChampState::mock().await;
         state.db.lock().await.add_block(data_block_1).await.expect("block should be added");
         verify_transactions(&block, &prev_block, &state).await.expect("should work");
-        assert_eq!(
-            verify_transactions(&check_claim, &check_claim_previous, &state)
-                .await
-                .expect("tx should be verified. Tx Nr: 2"),
-            ()
-        );
+        verify_transactions(&check_claim, &check_claim_previous, &state)
+            .await
+            .expect("tx should be verified. Tx Nr: 2");
 
         Ok(())
     }

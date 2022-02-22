@@ -55,17 +55,17 @@ pub async fn get_actual_power(state: &ChampStateArc, account_id: api::AccountID)
     let cresult = cashflow_graph(new_block_balance, old_block_balance);
     let bbresult = block_graph(data.height, &block, old_block_result.as_ref());
     let aresult = age_graph(block.timestamp - first_block.timestamp);
-    let iresult = inactive_tax_graph(new_block_balance, old_block_balance);
+
+    // Weights to change how much impact each factor should have
+    let net_result =
+        bbresult * BLOCK_WEIGHT + bresult * BALANCE_WEIGHT + aresult * AGE_WEIGHT + cresult * CASHFLOW_WEIGHT;
+
+    let iresult = inactive_tax_graph(new_block_balance, old_block_balance, net_result);
 
     trace!("Graph results: balance={0}, cashflow={1}, block={2}, age={3}", bresult, cresult, bbresult, aresult);
     // TODO: Green Adresses?
 
-    // Weights to change how much impact each factor should have
-    let graph_result = bbresult * BLOCK_WEIGHT
-        + bresult * BALANCE_WEIGHT
-        + aresult * AGE_WEIGHT
-        + cresult * CASHFLOW_WEIGHT
-        + iresult * INACTIVE_TAX_WEIGHT;
+    let graph_result = net_result + iresult * INACTIVE_TAX_WEIGHT;
 
     let result = if graph_result < 0.0 {
         0
