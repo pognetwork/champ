@@ -6,17 +6,23 @@ use pog_proto::api::{self};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-// #[cfg(feature = "backend-rocksdb")]
-// use super::rocksdb;
+// #[cfg(feature = "sql")]
+// use super::sql;
+
 #[cfg(feature = "backend-sled")]
 use super::sled;
+use super::sql;
 
 /// Represents a generic storage backend
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[non_exhaustive]
 pub enum Databases {
-    // #[cfg(feature = "backend-rocksdb")]
-    // RocksDB,
+    #[cfg(feature = "backend-sqlite")]
+    SQLite,
+    #[cfg(feature = "backend-postgres")]
+    Postgres,
+    #[cfg(feature = "backend-mysql")]
+    MySQL,
     #[cfg(feature = "backend-sled")]
     Sled,
 }
@@ -71,14 +77,15 @@ pub enum DatabaseError {
 pub async fn new(cfg: &DatabaseConfig) -> Result<Box<dyn Database>, DatabaseError> {
     let db: Box<dyn Database>;
     match cfg.kind {
-        // #[cfg(feature = "backend-rocksdb")]
-        // Databases::RocksDB => {
-        //     db = Box::new(rocksdb::RocksDB::new());
-        //     db.init(cfg).await.map_err(|_e| DatabaseError::Unknown)?;
-        // }
+        #[cfg(feature = "backend-sqlite")]
+        Databases::SQLite => {
+            // let database = sql::Sql::connect_sqlite(cfg).await.map_err(|e| DatabaseError::Specific(e.to_string()))?;
+            let database = sql::Sql::connect_mock().await.map_err(|e| DatabaseError::Specific(e.to_string()))?;
+            db = Box::new(database);
+        }
         #[cfg(feature = "backend-sled")]
         Databases::Sled => {
-            db = Box::new(sled::SledDB::new(cfg).expect("should find sled files"));
+            db = Box::new(sled::SledDB::new(cfg).map_err(|e| DatabaseError::Specific(e.to_string()))?);
         }
         #[allow(unreachable_patterns)]
         _ => return Err(DatabaseError::InvalidKind),
@@ -95,10 +102,6 @@ impl Debug for dyn Database {
 #[async_trait]
 // Send and sync are added because of async traits: https://github.com/dtolnay/async-trait#dyn-traits
 pub trait Database: Send + Sync {
-    async fn init(&mut self, _config: &DatabaseConfig) -> Result<()> {
-        Ok(())
-    }
-
     async fn get_block_by_id(&self, block_id: api::BlockID) -> Result<api::SignedBlock, DatabaseError>;
     async fn get_block_by_height(
         &self,
