@@ -20,7 +20,6 @@ type AccountAddress = String;
 type UserName = String;
 
 impl Wallet {
-    #[inline]
     pub fn unlock(&mut self, wallet: &str, password: String) -> Result<(), lulw::WalletError> {
         if !&self.locked {
             return Ok(());
@@ -31,7 +30,6 @@ impl Wallet {
         Ok(())
     }
 
-    #[inline]
     pub fn lock(&mut self) {
         self.private_key = None;
         self.locked = true;
@@ -44,7 +42,7 @@ pub struct WalletManager {
     wallets: HashMap<AccountAddress, Wallet>,
     #[allow(dead_code)]
     config: WalletManagerConfig,
-    index: HashMap<AccountAddress, UserName>, //change String to AccountID
+    index: HashMap<AccountAddress, UserName>,
 }
 
 impl Default for WalletManager {
@@ -77,6 +75,7 @@ impl WalletManager {
 
     pub async fn initialize(&mut self) -> Result<(), lulw::WalletError> {
         let mut path = self.get_base_path().await;
+
         if !path.exists() {
             std::fs::create_dir_all(&path).expect("Coulnd't Write 'walletmanager' directory to drive");
         }
@@ -103,7 +102,11 @@ impl WalletManager {
     }
 
     //create a wallet from passphrase and user_name, write the wallet to disk and add it to the index and wallet hashmap
-    pub async fn create_wallet(&mut self, password: String, user_name: UserName) -> Result<(), lulw::WalletError> {
+    pub async fn create_wallet(
+        &mut self,
+        password: String,
+        user_name: UserName,
+    ) -> Result<AccountAddress, lulw::WalletError> {
         let (wallet, account_address) = lulw::generate_wallet(password)?;
 
         let mut path = self.get_wallets_path().await;
@@ -112,7 +115,7 @@ impl WalletManager {
         //keep address as string?
         //let account_address = decode(account_address).expect("Couldn't parse valid account address to u8 vec");
         //let account_address = AccountID::try_from(account_address).unwrap();
-
+        println!("{}", path.to_str().unwrap());
         write_file(path, &wallet).expect("Couldn't write wallet to file");
         self.create_index_entry(account_address.clone(), user_name.clone()).await;
         let wallet = Wallet {
@@ -123,8 +126,8 @@ impl WalletManager {
             private_key: None,
         };
 
-        self.wallets.insert(account_address, wallet);
-        Ok(())
+        self.wallets.insert(account_address.clone(), wallet);
+        Ok(account_address)
     }
 
     //deletes wallet from the FS, and both indeces
@@ -235,5 +238,54 @@ pub trait WalletInterface {
 impl WalletInterface for WalletManager {
     fn get_wallets(&self) -> &HashMap<AccountAddress, Wallet> {
         &self.wallets
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::Config;
+    use crate::ChampState;
+
+    #[tokio::test]
+    async fn create_wallet() {
+        //prepare
+        let username = "Malox".to_string();
+        let password = "1234".to_string();
+
+        //this is big yikes, but the mocked champstated doesn't have a default datapath
+        let mut wallet_manager = WalletManager::new(WalletManagerConfig::default());
+        let champstate = ChampState::mock().await;
+
+        let mut path = Config::default().get_path().unwrap();
+        path.pop();
+        path.push("test");
+
+        let mut write_guard = champstate.config.write().await;
+        write_guard.data_path = Some(path.to_str().expect("couldn't convert to string").to_string());
+        std::mem::drop(write_guard);
+        wallet_manager.add_state(champstate);
+
+        //act
+        let _ = wallet_manager.initialize().await;
+        let account_address =
+            wallet_manager.create_wallet(password.clone(), username.clone()).await.expect("Creating wallet failed");
+
+        //assert
+        assert!(wallet_manager.wallets.contains_key(&account_address));
+
+        let wallet = &wallet_manager.wallets[&account_address];
+        assert_eq!(wallet.account_address, account_address);
+        assert_eq!(wallet.name, username);
+
+        assert!(wallet_manager.index.contains_key(&account_address));
+        assert_eq!(wallet_manager.index[&account_address], username);
+
+        //Nonce differs somehow check that the wallet is the right one
+        //let mut path = wallet_manager.get_wallets_path().await;
+        //path.push(account_address + ".json");
+        //let file = read_file(path).expect("Couldn't read wallet from disc");
+        //let (wallet, _) = lulw::generate_wallet(password).expect("couldn't create wallet");
+        //assert_eq!(file, wallet);
     }
 }
