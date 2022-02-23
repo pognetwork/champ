@@ -117,7 +117,7 @@ impl Database for SledDB {
             .ok_or(DatabaseError::BlockNotFound)
             .map_err(|e| DatabaseError::Specific(e.to_string()))?;
 
-        api::SignedBlock::decode(&*block.to_vec()).map_err(|e| DatabaseError::Specific(e.to_string()))
+        api::SignedBlock::decode(&*block.to_vec()).map_err(DatabaseError::DecodeError)
     }
 
     async fn get_transaction_by_id(
@@ -134,7 +134,7 @@ impl Database for SledDB {
             .ok_or(DatabaseError::BlockNotFound)
             .map_err(|e| DatabaseError::Specific(e.to_string()))?;
 
-        api::Transaction::decode(&*transaction.to_vec()).map_err(|e| DatabaseError::Specific(e.to_string()))
+        api::Transaction::decode(&*transaction.to_vec()).map_err(DatabaseError::DecodeError)
     }
 
     async fn get_latest_block_by_account(
@@ -164,7 +164,7 @@ impl Database for SledDB {
             .ok_or(DatabaseError::BlockNotFound)
             .map_err(|e| DatabaseError::Specific(e.to_string()))?;
 
-        api::SignedBlock::decode(&*block.to_vec()).map_err(|e| DatabaseError::Specific(e.to_string()))
+        api::SignedBlock::decode(&*block.to_vec()).map_err(DatabaseError::DecodeError)
     }
 
     async fn add_block(&mut self, block: api::SignedBlock) -> Result<(), DatabaseError> {
@@ -269,7 +269,7 @@ impl Database for SledDB {
             None => return Ok(None),
         };
 
-        api::SignedBlock::decode(&*block.to_vec()).map(Some).map_err(|e| DatabaseError::Specific(e.to_string()))
+        api::SignedBlock::decode(&*block.to_vec()).map(Some).map_err(DatabaseError::DecodeError)
     }
 
     async fn get_account_delegate(&self, account_id: api::AccountID) -> Result<Option<api::AccountID>, DatabaseError> {

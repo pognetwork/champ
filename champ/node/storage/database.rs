@@ -72,6 +72,14 @@ pub enum DatabaseError {
     DBInsertFailed(u32),
     #[error("An error occured: {0}")]
     Specific(String),
+
+    #[error(transparent)]
+    DecodeError(#[from] prost::DecodeError),
+
+    // Backend Specific Erros
+    #[cfg(feature = "sql")]
+    #[error(transparent)]
+    SeaORM(#[from] entity::sea_orm::DbErr),
 }
 
 pub async fn new(cfg: &DatabaseConfig) -> Result<Box<dyn Database>, DatabaseError> {
