@@ -34,13 +34,13 @@ impl Sql {
 
     pub async fn connect_sqlite(_cfg: &DatabaseConfig) -> Result<Sql> {
         unimplemented!("");
-        let opt = ConnectOptions::new("".to_string());
+        // let opt = ConnectOptions::new("".to_string());
 
-        let db = sea_orm::Database::connect(opt).await?;
+        // let db = sea_orm::Database::connect(opt).await?;
 
-        Ok(Sql {
-            db,
-        })
+        // Ok(Sql {
+        //     db,
+        // })
     }
 
     // not required after we've setup migrations

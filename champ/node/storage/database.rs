@@ -6,12 +6,11 @@ use pog_proto::api::{self};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-// #[cfg(feature = "sql")]
-// use super::sql;
+#[cfg(feature = "sql")]
+use super::sql;
 
 #[cfg(feature = "backend-sled")]
 use super::sled;
-use super::sql;
 
 /// Represents a generic storage backend
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -68,8 +67,8 @@ pub enum DatabaseError {
     NoLastBlock,
     #[error("Block not found")]
     BlockNotFound,
-    #[error("db insert failed at {0}")]
-    DBInsertFailed(u32),
+    #[error("db insert failed at")]
+    DBInsertFailed,
     #[error("An error occured: {0}")]
     Specific(String),
 
@@ -80,6 +79,11 @@ pub enum DatabaseError {
     #[cfg(feature = "sql")]
     #[error(transparent)]
     SeaORM(#[from] entity::sea_orm::DbErr),
+
+    // Backend Specific Erros
+    #[cfg(feature = "sled")]
+    #[error(transparent)]
+    Sled(#[from] sled::sled::Error),
 }
 
 pub async fn new(cfg: &DatabaseConfig) -> Result<Box<dyn Database>, DatabaseError> {
