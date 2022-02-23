@@ -5,8 +5,10 @@ use entity::sea_orm::EntityTrait;
 use entity::sea_orm::{
     self, sea_query::TableCreateStatement, ConnectOptions, ConnectionTrait, DatabaseConnection, DbBackend, Schema,
 };
+use hyper::server::accept::Accept;
 use pog_proto::api;
 
+use entity::account::Entity as Account;
 use entity::block::Entity as Block;
 use entity::pending_block::Entity as PendingBlock;
 use entity::transaction::Entity as Transaction;
@@ -47,11 +49,13 @@ impl Sql {
     pub async fn setup_schema(&self, backend: DbBackend) -> Result<()> {
         let schema = Schema::new(backend);
 
+        let account: TableCreateStatement = schema.create_table_from_entity(Account);
         let block: TableCreateStatement = schema.create_table_from_entity(Block);
         let pending_block: TableCreateStatement = schema.create_table_from_entity(PendingBlock);
         let transaction: TableCreateStatement = schema.create_table_from_entity(Transaction);
         let tx_claim: TableCreateStatement = schema.create_table_from_entity(TxClaim);
 
+        self.db.execute(self.db.get_database_backend().build(&account)).await?;
         self.db.execute(self.db.get_database_backend().build(&block)).await?;
         self.db.execute(self.db.get_database_backend().build(&pending_block)).await?;
         self.db.execute(self.db.get_database_backend().build(&transaction)).await?;
@@ -88,7 +92,7 @@ impl Database for Sql {
 
     async fn get_latest_block_by_account(
         &self,
-        _account_id: api::AccountID,
+        account_id: api::AccountID,
     ) -> Result<api::SignedBlock, DatabaseError> {
         unimplemented!("method unsupported by database backend")
     }
