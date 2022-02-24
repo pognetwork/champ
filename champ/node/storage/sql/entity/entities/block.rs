@@ -13,6 +13,9 @@ pub enum BlockVersion {
 pub struct Model {
     #[sea_orm(primary_key)]
     pub block_id: Vec<u8>,
+
+    pub height: u64,
+    pub account_id_v1: Vec<u8>,
     pub public_key: Vec<u8>,
     pub signature: Vec<u8>,
     pub version: BlockVersion,

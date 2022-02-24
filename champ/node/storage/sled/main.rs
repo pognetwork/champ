@@ -5,7 +5,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use pog_proto::api::{self, AccountID, BlockID};
 use prost::Message;
-use sled::Transactional;
+use sled::{transaction::ConflictableTransactionError, Transactional};
 
 #[derive(Debug)]
 pub struct SledDB {
@@ -152,7 +152,7 @@ impl Database for SledDB {
     }
 
     async fn add_block(&mut self, block: api::SignedBlock) -> Result<(), DatabaseError> {
-        let block_data = block.data.clone().expect("block should have valid data");
+        let block_data = block.data.clone().ok_or(DatabaseError::Specific("invalid block".to_string()))?;
         let block_id = block.get_id().map_err(|e| DatabaseError::Specific(e.to_string()))?;
         let account_id = encoding::account::generate_account_address(block.public_key.clone())
             .map_err(|_| DatabaseError::Specific("account ID could not be generated".to_string()))?;
@@ -180,7 +180,7 @@ impl Database for SledDB {
                     // Add Block Transactions
                     let mut batch = sled::Batch::default();
                     for (i, tx) in block_data.transactions.iter().enumerate() {
-                        let tx_data = tx.data.clone().expect("transaction should have valid data");
+                        let tx_data = tx.data.clone().ok_or(ConflictableTransactionError::Abort(()))?;
 
                         let transaction_id = match tx.get_id(block_id) {
                             Ok(x) => x,

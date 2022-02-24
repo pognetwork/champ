@@ -7,9 +7,7 @@ pub struct Model {
     pub public_key: Vec<u8>,
 
     #[sea_orm(indexed)]
-    pub address: Vec<u8>,
-
-    pub timestamp: chrono::DateTime<chrono::Utc>,
+    pub account_id_v1: Vec<u8>,
     pub latest_block: Vec<u8>,
 }
 
@@ -24,6 +22,12 @@ pub enum Relation {
         to = "super::block::Column::BlockId"
     )]
     LatestBlock,
+}
+
+impl Related<super::block::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::LatestBlock.def()
+    }
 }
 
 impl ActiveModelBehavior for ActiveModel {}
