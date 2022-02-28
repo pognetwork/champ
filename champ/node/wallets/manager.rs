@@ -13,23 +13,13 @@ pub struct Wallet {
     pub locked: bool,
     pub account_address: String,
     pub authorized_roles: Vec<String>, // users with this role can access this account using our api
-    private_key: Option<Vec<u8>>,      //Option for ease of use
+    pub private_key: Option<Vec<u8>>,  //Option for ease of use
 }
 
 type AccountAddress = String;
 type UserName = String;
 
 impl Wallet {
-    pub fn unlock(&mut self, wallet: &str, password: String) -> Result<(), lulw::WalletError> {
-        if !&self.locked {
-            return Ok(());
-        }
-
-        self.private_key = Some(lulw::unlock_wallet(wallet, password)?);
-        self.locked = false;
-        Ok(())
-    }
-
     pub fn lock(&mut self) {
         self.private_key = None;
         self.locked = true;
@@ -147,6 +137,23 @@ impl WalletManager {
         self.write_index().await;
     }
 
+    pub async fn unlock_wallet(
+        &mut self,
+        account_address: &AccountAddress,
+        password: String,
+    ) -> Result<(), lulw::WalletError> {
+        let wallet_file = self.read_wallet_file(account_address).await;
+        let wallet = self.wallets.get_mut(account_address).expect("Wallet not found");
+        if !(wallet.locked) {
+            return Ok(());
+        }
+
+        wallet.private_key = Some(lulw::unlock_wallet(&wallet_file, password)?);
+
+        wallet.locked = false;
+        Ok(())
+    }
+
     //reads all wallets from the FS
     async fn initialize_wallets(&mut self) {
         let path = self.get_wallets_path().await;
@@ -247,16 +254,13 @@ mod tests {
     use crate::config::Config;
     use crate::ChampState;
 
-    #[tokio::test]
-    async fn create_wallet() {
-        //prepare
-        let username = "Malox".to_string();
-        let password = "1234".to_string();
-
+    //creates a wallet manager where the config path is change to /test/
+    async fn get_wallet_manager() -> WalletManager {
         //this is big yikes, but the mocked champstated doesn't have a default datapath
         let mut wallet_manager = WalletManager::new(WalletManagerConfig::default());
         let champstate = ChampState::mock().await;
 
+        //get the default path of the .toml pop and it add a test folder.
         let mut path = Config::default().get_path().unwrap();
         path.pop();
         path.push("test");
@@ -266,6 +270,17 @@ mod tests {
         std::mem::drop(write_guard);
         wallet_manager.add_state(champstate);
 
+        wallet_manager
+    }
+
+    #[tokio::test]
+    async fn create_wallet() {
+        //prepare
+        let username = "Malox".to_string();
+        let password = "1234".to_string();
+        let mut wallet_manager = get_wallet_manager().await;
+        //let path = wallet_manager.get_wallets_path().await;
+
         //act
         let _ = wallet_manager.initialize().await;
         let account_address =
@@ -274,18 +289,18 @@ mod tests {
         //assert
         assert!(wallet_manager.wallets.contains_key(&account_address));
 
-        let wallet = &wallet_manager.wallets[&account_address];
+        let wallet = wallet_manager.wallets.get(&account_address).expect("no wallet found").clone();
         assert_eq!(wallet.account_address, account_address);
         assert_eq!(wallet.name, username);
 
         assert!(wallet_manager.index.contains_key(&account_address));
         assert_eq!(wallet_manager.index[&account_address], username);
 
-        //Nonce differs somehow check that the wallet is the right one
-        //let mut path = wallet_manager.get_wallets_path().await;
-        //path.push(account_address + ".json");
-        //let file = read_file(path).expect("Couldn't read wallet from disc");
-        //let (wallet, _) = lulw::generate_wallet(password).expect("couldn't create wallet");
-        //assert_eq!(file, wallet);
+        //unlock wallet and check if the password unlocked it
+        let result = wallet_manager.unlock_wallet(&wallet.account_address, password).await;
+        result.expect("Couldn't unlock wallet");
+        let wallet = wallet_manager.wallets.get(&account_address).expect("no wallet found").clone();
+        let private_key = wallet.private_key;
+        assert!(private_key.is_some())
     }
 }
