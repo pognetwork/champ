@@ -25,6 +25,7 @@ impl Sql {
         Ok(sql)
     }
 
+    #[allow(dead_code)]
     pub async fn connect_sqlite(_cfg: &DatabaseConfig) -> Result<Sql> {
         let opt = ConnectOptions::new("".to_string());
 
