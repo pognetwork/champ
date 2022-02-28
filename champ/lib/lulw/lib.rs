@@ -83,31 +83,33 @@ pub fn generate_wallet(password: String) -> Result<WalletAndAddress, WalletError
 }
 
 pub fn unlock_wallet(wallet: &str, password: String) -> Result<Vec<u8>, WalletError> {
-    let wallet: Lulw = serde_json::from_str(wallet).map_err(|e| WalletError::DeserializationError(e.to_string()))?;
+    let parsed_wallet =
+        serde_json::from_str::<Lulw>(wallet).map_err(|e| WalletError::DeserializationError(e.to_string()))?;
 
-    if !(wallet.version == 1
-        && wallet.crypto.cipher == Cipher::XChacha20Poly1305AEAD
-        && wallet.crypto.kdf == KDF::Argon2ID)
+    if !(parsed_wallet.version == 0
+        && parsed_wallet.crypto.cipher == Cipher::XChacha20Poly1305AEAD
+        && parsed_wallet.crypto.kdf == KDF::Argon2ID)
     {
         return Err(WalletError::InvalidWalletFormat);
     }
 
-    if !(wallet.crypto.kdfparams.v == 19
-        && wallet.crypto.kdfparams.m == 4096
-        && wallet.crypto.kdfparams.y == 3
-        && wallet.crypto.kdfparams.p == 1)
+    if !(parsed_wallet.crypto.kdfparams.v == 19
+        && parsed_wallet.crypto.kdfparams.m == 4096
+        && parsed_wallet.crypto.kdfparams.y == 3
+        && parsed_wallet.crypto.kdfparams.p == 1)
     {
         return Err(WalletError::InvalidKDFParams);
     }
 
-    let data = decode(wallet.crypto.ciphertext).map_err(|_| WalletError::DecodeError("ciphertext".to_string()))?;
+    let data =
+        decode(parsed_wallet.crypto.ciphertext).map_err(|_| WalletError::DecodeError("ciphertext".to_string()))?;
 
-    let salt: [u8; 16] = decode(wallet.crypto.kdfparams.salt)
+    let salt: [u8; 16] = decode(parsed_wallet.crypto.kdfparams.salt)
         .map_err(|_| WalletError::DecodeError("salt".to_string()))?
         .try_into()
         .map_err(|_| WalletError::DecodeError("salt".to_string()))?;
 
-    let nonce: [u8; 24] = decode(wallet.crypto.cipherparams.nonce)
+    let nonce: [u8; 24] = decode(parsed_wallet.crypto.cipherparams.nonce)
         .map_err(|_| WalletError::DecodeError("nonce".to_string()))?
         .try_into()
         .map_err(|_| WalletError::DecodeError("nonce".to_string()))?;
@@ -116,4 +118,44 @@ pub fn unlock_wallet(wallet: &str, password: String) -> Result<Vec<u8>, WalletEr
         decrypt(&data, password.as_bytes(), salt, nonce).map_err(|e| WalletError::DecryptionError(e.to_string()))?;
 
     Ok(private_key)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unlock_wallet_test() {
+        let wallet = "{
+            \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",
+            \"$id\": \"https://schemas.pog.network/lulw.schema.json\",
+            \"version\": 0,
+            \"crypto\": {
+                \"cipherparams\": {
+                    \"nonce\": \"ECWqXqXq4N2/efQjwXmaxFYu9P4ooDTa\"
+                },
+                \"ciphertext\": \"AAekhDj16MuQCu9LlZNgS6rAQ6ed5/w0/gFfwdSd9FKVStHdYSwlYBmBCVd4ZY7W\",
+                \"cipher\": \"xchacha20-poly1305-aead\",
+                \"kdf\": \"argon2id\",
+                \"kdfparams\": {
+                    \"salt\": \"CZsaQKR9EBwE3jHJE9SJsA==\",
+                    \"v\": 19,
+                    \"m\": 4096,
+                    \"y\": 3,
+                    \"p\": 1
+                }
+            }
+        }";
+        let passphrase = unlock_wallet(wallet, "1234".to_string());
+        assert!(passphrase.is_ok())
+    }
+
+    #[test]
+    fn create_wallet_which_is_unlockable() {
+        let password = "1234".to_string();
+        let (wallet, _) = generate_wallet(password.clone()).expect("Couldn't generate wallet");
+
+        let result = unlock_wallet(wallet.as_str(), password);
+        assert!(result.is_ok())
+    }
 }
