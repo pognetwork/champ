@@ -1,20 +1,18 @@
 use crate::storage::{Database, DatabaseConfig, DatabaseError};
 use anyhow::Result;
 use async_trait::async_trait;
-use entity::sea_orm::prelude::DateTimeUtc;
 use entity::sea_orm::{
     self, sea_query::TableCreateStatement, ConnectOptions, ConnectionTrait, DatabaseConnection, DbBackend, Schema,
 };
 use entity::sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QuerySelect, Set};
 use entity::unix_to_datetime;
-use hyper::server::accept::Accept;
 use pog_proto::api;
 
 use entity::account::{self, Entity as Account};
 use entity::block::{self, Entity as Block};
 use entity::pending_block::Entity as PendingBlock;
 use entity::transaction::Entity as Transaction;
-use entity::tx_claim::Entity as TxClaim;
+use entity::tx_claim::{self, Entity as TxClaim};
 use prost::Message;
 
 #[derive(Debug)]
@@ -182,8 +180,22 @@ impl Database for Sql {
 
     async fn get_send_recipient(
         &self,
-        _send_transaction_id: api::TransactionID,
+        send_transaction_id: api::TransactionID,
     ) -> Result<Option<api::TransactionID>, DatabaseError> {
-        unimplemented!("method unsupported by database backend")
+        let claim = TxClaim::find()
+            .filter(tx_claim::Column::SendTxId.eq(send_transaction_id.to_vec()))
+            .one(&self.db)
+            .await
+            .map_err(DatabaseError::SeaORM)?;
+        match claim {
+            Some(claim) => {
+                let claim_tx_id: api::TransactionID = claim
+                    .claim_tx_id
+                    .try_into()
+                    .map_err(|_| DatabaseError::Specific("invalid account id".to_string()))?;
+                Ok(Some(claim_tx_id))
+            }
+            None => Ok(None),
+        }
     }
 }

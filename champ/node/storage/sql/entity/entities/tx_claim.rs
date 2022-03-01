@@ -1,7 +1,7 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
-#[sea_orm(table_name = "pending_blocks")]
+#[sea_orm(table_name = "tx_claim")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub send_tx_id: Vec<u8>,

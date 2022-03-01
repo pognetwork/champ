@@ -152,7 +152,7 @@ impl Database for SledDB {
     }
 
     async fn add_block(&mut self, block: api::SignedBlock) -> Result<(), DatabaseError> {
-        let block_data = block.data.clone().ok_or(DatabaseError::Specific("invalid block".to_string()))?;
+        let block_data = block.data.clone().ok_or_else(|| DatabaseError::Specific("invalid block".to_string()))?;
         let block_id = block.get_id().map_err(|e| DatabaseError::Specific(e.to_string()))?;
         let account_id = encoding::account::generate_account_address(block.public_key.clone())
             .map_err(|_| DatabaseError::Specific("account ID could not be generated".to_string()))?;

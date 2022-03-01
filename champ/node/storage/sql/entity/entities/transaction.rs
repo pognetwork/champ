@@ -16,7 +16,7 @@ pub enum TxType {
 }
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
-#[sea_orm(table_name = "cake")]
+#[sea_orm(table_name = "transactions")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub transaction_id: Vec<u8>,
