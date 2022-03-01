@@ -130,6 +130,7 @@ impl Database for Sql {
             public_key: Set(block.public_key),
             account_id_v1: Set(account_id.into()),
             latest_block: Set(block_id.into()),
+            delegate: Set(None),
         };
 
         unimplemented!("method unsupported by database backend (transaction handling is still missing)")
@@ -155,18 +156,43 @@ impl Database for Sql {
         }
     }
 
-    async fn get_account_delegate(
-        &self,
-        _account_id: api::AccountID,
-    ) -> Result<Option<api::AccountID>, DatabaseError> {
-        unimplemented!("method unsupported by database backend")
+    async fn get_account_delegate(&self, account_id: api::AccountID) -> Result<Option<api::AccountID>, DatabaseError> {
+        let account = Account::find_by_id(account_id.into())
+            .select_only()
+            .column(account::Column::Delegate)
+            .one(&self.db)
+            .await
+            .map_err(DatabaseError::SeaORM)?
+            .ok_or(DatabaseError::BlockNotFound)?;
+
+        match account.delegate {
+            Some(id) => Ok(Some(
+                api::AccountID::try_from(id).map_err(|_| DatabaseError::Specific("invalid account id".to_string()))?,
+            )),
+            None => Ok(None),
+        }
     }
 
     async fn get_delegates_by_account(
         &self,
-        _account_id: api::AccountID,
+        account_id: api::AccountID,
     ) -> Result<Vec<api::AccountID>, DatabaseError> {
-        unimplemented!("method unsupported by database backend")
+        let accounts = Account::find()
+            .filter(account::Column::Delegate.eq(account_id.to_vec()))
+            .select_only()
+            .column(account::Column::AccountIdV1)
+            .all(&self.db)
+            .await
+            .map_err(DatabaseError::SeaORM)?;
+
+        Ok(accounts
+            .iter()
+            .filter_map(|a| {
+                api::AccountID::try_from(a.account_id_v1.clone())
+                    .map_err(|_| DatabaseError::Specific("invalid account id".to_string()))
+                    .ok()
+            })
+            .collect::<Vec<api::AccountID>>())
     }
 
     async fn get_latest_block_by_account_before(
@@ -188,13 +214,10 @@ impl Database for Sql {
             .await
             .map_err(DatabaseError::SeaORM)?;
         match claim {
-            Some(claim) => {
-                let claim_tx_id: api::TransactionID = claim
-                    .claim_tx_id
-                    .try_into()
-                    .map_err(|_| DatabaseError::Specific("invalid account id".to_string()))?;
-                Ok(Some(claim_tx_id))
-            }
+            Some(claim) => Ok(Some(
+                api::TransactionID::try_from(claim.claim_tx_id)
+                    .map_err(|_| DatabaseError::Specific("invalid account id".to_string()))?,
+            )),
             None => Ok(None),
         }
     }

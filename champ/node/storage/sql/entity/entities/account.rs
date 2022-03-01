@@ -9,6 +9,7 @@ pub struct Model {
     #[sea_orm(indexed)]
     pub account_id_v1: Vec<u8>,
     pub latest_block: Vec<u8>,
+    pub delegate: Option<Vec<u8>>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -22,6 +23,13 @@ pub enum Relation {
         to = "super::block::Column::BlockId"
     )]
     LatestBlock,
+
+    #[sea_orm(
+        belongs_to = "super::account::Entity",
+        from = "Column::Delegate",
+        to = "super::account::Column::AccountIdV1"
+    )]
+    Delegate,
 }
 
 impl Related<super::block::Entity> for Entity {
