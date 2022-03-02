@@ -10,7 +10,7 @@ pub enum TxType {
     #[sea_orm(num_value = 1)]
     TxSend,
     #[sea_orm(num_value = 2)]
-    TxCollect,
+    TxClaim,
     #[sea_orm(num_value = 3)]
     TxDelegate,
 }

@@ -4,14 +4,16 @@ use async_trait::async_trait;
 use entity::sea_orm::{
     self, sea_query::TableCreateStatement, ConnectOptions, ConnectionTrait, DatabaseConnection, DbBackend, Schema,
 };
-use entity::sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QuerySelect, Set};
+use entity::sea_orm::{
+    ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set, TransactionTrait,
+};
 use entity::unix_to_datetime;
 use pog_proto::api;
 
 use entity::account::{self, Entity as Account};
 use entity::block::{self, Entity as Block};
 use entity::pending_block::Entity as PendingBlock;
-use entity::transaction::Entity as Transaction;
+use entity::transaction::{self, Entity as Transaction};
 use entity::tx_claim::{self, Entity as TxClaim};
 use prost::Message;
 
@@ -36,13 +38,6 @@ impl Sql {
 
     pub async fn connect_sqlite(_cfg: &DatabaseConfig) -> Result<Sql> {
         unimplemented!("");
-        // let opt = ConnectOptions::new("".to_string());
-
-        // let db = sea_orm::Database::connect(opt).await?;
-
-        // Ok(Sql {
-        //     db,
-        // })
     }
 
     // not required after we've setup migrations
@@ -68,11 +63,7 @@ impl Sql {
 #[async_trait]
 impl Database for Sql {
     async fn get_block_by_id(&self, block_id: api::BlockID) -> Result<api::SignedBlock, DatabaseError> {
-        let block = Block::find_by_id(block_id.into())
-            .one(&self.db)
-            .await
-            .map_err(DatabaseError::SeaORM)?
-            .ok_or(DatabaseError::BlockNotFound)?;
+        let block = Block::find_by_id(block_id.into()).one(&self.db).await?.ok_or(DatabaseError::BlockNotFound)?;
 
         api::SignedBlock::decode(&*block.data).map_err(DatabaseError::DecodeError)
     }
@@ -81,11 +72,8 @@ impl Database for Sql {
         &self,
         transaction_id: api::TransactionID,
     ) -> Result<api::Transaction, DatabaseError> {
-        let transaction = Transaction::find_by_id(transaction_id.into())
-            .one(&self.db)
-            .await
-            .map_err(DatabaseError::SeaORM)?
-            .ok_or(DatabaseError::BlockNotFound)?;
+        let transaction =
+            Transaction::find_by_id(transaction_id.into()).one(&self.db).await?.ok_or(DatabaseError::BlockNotFound)?;
 
         api::Transaction::decode(&*transaction.data).map_err(DatabaseError::DecodeError)
     }
@@ -100,8 +88,7 @@ impl Database for Sql {
             .column(account::Column::LatestBlock)
             .column(block::Column::Data)
             .one(&self.db)
-            .await
-            .map_err(DatabaseError::SeaORM)?
+            .await?
             .ok_or(DatabaseError::BlockNotFound)?;
 
         let block = block.ok_or(DatabaseError::BlockNotFound)?;
@@ -114,7 +101,9 @@ impl Database for Sql {
         let account_id = encoding::account::generate_account_address(block.public_key.clone())
             .map_err(|_| DatabaseError::Specific("account ID could not be generated".to_string()))?;
 
-        let _new_block = block::ActiveModel {
+        let txn = self.db.begin().await?;
+
+        let new_block = block::ActiveModel {
             height: Set(block_data.height),
             account_id_v1: Set(account_id.into()),
             balance: Set(block_data.balance),
@@ -126,14 +115,65 @@ impl Database for Sql {
             version: Set(block::BlockVersion::V1),
         };
 
-        let _new_acc = account::ActiveModel {
-            public_key: Set(block.public_key),
-            account_id_v1: Set(account_id.into()),
-            latest_block: Set(block_id.into()),
-            delegate: Set(None),
+        let mut account: account::ActiveModel = match Account::find_by_id(block.public_key.clone()).one(&txn).await? {
+            Some(account) => account.into(),
+            None => {
+                let new_acc = account::ActiveModel {
+                    public_key: Set(block.public_key),
+                    account_id_v1: Set(account_id.into()),
+                    latest_block: Set(block_id.into()),
+                    delegate: Set(None),
+                };
+                new_acc.insert(&txn).await?.into()
+            }
         };
 
-        unimplemented!("method unsupported by database backend (transaction handling is still missing)")
+        let mut transactions: Vec<transaction::ActiveModel> = vec![];
+        let mut new_delegate: Option<Vec<u8>> = None;
+        for tx in block_data.transactions {
+            let tx_data = tx.data.clone().ok_or(DatabaseError::InvalidTransactionData)?;
+            let transaction_id = tx.get_id(block_id).map_err(|_| DatabaseError::InvalidTransactionData)?;
+
+            let mut claims: Vec<tx_claim::ActiveModel> = vec![];
+            let tx_type: transaction::TxType;
+            match tx_data {
+                // Set representative
+                api::transaction::Data::TxDelegate(tx) => {
+                    let mut account_rep_key = b"rep_".to_vec();
+                    account_rep_key.append(&mut account_id.to_vec());
+                    new_delegate = Some(tx.representative);
+                    tx_type = transaction::TxType::TxDelegate;
+                }
+                // Set claims
+                api::transaction::Data::TxClaim(tx) => {
+                    claims.push(tx_claim::ActiveModel {
+                        claim_tx_id: Set(transaction_id.to_vec()),
+                        send_tx_id: Set(tx.send_transaction_id),
+                    });
+                    tx_type = transaction::TxType::TxClaim;
+                }
+                api::transaction::Data::TxOpen(_) => tx_type = transaction::TxType::TxOpen,
+                api::transaction::Data::TxSend(_) => tx_type = transaction::TxType::TxSend,
+            };
+
+            transactions.push(transaction::ActiveModel {
+                block_id: Set(block_id.into()),
+                transaction_id: Set(transaction_id.to_vec()),
+                data: Set(tx.encode_to_vec()),
+                tx_type: Set(tx_type),
+            })
+        }
+
+        Transaction::insert_many(transactions).exec(&txn).await?;
+        Block::insert(new_block).exec(&txn).await?;
+
+        if new_delegate.is_some() {
+            account.delegate = Set(new_delegate);
+            account.update(&txn).await?;
+        }
+
+        txn.commit().await?;
+        Ok(())
     }
 
     async fn get_block_by_height(
@@ -147,8 +187,7 @@ impl Database for Sql {
             .select_only()
             .column(block::Column::Data)
             .one(&self.db)
-            .await
-            .map_err(DatabaseError::SeaORM)?;
+            .await?;
 
         match block {
             Some(block) => Ok(Some(api::SignedBlock::decode(&*block.data).map_err(DatabaseError::DecodeError)?)),
@@ -161,8 +200,7 @@ impl Database for Sql {
             .select_only()
             .column(account::Column::Delegate)
             .one(&self.db)
-            .await
-            .map_err(DatabaseError::SeaORM)?
+            .await?
             .ok_or(DatabaseError::BlockNotFound)?;
 
         match account.delegate {
@@ -182,8 +220,7 @@ impl Database for Sql {
             .select_only()
             .column(account::Column::AccountIdV1)
             .all(&self.db)
-            .await
-            .map_err(DatabaseError::SeaORM)?;
+            .await?;
 
         Ok(accounts
             .iter()
@@ -197,22 +234,33 @@ impl Database for Sql {
 
     async fn get_latest_block_by_account_before(
         &self,
-        _account_id: api::AccountID,
-        _unix_from: u64,
-        _unix_limit: u64,
+        account_id: api::AccountID,
+        unix_from: u64,
+        unix_limit: u64,
     ) -> Result<Option<api::SignedBlock>, DatabaseError> {
-        unimplemented!("method unsupported by database backend")
+        let from = unix_to_datetime(unix_from);
+        let to = unix_to_datetime(unix_limit);
+
+        let block = Block::find()
+            .filter(block::Column::AccountIdV1.eq(account_id.to_vec()))
+            .filter(block::Column::Timestamp.between(from, to))
+            .order_by_asc(block::Column::Timestamp)
+            .column(block::Column::Data)
+            .one(&self.db)
+            .await?;
+
+        match block {
+            Some(block) => Ok(Some(api::SignedBlock::decode(&*block.data).map_err(DatabaseError::DecodeError)?)),
+            None => Ok(None),
+        }
     }
 
     async fn get_send_recipient(
         &self,
         send_transaction_id: api::TransactionID,
     ) -> Result<Option<api::TransactionID>, DatabaseError> {
-        let claim = TxClaim::find()
-            .filter(tx_claim::Column::SendTxId.eq(send_transaction_id.to_vec()))
-            .one(&self.db)
-            .await
-            .map_err(DatabaseError::SeaORM)?;
+        let claim =
+            TxClaim::find().filter(tx_claim::Column::SendTxId.eq(send_transaction_id.to_vec())).one(&self.db).await?;
         match claim {
             Some(claim) => Ok(Some(
                 api::TransactionID::try_from(claim.claim_tx_id)

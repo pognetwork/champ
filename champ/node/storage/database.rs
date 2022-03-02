@@ -66,6 +66,8 @@ pub enum DatabaseError {
     #[error("no last block")]
     NoLastBlock,
     #[error("Block not found")]
+    InvalidTransactionData,
+    #[error("Invalid txdata")]
     BlockNotFound,
     #[error("db insert failed at")]
     DBInsertFailed,
