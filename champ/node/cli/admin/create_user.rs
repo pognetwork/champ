@@ -7,8 +7,7 @@ pub async fn run(state: &ChampStateArc, user: &str, password: &str, perms: Vec<S
     debug!("creating a user from cli");
     let salt = generate_salt().map_err(|_| CLIError::Salt)?;
 
-    let hash = hash(password.as_bytes(), &salt)
-        .map_err(|e| CLIError::Unknown("Password hash error: ".to_string() + &e.to_string()))?;
+    let hash = hash(password.as_bytes(), &salt).map_err(|e| CLIError::Unknown(format!("Password hash error: {e}")))?;
 
     // check username exists
     let mut config = state.config.write().await;
