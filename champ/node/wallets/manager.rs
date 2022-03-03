@@ -6,6 +6,7 @@ use serde_json;
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
+use thiserror::Error;
 
 #[derive(Debug, Clone)]
 pub struct Wallet {
@@ -84,10 +85,6 @@ impl WalletManager {
         }
 
         self.initialize_wallets().await;
-
-        self.create_wallet("1234".to_string(), "Malox".to_string()).await.expect("I hope this doesn't fail");
-        self.create_wallet("123456".to_string(), "Alex".to_string()).await.expect("I hope this doesn't fail");
-
         Ok(())
     }
 
@@ -96,16 +93,13 @@ impl WalletManager {
         &mut self,
         password: String,
         user_name: UserName,
-    ) -> Result<AccountAddress, lulw::WalletError> {
-        let (wallet, account_address) = lulw::generate_wallet(password)?;
+    ) -> Result<AccountAddress, WalletManagerError> {
+        let (wallet, account_address) =
+            lulw::generate_wallet(password).map_err(|_| WalletManagerError::CreateWalletError())?;
 
         let mut path = self.get_wallets_path().await;
         path.push(format!("{}.json", &account_address));
 
-        //keep address as string?
-        //let account_address = decode(account_address).expect("Couldn't parse valid account address to u8 vec");
-        //let account_address = AccountID::try_from(account_address).unwrap();
-        println!("{}", path.to_str().unwrap());
         write_file(path, &wallet).expect("Couldn't write wallet to file");
         self.create_index_entry(account_address.clone(), user_name.clone()).await;
         let wallet = Wallet {
@@ -139,16 +133,18 @@ impl WalletManager {
 
     pub async fn unlock_wallet(
         &mut self,
-        account_address: &AccountAddress,
+        account_address: AccountAddress,
         password: String,
-    ) -> Result<(), lulw::WalletError> {
-        let wallet_file = self.read_wallet_file(account_address).await;
-        let wallet = self.wallets.get_mut(account_address).expect("Wallet not found");
+    ) -> Result<(), WalletManagerError> {
+        let wallet_file = self.read_wallet_file(&account_address).await?;
+        let wallet = self.wallets.get_mut(&account_address).expect("Wallet not found");
         if !(wallet.locked) {
             return Ok(());
         }
 
-        wallet.private_key = Some(lulw::unlock_wallet(&wallet_file, password)?);
+        wallet.private_key = Some(
+            lulw::unlock_wallet(&wallet_file, password).map_err(|_| WalletManagerError::ReadError(account_address))?,
+        );
 
         wallet.locked = false;
         Ok(())
@@ -191,10 +187,10 @@ impl WalletManager {
 
     //reads the wallet from the FS
     #[allow(dead_code)]
-    async fn read_wallet_file(&self, account_address: &AccountAddress) -> String {
+    async fn read_wallet_file(&self, account_address: &AccountAddress) -> Result<String, WalletManagerError> {
         let mut path = self.get_wallets_path().await;
         path.push(account_address.to_owned() + ".json");
-        read_file(path).expect("Couldn't read Wallet File")
+        read_file(path).map_err(|_| WalletManagerError::ReadError(account_address.clone()))
     }
 
     //writes the index as json to file
@@ -210,10 +206,11 @@ impl WalletManager {
     async fn read_index(&self) -> HashMap<AccountAddress, UserName> {
         let mut path = self.get_base_path().await;
         path.push("index.json");
-        let content = read_file(path).expect("Couldn't read wallet index");
+        let content = read_file(path.clone()).expect("Couldn't read wallet index");
         match content.as_str() {
             "" => HashMap::new(),
-            _ => serde_json::from_str(&content).expect("Couldn't parse index.json"),
+            _ => serde_json::from_str(&content)
+                .expect(&("Couldn't parse index.json at: ".to_owned() + path.as_path().to_str().unwrap())),
         }
     }
 
@@ -236,6 +233,18 @@ impl WalletManager {
     pub fn add_state(&mut self, state: ChampStateArc) {
         self.state = Some(state);
     }
+}
+
+#[derive(Error, Debug)]
+pub enum WalletManagerError {
+    #[error("error with reading wallet: {0}")]
+    ReadError(String),
+    #[error("error with unlocking wallet: {0}")]
+    UnlockError(String),
+    #[error("error with creating wallet")]
+    CreateWalletError(),
+    #[error("error with creating wallet")]
+    UserAlreadyHasWalletError(),
 }
 
 pub trait WalletInterface {
@@ -297,10 +306,38 @@ mod tests {
         assert_eq!(wallet_manager.index[&account_address], username);
 
         //unlock wallet and check if the password unlocked it
-        let result = wallet_manager.unlock_wallet(&wallet.account_address, password).await;
+        let result = wallet_manager.unlock_wallet(wallet.account_address, password).await;
         result.expect("Couldn't unlock wallet");
         let wallet = wallet_manager.wallets.get(&account_address).expect("no wallet found").clone();
         let private_key = wallet.private_key;
         assert!(private_key.is_some())
+    }
+
+    #[tokio::test]
+    async fn delete_wallet() {
+        let password = "1234".to_string();
+        let username = "Malox".to_string();
+        let mut wallet_manager = get_wallet_manager().await;
+        let account_address = wallet_manager.create_wallet(password, username).await.expect("Couldn't create wallet");
+
+        //check if valid was indeed created
+        assert!(wallet_manager.wallets.contains_key(account_address.as_str()));
+        assert!(wallet_manager.index.contains_key(account_address.as_str()));
+        let wallet = wallet_manager.read_wallet_file(&account_address).await.expect("Couldn't read wallet");
+        assert!(wallet.len() > 0);
+
+        //delete and check if it is gone
+        wallet_manager.delete_wallet(account_address.clone()).await.expect("Couldn't delete wallet");
+        assert!(!wallet_manager.wallets.contains_key(account_address.as_str()));
+        assert!(!wallet_manager.index.contains_key(account_address.as_str()));
+        let wallet = wallet_manager
+            .read_wallet_file(&account_address)
+            .await
+            .expect_err("Could read wallet although it should be deleted");
+        let x = match wallet {
+            WalletManagerError::ReadError(_) => true,
+            _ => false,
+        };
+        assert!(x);
     }
 }

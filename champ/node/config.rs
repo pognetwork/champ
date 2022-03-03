@@ -196,7 +196,7 @@ pub fn read_or_create_file(path: PathBuf) -> Result<String> {
 
 //overwrites contents and creates a file if not already present
 pub fn write_file(path: PathBuf, data: &str) -> Result<()> {
-    let mut file = OpenOptions::new().write(true).create(true).open(path)?;
+    let mut file = OpenOptions::new().write(true).create(true).truncate(true).open(path)?;
     file.write_all(data.as_bytes())?;
     drop(file);
     Ok(())
