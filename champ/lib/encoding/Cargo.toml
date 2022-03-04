@@ -12,7 +12,7 @@ crypto = {path = "../crypto", version = "^0.0.9"}
 sha3 = "0.10"
 thiserror = "1.0"
 tokio = {version = "1.0", features = ["test-util"]}
-unsigned-varint = {version = "0.7", features = ["futures", "codec"]}
+unsigned-varint = {version = "0.7", features = ["codec"]}
 
 [lib]
 path = "lib.rs"
