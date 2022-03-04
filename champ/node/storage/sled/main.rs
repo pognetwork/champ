@@ -5,7 +5,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use pog_proto::api::{self, AccountID, BlockID};
 use prost::Message;
-use sled::Transactional;
+use sled::{transaction::ConflictableTransactionError, Transactional};
 
 #[derive(Debug)]
 pub struct SledDB {
@@ -110,14 +110,8 @@ impl Database for SledDB {
         let mut block_key = b"by_id_".to_vec();
         block_key.append(&mut block_id.to_vec());
 
-        let block = self
-            .blocks
-            .get(block_key)
-            .map_err(|e| DatabaseError::Specific(e.to_string()))?
-            .ok_or(DatabaseError::BlockNotFound)
-            .map_err(|e| DatabaseError::Specific(e.to_string()))?;
-
-        api::SignedBlock::decode(&*block.to_vec()).map_err(|e| DatabaseError::Specific(e.to_string()))
+        let block = self.blocks.get(block_key).map_err(DatabaseError::Sled)?.ok_or(DatabaseError::BlockNotFound)?;
+        api::SignedBlock::decode(&*block.to_vec()).map_err(DatabaseError::DecodeError)
     }
 
     async fn get_transaction_by_id(
@@ -130,11 +124,10 @@ impl Database for SledDB {
         let transaction = self
             .transactions
             .get(transaction_key)
-            .map_err(|e| DatabaseError::Specific(e.to_string()))?
-            .ok_or(DatabaseError::BlockNotFound)
-            .map_err(|e| DatabaseError::Specific(e.to_string()))?;
+            .map_err(DatabaseError::Sled)?
+            .ok_or(DatabaseError::BlockNotFound)?;
 
-        api::Transaction::decode(&*transaction.to_vec()).map_err(|e| DatabaseError::Specific(e.to_string()))
+        api::Transaction::decode(&*transaction.to_vec()).map_err(DatabaseError::DecodeError)
     }
 
     async fn get_latest_block_by_account(
@@ -144,31 +137,22 @@ impl Database for SledDB {
         let mut last_block_key = account_id.to_vec();
         last_block_key.append(&mut b"_last_blk".to_vec());
 
-        let latest_block_id: BlockID = self
+        let mut latest_block_id = self
             .accounts
             .get(last_block_key)
-            .map_err(|e| DatabaseError::Specific(e.to_string()))?
-            .ok_or(DatabaseError::BlockNotFound)
-            .map_err(|e| DatabaseError::Specific(e.to_string()))?
-            .to_vec()
-            .try_into()
-            .map_err(|_| DatabaseError::BlockNotFound)?;
+            .map_err(DatabaseError::Sled)?
+            .ok_or(DatabaseError::BlockNotFound)?
+            .to_vec();
 
         let mut block_key = b"by_id_".to_vec();
-        block_key.append(&mut latest_block_id.to_vec());
+        block_key.append(&mut latest_block_id);
 
-        let block = self
-            .blocks
-            .get(block_key)
-            .map_err(|e| DatabaseError::Specific(e.to_string()))?
-            .ok_or(DatabaseError::BlockNotFound)
-            .map_err(|e| DatabaseError::Specific(e.to_string()))?;
-
-        api::SignedBlock::decode(&*block.to_vec()).map_err(|e| DatabaseError::Specific(e.to_string()))
+        let block = self.blocks.get(block_key).map_err(DatabaseError::Sled)?.ok_or(DatabaseError::BlockNotFound)?;
+        api::SignedBlock::decode(&*block.to_vec()).map_err(DatabaseError::DecodeError)
     }
 
     async fn add_block(&mut self, block: api::SignedBlock) -> Result<(), DatabaseError> {
-        let block_data = block.data.clone().expect("block should have valid data");
+        let block_data = block.data.clone().ok_or_else(|| DatabaseError::Specific("invalid block".to_string()))?;
         let block_id = block.get_id().map_err(|e| DatabaseError::Specific(e.to_string()))?;
         let account_id = encoding::account::generate_account_address(block.public_key.clone())
             .map_err(|_| DatabaseError::Specific("account ID could not be generated".to_string()))?;
@@ -196,7 +180,7 @@ impl Database for SledDB {
                     // Add Block Transactions
                     let mut batch = sled::Batch::default();
                     for (i, tx) in block_data.transactions.iter().enumerate() {
-                        let tx_data = tx.data.clone().expect("transaction should have valid data");
+                        let tx_data = tx.data.clone().ok_or(ConflictableTransactionError::Abort(()))?;
 
                         let transaction_id = match tx.get_id(block_id) {
                             Ok(x) => x,
@@ -241,7 +225,7 @@ impl Database for SledDB {
                 },
             );
 
-        res.map_err(|_| DatabaseError::DBInsertFailed(line!()))
+        res.map_err(|_| DatabaseError::DBInsertFailed)
     }
 
     async fn get_block_by_height(
@@ -254,7 +238,7 @@ impl Database for SledDB {
         block_key.append(&mut b"_".to_vec());
         block_key.append(&mut block_height.to_be_bytes().into());
 
-        let block_id = self.blocks.get(block_key).map_err(|e| DatabaseError::Specific(e.to_string()))?;
+        let block_id = self.blocks.get(block_key).map_err(DatabaseError::Sled)?;
         let block_id = match block_id {
             Some(block_id) => block_id,
             None => return Ok(None),
@@ -263,20 +247,20 @@ impl Database for SledDB {
         let mut block_key = b"by_id_".to_vec();
         block_key.append(&mut block_id.to_vec());
 
-        let block = self.blocks.get(block_key).map_err(|e| DatabaseError::Specific(e.to_string()))?;
+        let block = self.blocks.get(block_key).map_err(DatabaseError::Sled)?;
         let block = match block {
             Some(block) => block,
             None => return Ok(None),
         };
 
-        api::SignedBlock::decode(&*block.to_vec()).map(Some).map_err(|e| DatabaseError::Specific(e.to_string()))
+        api::SignedBlock::decode(&*block.to_vec()).map(Some).map_err(DatabaseError::DecodeError)
     }
 
     async fn get_account_delegate(&self, account_id: api::AccountID) -> Result<Option<api::AccountID>, DatabaseError> {
         let mut last_block_key = account_id.to_vec();
         last_block_key.append(&mut b"_rep".to_vec());
 
-        let delegate_id = self.accounts.get(last_block_key).map_err(|e| DatabaseError::Specific(e.to_string()))?;
+        let delegate_id = self.accounts.get(last_block_key).map_err(DatabaseError::Sled)?;
         let delegate_id: AccountID = match delegate_id {
             Some(delegate) => {
                 delegate.to_vec().try_into().map_err(|_| DatabaseError::Specific("invalid account id".to_string()))?
