@@ -1,3 +1,7 @@
+//! SQL Storage Backend for pog.network champ !UNSTABLE!
+//!
+//! This backend is currently untested and only supports the in-memory sqlite driver
+
 use crate::storage::{Database, DatabaseConfig, DatabaseError};
 use anyhow::Result;
 use async_trait::async_trait;
