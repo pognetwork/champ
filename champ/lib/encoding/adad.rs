@@ -149,7 +149,7 @@ where
 async fn async_read_usize<R: AsyncRead + Unpin>(mut reader: R) -> Result<usize, unsigned_varint::io::ReadError> {
     let mut b = unsigned_varint::encode::usize_buffer();
     for i in 0..b.len() {
-        let n = reader.read(&mut b[i..i + 1]).await?;
+        let n = reader.read(&mut b[i..=i]).await?;
         if n == 0 {
             return Err(unsigned_varint::io::ReadError::Io(std::io::ErrorKind::UnexpectedEof.into()));
         }
