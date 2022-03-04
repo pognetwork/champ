@@ -1130,9 +1130,11 @@ checksum = "a357d28ed41a50f9c765dbfe56cbc04a64e53e5fc58ba79fbc34c10ef3df831f"
 name = "encoding"
 version = "0.0.9"
 dependencies = [
+ "bytes",
  "crypto",
  "sha3 0.10.1",
  "thiserror",
+ "unsigned-varint",
 ]
 
 [[package]]

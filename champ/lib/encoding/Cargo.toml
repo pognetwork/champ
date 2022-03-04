@@ -7,9 +7,11 @@ publish = false
 version = "0.0.9"
 
 [dependencies]
+bytes = "1"
 crypto = {path = "../crypto", version = "^0.0.9"}
 sha3 = "0.10"
 thiserror = "1.0"
+unsigned-varint = {version = "0.7"}
 
 [lib]
 path = "lib.rs"
