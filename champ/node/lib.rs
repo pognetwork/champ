@@ -63,12 +63,12 @@ pub async fn run() -> Result<()> {
     let state = ChampState::new(ChampStateArgs {
         db,
         config,
-        //wallet_manager,
+        wallet_manager: wallet_lock,
         blockpool_client: blockpool.get_client(),
     });
 
     debug!("initializing wallet manager step 2/2");
-    let wallet_manager = &mut *wallet_lock.write().await;
+    let wallet_manager = &mut state.wallet_manager.write().await;
     wallet_manager.add_state(state.clone());
     wallet_manager.initialize().await?;
 

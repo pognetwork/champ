@@ -97,7 +97,7 @@ mod tests {
         req.metadata_mut().append(
             "authorization",
             MetadataValue::from_str(
-                &pog_jwt::create(&"invalid_user_id", "invalid_user", 10, key_pair.private_key.as_bytes())
+                &pog_jwt::create("invalid_user_id", "invalid_user", 10, key_pair.private_key.as_bytes())
                     .expect("shoud create jwt"),
             )
             .expect("matadata value should be created"),

@@ -54,6 +54,6 @@ mod tests {
         let salt = crate::hash::sha3(b":)");
 
         let some_hash = hash(password, &salt).expect("should hash");
-        verify(password, &some_hash.to_string()).expect("should be the same");
+        verify(password, &some_hash).expect("should be the same");
     }
 }

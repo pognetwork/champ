@@ -130,9 +130,6 @@ mod tests {
     use pog_proto::api::SignedBlock;
     #[test]
     fn check_voting_power() {
-        // Switch on to output debug table
-        const TEST_TABLE_ON: bool = false;
-
         let blocks = vec![
             SignedBlock {
                 signature: b"signature".to_vec(),
@@ -295,6 +292,7 @@ mod tests {
             );
             old_data = new_data;
         }
-        assert!(!TEST_TABLE_ON);
+        // Switch on to output debug table
+        // assert!(false);
     }
 }
