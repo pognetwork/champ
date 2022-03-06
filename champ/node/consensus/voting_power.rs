@@ -27,34 +27,27 @@ pub async fn get_actual_power(state: &ChampStateArc, account_id: api::AccountID)
     debug!("Calculating actual voting power");
 
     let db = &state.db.lock().await;
-
     let block = db.get_latest_block_by_account(account_id).await?;
-    let data = block.data.as_ref().ok_or_else(|| anyhow!("block data not found"))?;
 
     // Block from between lookback range and max lookback range
     let old_block_result = db
         .get_latest_block_by_account_before(
             account_id,
-            block.timestamp - LOOKBACK_RANGE,
-            block.timestamp - MAX_LOOKBACK_RANGE,
+            block.header.timestamp - LOOKBACK_RANGE,
+            block.header.timestamp - MAX_LOOKBACK_RANGE,
         )
         .await?;
 
     // First Block from an account
     let first_block = db.get_block_by_height(account_id, &0).await?.ok_or_else(|| anyhow!("no block found"))?;
 
-    let new_block_balance = data.balance;
-    let old_block_balance = old_block_result
-        .clone()
-        .ok_or_else(|| anyhow!("block not found"))?
-        .data
-        .ok_or_else(|| anyhow!("block data not found"))?
-        .balance;
+    let new_block_balance = block.data.balance;
+    let old_block_balance = old_block_result.clone().ok_or_else(|| anyhow!("block not found"))?.data.balance;
 
-    let bresult = balance_graph(data.balance);
+    let bresult = balance_graph(block.data.balance);
     let cresult = cashflow_graph(new_block_balance, old_block_balance);
-    let bbresult = block_graph(data.height, &block, old_block_result.as_ref());
-    let aresult = age_graph(block.timestamp - first_block.timestamp);
+    let bbresult = block_graph(block.data.height, &block, old_block_result.as_ref());
+    let aresult = age_graph(block.header.timestamp - first_block.header.timestamp);
 
     // Weights to change how much impact each factor should have
     let net_result =
@@ -126,145 +119,32 @@ mod tests {
         voting_power::BALANCE_WEIGHT,
         voting_power::CASHFLOW_WEIGHT,
     };
-    use pog_proto::api::signed_block::BlockData;
     use pog_proto::api::SignedBlock;
+    use pog_proto::api::{BlockData, BlockHeader};
     #[test]
     fn check_voting_power() {
         // Switch on to output debug table
         const TEST_TABLE_ON: bool = false;
 
-        let blocks = vec![
-            SignedBlock {
-                signature: b"signature".to_vec(),
-                public_key: b"key".to_vec(),
-                timestamp: 1,
-                data: Some(BlockData {
+        let blocks: Vec<SignedBlock> = Vec::new();
+        for (height, balance) in [1000, 900, 300, 0, 500, 400, 400, 600, 1000, 800].iter().enumerate() {
+            blocks.push(SignedBlock::new(
+                BlockHeader {
+                    signature: b"signature".to_vec(),
+                    public_key: b"key".to_vec(),
+                    timestamp: 1,
+                },
+                BlockData {
                     version: 0,
                     signature_type: 0,
-                    balance: 1000,
-                    height: 1,
+                    balance: *balance as u64,
+                    height: height as u64,
                     previous: b"previous".to_vec(),
                     transactions: vec![],
-                }),
-            },
-            SignedBlock {
-                signature: b"signature".to_vec(),
-                public_key: b"key".to_vec(),
-                timestamp: 1,
-                data: Some(BlockData {
-                    version: 0,
-                    signature_type: 0,
-                    balance: 900,
-                    height: 2,
-                    previous: b"previous".to_vec(),
-                    transactions: vec![],
-                }),
-            },
-            SignedBlock {
-                signature: b"signature".to_vec(),
-                public_key: b"key".to_vec(),
-                timestamp: 1,
-                data: Some(BlockData {
-                    version: 0,
-                    signature_type: 0,
-                    balance: 300,
-                    height: 3,
-                    previous: b"previous".to_vec(),
-                    transactions: vec![],
-                }),
-            },
-            SignedBlock {
-                signature: b"signature".to_vec(),
-                public_key: b"key".to_vec(),
-                timestamp: 1,
-                data: Some(BlockData {
-                    version: 0,
-                    signature_type: 0,
-                    balance: 0,
-                    height: 4,
-                    previous: b"previous".to_vec(),
-                    transactions: vec![],
-                }),
-            },
-            SignedBlock {
-                signature: b"signature".to_vec(),
-                public_key: b"key".to_vec(),
-                timestamp: 1,
-                data: Some(BlockData {
-                    version: 0,
-                    signature_type: 0,
-                    balance: 500,
-                    height: 5,
-                    previous: b"previous".to_vec(),
-                    transactions: vec![],
-                }),
-            },
-            SignedBlock {
-                signature: b"signature".to_vec(),
-                public_key: b"key".to_vec(),
-                timestamp: 1,
-                data: Some(BlockData {
-                    version: 0,
-                    signature_type: 0,
-                    balance: 400,
-                    height: 6,
-                    previous: b"previous".to_vec(),
-                    transactions: vec![],
-                }),
-            },
-            SignedBlock {
-                signature: b"signature".to_vec(),
-                public_key: b"key".to_vec(),
-                timestamp: 1,
-                data: Some(BlockData {
-                    version: 0,
-                    signature_type: 0,
-                    balance: 400,
-                    height: 7,
-                    previous: b"previous".to_vec(),
-                    transactions: vec![],
-                }),
-            },
-            SignedBlock {
-                signature: b"signature".to_vec(),
-                public_key: b"key".to_vec(),
-                timestamp: 1,
-                data: Some(BlockData {
-                    version: 0,
-                    signature_type: 0,
-                    balance: 600,
-                    height: 8,
-                    previous: b"previous".to_vec(),
-                    transactions: vec![],
-                }),
-            },
-            SignedBlock {
-                signature: b"signature".to_vec(),
-                public_key: b"key".to_vec(),
-                timestamp: 1,
-                data: Some(BlockData {
-                    version: 0,
-                    signature_type: 0,
-                    balance: 1000,
-                    height: 9,
-                    previous: b"previous".to_vec(),
-                    transactions: vec![],
-                }),
-            },
-            SignedBlock {
-                signature: b"signature".to_vec(),
-                public_key: b"key".to_vec(),
-                timestamp: 1,
-                data: Some(BlockData {
-                    version: 0,
-                    signature_type: 0,
-                    balance: 900,
-                    height: 10,
-                    previous: b"previous".to_vec(),
-                    transactions: vec![],
-                }),
-            },
-        ];
+                },
+            ))
+        }
+
         let mut old_data = BlockData {
             version: 0,
             signature_type: 0,
@@ -275,25 +155,14 @@ mod tests {
         };
         println!("Old Balance - New Balance  -  Balance I  -  Cashflow I - Total I");
         for block in blocks {
-            let new_data = match block.data {
-                Some(d) => d,
-                None => BlockData {
-                    version: 0,
-                    signature_type: 0,
-                    balance: 0,
-                    height: 0,
-                    previous: b"some".to_vec(),
-                    transactions: vec![],
-                },
-            };
-            let balance_importance = balance_graph(new_data.balance) * BALANCE_WEIGHT;
-            let cashflow_importance = cashflow_graph(new_data.balance, old_data.balance) * CASHFLOW_WEIGHT;
+            let balance_importance = balance_graph(block.data.balance) * BALANCE_WEIGHT;
+            let cashflow_importance = cashflow_graph(block.data.balance, old_data.balance) * CASHFLOW_WEIGHT;
             let total_importance = balance_importance + cashflow_importance;
             println!(
                 "{0} \t|----| {1} \t|----| {2} \t|----| {3} \t|----| {4}",
-                old_data.balance, new_data.balance, balance_importance, cashflow_importance, total_importance
+                old_data.balance, block.data.balance, balance_importance, cashflow_importance, total_importance
             );
-            old_data = new_data;
+            old_data = block.data;
         }
         assert!(!TEST_TABLE_ON);
     }
