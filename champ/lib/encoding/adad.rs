@@ -11,7 +11,7 @@ pub enum ADADError {
     Unknown,
     #[error("failed to read associated data length")]
     VarIntReadError(#[from] unsigned_varint::io::ReadError),
-    #[error("failed to read associated data length")]
+    #[error(transparent)]
     IOReadError(#[from] std::io::Error),
 }
 
@@ -165,6 +165,15 @@ mod tests {
     use super::*;
     use crate::adad;
 
+    const CODECS: [(usize, usize); 6] = [
+        (Codecs::Plaintext as usize, Codecs::Plaintext as usize),
+        (Codecs::RLP as usize, Codecs::Protobuf as usize),
+        (Codecs::Messagepack as usize, Codecs::Messagepack as usize),
+        (Codecs::Protobuf as usize, Codecs::Protobuf as usize),
+        (0, 0),
+        (usize::MAX, usize::MAX),
+    ];
+
     const VALID_DATA: [(&[u8], &[u8]); 5] = [
         ("test_header".as_bytes(), "test_data".as_bytes()),
         ("".as_bytes(), "".as_bytes()),
@@ -176,34 +185,38 @@ mod tests {
     #[test]
     fn test() {
         for (associated_data, authenticated_data) in VALID_DATA {
-            let encoded = adad::encode(ADAD {
-                associated_data: associated_data.to_vec(),
-                associated_data_codec: Codecs::Plaintext as usize,
-                authenticated_data: authenticated_data.to_vec(),
-                authenticated_data_codec: Codecs::Plaintext as usize,
-            });
+            for (codec1, codec2) in CODECS {
+                let encoded = adad::encode(ADAD {
+                    associated_data: associated_data.to_vec(),
+                    associated_data_codec: codec1,
+                    authenticated_data: authenticated_data.to_vec(),
+                    authenticated_data_codec: codec2,
+                });
 
-            let decoded = adad::read(&mut encoded.as_slice()).expect("should decode");
+                let decoded = adad::read(&mut encoded.as_slice()).expect("should decode");
 
-            assert_eq!(decoded.associated_data, associated_data);
-            assert_eq!(decoded.authenticated_data, authenticated_data);
+                assert_eq!(decoded.associated_data, associated_data);
+                assert_eq!(decoded.authenticated_data, authenticated_data);
+            }
         }
     }
 
     #[tokio::test]
     async fn test_async() {
         for (associated_data, authenticated_data) in VALID_DATA {
-            let encoded = adad::encode(ADAD {
-                associated_data: associated_data.to_vec(),
-                associated_data_codec: Codecs::Plaintext as usize,
-                authenticated_data: authenticated_data.to_vec(),
-                authenticated_data_codec: Codecs::Plaintext as usize,
-            });
+            for (codec1, codec2) in CODECS {
+                let encoded = adad::encode(ADAD {
+                    associated_data: associated_data.to_vec(),
+                    associated_data_codec: codec1,
+                    authenticated_data: authenticated_data.to_vec(),
+                    authenticated_data_codec: codec2,
+                });
 
-            let decoded = adad::async_read(&mut encoded.as_slice()).await.expect("should decode");
+                let decoded = adad::async_read(&mut encoded.as_slice()).await.expect("should decode");
 
-            assert_eq!(decoded.associated_data, associated_data);
-            assert_eq!(decoded.authenticated_data, authenticated_data);
+                assert_eq!(decoded.associated_data, associated_data);
+                assert_eq!(decoded.authenticated_data, authenticated_data);
+            }
         }
     }
 }
