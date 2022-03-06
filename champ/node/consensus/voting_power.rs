@@ -123,9 +123,6 @@ mod tests {
     use pog_proto::api::{BlockData, BlockHeader};
     #[test]
     fn check_voting_power() {
-        // Switch on to output debug table
-        const TEST_TABLE_ON: bool = false;
-
         let mut blocks: Vec<SignedBlock> = Vec::new();
         for (height, balance) in [1000, 900, 300, 0, 500, 400, 400, 600, 1000, 800].iter().enumerate() {
             blocks.push(SignedBlock::new(
@@ -164,6 +161,7 @@ mod tests {
             );
             old_data = block.data;
         }
-        assert!(!TEST_TABLE_ON);
+        // Switch on to output debug table
+        // assert!(false);
     }
 }

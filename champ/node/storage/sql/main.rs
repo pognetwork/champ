@@ -41,6 +41,7 @@ impl Sql {
         Ok(sql)
     }
 
+    #[allow(dead_code)]
     pub async fn connect_sqlite(_cfg: &DatabaseConfig) -> Result<Sql> {
         unimplemented!("");
     }

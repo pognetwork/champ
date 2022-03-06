@@ -1,8 +1,8 @@
-use crate::{storage::Database, wallets::WalletManager};
+use crate::storage::Database;
+use crate::wallets::WalletManager;
+use crate::{blockpool::BlockpoolClient, config::Config};
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};
-
-use crate::{blockpool::BlockpoolClient, config::Config};
 
 #[derive(Debug)]
 pub struct ChampState {
