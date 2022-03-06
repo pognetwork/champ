@@ -3,6 +3,7 @@ nav:
   - Overview: "index.md"
   - Developers:
       - Getting Started: "developers/setup.md"
+      - Introduction: "developers/introduction.md"
       - Overview: "developers/overview.md"
       - RPC API: "developers/rpc-api.md"
       - CI/CD: "developers/cicd.md"
