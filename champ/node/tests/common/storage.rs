@@ -1,6 +1,9 @@
 use champ_node::storage::{self, Database, DatabaseConfig};
 use crypto::signatures::ed25519::{create_public_key, create_signature, generate_private_key};
-use pog_proto::api::{signed_block::BlockData, transaction::TxClaim, SignedBlock, Transaction};
+use pog_proto::{
+    api::{transaction::TxClaim, BlockData, BlockHeader, SignedBlock, Transaction},
+    Message,
+};
 
 pub struct TestStorage {
     pub db: Box<dyn Database>,
@@ -34,21 +37,17 @@ impl TestStorage {
         test_storage
     }
 
-    pub fn mock_sign_blockdata(
-        block_data: BlockData,
-        index: u64,
-        public_key: &[u8],
-        private_key: &[u8],
-    ) -> SignedBlock {
-        let signature =
-            create_signature(&block_data.unique_bytes().unwrap(), private_key).expect("should create signature");
+    pub fn mock_sign_data(block_data: &[u8], index: u64, public_key: &[u8], private_key: &[u8]) -> SignedBlock {
+        let signature = create_signature(block_data, private_key).expect("should create signature");
         let timestamp = 1637000000 + index * 2000;
-        SignedBlock {
-            data: Some(block_data),
-            public_key: public_key.to_vec(),
-            signature: signature.to_vec(),
-            timestamp,
-        }
+        SignedBlock::new(
+            BlockHeader {
+                public_key: public_key.to_vec(),
+                signature: signature.to_vec(),
+                timestamp,
+            },
+            BlockData::decode(block_data).unwrap(),
+        )
     }
 
     pub fn mock_accounts(count: u8) -> Vec<TestAccount> {
@@ -91,8 +90,8 @@ impl TestStorage {
             let genesis_block_data = TestStorage::mock_blockdata(100 + n as u64, 0, GENESIS_ID, genesis_txs.clone());
 
             let account = accounts.get(n as usize).unwrap();
-            let block = TestStorage::mock_sign_blockdata(
-                genesis_block_data,
+            let block = TestStorage::mock_sign_data(
+                &genesis_block_data.encode_to_vec(),
                 n.into(),
                 &account.public_key,
                 &account.private_key,

@@ -137,7 +137,7 @@ async fn verify_transactions(
         let s = state.clone();
         let tx = transaction.clone();
         let block = new_block.clone();
-        let balance = new_balance.clone();
+        let balance = new_balance;
 
         // concurrent verification
         let task: JoinHandle<Result<i128, BlockValidationError>> =
