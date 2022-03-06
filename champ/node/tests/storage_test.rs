@@ -1,4 +1,4 @@
-use pog_proto::api::{signed_block::BlockData, SignedBlock};
+use pog_proto::api::{BlockData, BlockHeader, SignedBlock};
 
 use common::storage::TestStorage;
 mod common;
@@ -12,14 +12,9 @@ async fn test_mock() {
 async fn test_add_block() {
     let mut db = TestStorage::new().await.db;
 
-    let block = SignedBlock {
-        data: Some(BlockData {
-            ..Default::default()
-        }),
-        ..Default::default()
-    };
+    let block = SignedBlock::new(BlockHeader::default(), BlockData::default());
 
-    let block_id = block.get_id().expect("should generate block id");
+    let block_id = block.get_id();
     db.add_block(block.clone()).await.expect("should add block to database");
     let block_res = db.get_block_by_id(block_id).await.expect("should return block");
     assert_eq!(block_res, block);

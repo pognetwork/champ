@@ -9,7 +9,7 @@ path = "lib.rs"
 
 [dependencies]
 chrono = "0.4"
-pog-proto = {git = "https://github.com/pognetwork/proto"}
+pog-proto = {git = "https://github.com/pognetwork/proto", branch = "adad-format"}
 sea-orm = {version = "0.6", features = ["runtime-tokio-rustls", "macros"], default-features = false}
 
 [features]

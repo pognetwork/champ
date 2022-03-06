@@ -1,3 +1,7 @@
+use pog_proto::api;
+use pog_proto::DecodeError;
+use pog_proto::Message;
+
 use sea_orm::entity::prelude::*;
 
 #[derive(Debug, Clone, PartialEq, EnumIter, DeriveActiveEnum)]
@@ -22,6 +26,25 @@ pub struct Model {
     pub timestamp: chrono::DateTime<chrono::Utc>,
     pub balance: u64,
     pub data: Vec<u8>,
+}
+
+impl TryInto<api::SignedBlock> for Model {
+    type Error = DecodeError;
+
+    fn try_into(self) -> Result<pog_proto::api::SignedBlock, Self::Error> {
+        let data = api::BlockData::decode(&*self.data)?;
+        let header = api::BlockHeader {
+            public_key: self.public_key,
+            signature: self.signature,
+            timestamp: self.timestamp.timestamp() as u64,
+        };
+
+        Ok(api::SignedBlock {
+            data_raw: self.data,
+            data,
+            header,
+        })
+    }
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

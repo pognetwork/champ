@@ -27,6 +27,7 @@ pub struct Sql {
 }
 
 impl Sql {
+    #[cfg(feature = "backend-sqlite")]
     pub async fn connect_mock() -> Result<Sql> {
         let opt = ConnectOptions::new("sqlite::memory:".to_string());
 
@@ -69,8 +70,7 @@ impl Sql {
 impl Database for Sql {
     async fn get_block_by_id(&self, block_id: api::BlockID) -> Result<api::SignedBlock, DatabaseError> {
         let block = Block::find_by_id(block_id.into()).one(&self.db).await?.ok_or(DatabaseError::BlockNotFound)?;
-
-        api::SignedBlock::decode(&*block.data).map_err(DatabaseError::DecodeError)
+        Ok(block.try_into()?)
     }
 
     async fn get_transaction_by_id(
@@ -97,47 +97,48 @@ impl Database for Sql {
             .ok_or(DatabaseError::BlockNotFound)?;
 
         let block = block.ok_or(DatabaseError::BlockNotFound)?;
-        api::SignedBlock::decode(&*block.data).map_err(DatabaseError::DecodeError)
+        Ok(block.try_into()?)
     }
 
     async fn add_block(&mut self, block: api::SignedBlock) -> Result<(), DatabaseError> {
-        let block_data = block.data.clone().ok_or_else(|| DatabaseError::Specific("invalid block".to_string()))?;
-        let block_id = block.get_id().map_err(|e| DatabaseError::Specific(e.to_string()))?;
-        let account_id = encoding::account::generate_account_address(block.public_key.clone())
+        let block_id = block.get_id();
+        let account_id = encoding::account::generate_account_address(block.header.public_key.clone())
             .map_err(|_| DatabaseError::Specific("account ID could not be generated".to_string()))?;
 
         let txn = self.db.begin().await?;
 
         let new_block = block::ActiveModel {
-            height: Set(block_data.height),
+            height: Set(block.data.height),
             account_id_v1: Set(account_id.into()),
-            balance: Set(block_data.balance),
+            balance: Set(block.data.balance),
             block_id: Set(block_id.into()),
-            data: Set(block.encode_to_vec()),
-            public_key: Set(block.public_key.clone()),
-            signature: Set(block.signature),
-            timestamp: Set(unix_to_datetime(block.timestamp)),
+            data: Set(block.data_raw),
+            public_key: Set(block.header.public_key.clone()),
+            signature: Set(block.header.signature),
+            timestamp: Set(unix_to_datetime(block.header.timestamp)),
             version: Set(block::BlockVersion::V1),
         };
 
-        let mut account: account::ActiveModel = match Account::find_by_id(block.public_key.clone()).one(&txn).await? {
-            Some(account) => account.into(),
-            None => {
-                let new_acc = account::ActiveModel {
-                    public_key: Set(block.public_key),
-                    account_id_v1: Set(account_id.into()),
-                    latest_block: Set(block_id.into()),
-                    delegate: Set(None),
-                };
-                new_acc.insert(&txn).await?.into()
-            }
-        };
+        let mut account: account::ActiveModel =
+            match Account::find_by_id(block.header.public_key.clone()).one(&txn).await? {
+                Some(account) => account.into(),
+                None => {
+                    let new_acc = account::ActiveModel {
+                        public_key: Set(block.header.public_key),
+                        account_id_v1: Set(account_id.into()),
+                        latest_block: Set(block_id.into()),
+                        delegate: Set(None),
+                    };
+                    new_acc.insert(&txn).await?.into()
+                }
+            };
 
         let mut transactions: Vec<transaction::ActiveModel> = vec![];
         let mut new_delegate: Option<Vec<u8>> = None;
-        for tx in block_data.transactions {
+        for (i, tx) in block.data.transactions.iter().enumerate() {
             let tx_data = tx.data.clone().ok_or(DatabaseError::InvalidTransactionData)?;
-            let transaction_id = tx.get_id(block_id).map_err(|_| DatabaseError::InvalidTransactionData)?;
+            let transaction_id =
+                api::Transaction::get_id(block_id, i as u32).map_err(|_| DatabaseError::InvalidTransactionData)?;
 
             let mut claims: Vec<tx_claim::ActiveModel> = vec![];
             let tx_type: transaction::TxType;
@@ -195,7 +196,8 @@ impl Database for Sql {
             .await?;
 
         match block {
-            Some(block) => Ok(Some(api::SignedBlock::decode(&*block.data).map_err(DatabaseError::DecodeError)?)),
+            Some(block) => Ok(Some(block.try_into()?)),
+
             None => Ok(None),
         }
     }
@@ -254,10 +256,13 @@ impl Database for Sql {
             .one(&self.db)
             .await?;
 
-        match block {
-            Some(block) => Ok(Some(api::SignedBlock::decode(&*block.data).map_err(DatabaseError::DecodeError)?)),
-            None => Ok(None),
-        }
+        Ok(match block {
+            Some(block) => {
+                let block: api::SignedBlock = block.try_into()?;
+                Some(block)
+            }
+            None => None,
+        })
     }
 
     async fn get_send_recipient(
