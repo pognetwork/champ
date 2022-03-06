@@ -53,12 +53,13 @@ pub fn generate_wallet(password: String) -> Result<WalletAndAddress, WalletError
         let private_key = crypto::signatures::ed25519::generate_private_key()
             .map_err(|e| WalletError::GeneratePrivateKeyError(e.to_string()))?;
 
+        let encrypted_wallet =
+            encrypt(&private_key, password.as_bytes()).map_err(|e| WalletError::EncryptionError(e.to_string()))?;
+
         let public_key = crypto::signatures::ed25519::create_public_key(&private_key)
             .map_err(|e| WalletError::CreatePublicKeyError(e.to_string()))?;
-        (
-            public_key,
-            encrypt(&private_key, password.as_bytes()).map_err(|e| WalletError::EncryptionError(e.to_string()))?,
-        )
+
+        (public_key, encrypted_wallet)
     };
 
     let ciphertext = encode(ciphertext);
