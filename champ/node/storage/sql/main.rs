@@ -27,6 +27,7 @@ pub struct Sql {
 }
 
 impl Sql {
+    #[cfg(feature = "backend-sqlite")]
     pub async fn connect_mock() -> Result<Sql> {
         let opt = ConnectOptions::new("sqlite::memory:".to_string());
 

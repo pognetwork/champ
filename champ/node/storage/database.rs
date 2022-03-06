@@ -6,11 +6,12 @@ use pog_proto::api::{self};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-#[cfg(feature = "sql")]
-use super::sql;
-
 #[cfg(feature = "backend-sled")]
 use super::sled;
+
+#[allow(unused_imports)]
+#[cfg(feature = "sql")]
+use super::sql;
 
 /// Represents a generic storage backend
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -89,6 +90,7 @@ pub enum DatabaseError {
 }
 
 pub async fn new(cfg: &DatabaseConfig) -> Result<Box<dyn Database>, DatabaseError> {
+    #[allow(clippy::needless_late_init)]
     let db: Box<dyn Database>;
     match cfg.kind {
         #[cfg(feature = "backend-sqlite")]

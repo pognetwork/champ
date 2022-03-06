@@ -58,9 +58,9 @@ path = "lib.rs"
 [features]
 backend-sled = ["sled"]
 
-backend-mysql = ["sql", "entity", "entity/mysql"]
-backend-postgres = ["sql", "entity", "entity/postgres"]
-backend-sqlite = ["sql", "entity", "entity/sqlite"]
-sql = []
+backend-mysql = ["sql", "entity/mysql"]
+backend-postgres = ["sql", "entity/postgres"]
+backend-sqlite = ["sql", "entity/sqlite"]
+sql = ["entity"]
 
 default = ["backend-sled", "backend-sqlite"]
