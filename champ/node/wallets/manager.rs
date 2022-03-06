@@ -1,5 +1,5 @@
 use crate::config::{read_file, write_file};
-use crate::{config::WalletManagerConfig, state::ChampStateArc};
+use crate::state::ChampStateArc;
 use anyhow::Result;
 use lulw;
 use serde_json;
@@ -8,38 +8,47 @@ use std::fs;
 use std::path::PathBuf;
 use thiserror::Error;
 
+type AccountAddress = String;
+type WalletName = String;
+
 #[derive(Debug, Clone)]
 pub struct Wallet {
-    pub name: UserName,
+    pub name: WalletName,
     pub locked: bool,
     pub account_address: String,
-    pub authorized_roles: Vec<String>, // users with this role can access this account using our api
-    pub private_key: Option<Vec<u8>>,  // Option for ease of use
+    private_key: Option<Vec<u8>>,
 }
 
-type AccountAddress = String;
-type UserName = String;
-
 impl Wallet {
+    pub fn new(account_address: String, name: String) -> Self {
+        Wallet {
+            account_address,
+            locked: true,
+            name,
+            private_key: None,
+        }
+    }
+
     pub fn lock(&mut self) {
         self.private_key = None;
         self.locked = true;
     }
+
+    pub fn set_private_key(&mut self, key: &[u8]) {
+        self.private_key = Some(key.to_vec());
+        self.locked = false;
+    }
+
+    pub fn sign_data(_data: &[u8]) -> Vec<u8> {
+        todo!()
+    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct WalletManager {
     state: Option<ChampStateArc>,
     wallets: HashMap<AccountAddress, Wallet>,
-    #[allow(dead_code)]
-    config: WalletManagerConfig,
-    index: HashMap<AccountAddress, UserName>,
-}
-
-impl Default for WalletManager {
-    fn default() -> Self {
-        Self::new(WalletManagerConfig::default())
-    }
+    index: HashMap<AccountAddress, WalletName>,
 }
 
 #[derive(Error, Debug)]
@@ -64,15 +73,14 @@ pub enum WalletManagerError {
     SerializationError(#[from] serde_json::Error),
 }
 
-// Handles wallet interaction, locking, unlocking and creating.
-// Saves wallets at data/wallets/[account_address].json
-// Stores index to match wallets to users at data/wallets/index.json
+/// Handles wallet interaction, locking, unlocking and creating.
+/// Saves wallets at data/wallets/[account_address].json
+/// Stores index to match wallets to users at data/wallets/index.json
 impl WalletManager {
-    pub fn new(config: WalletManagerConfig) -> Self {
+    pub fn new() -> Self {
         Self {
             state: None,
             wallets: HashMap::new(),
-            config,
             index: HashMap::new(),
         }
     }
@@ -81,7 +89,6 @@ impl WalletManager {
         Self {
             state: None,
             wallets: HashMap::new(),
-            config: WalletManagerConfig::default(),
             index: HashMap::new(),
         }
     }
@@ -110,11 +117,11 @@ impl WalletManager {
         Ok(())
     }
 
-    // create a wallet from passphrase and user_name, write the wallet to disk and add it to the index and wallet hashmap
+    /// create a wallet from passphrase and user_name, write the wallet to disk and add it to the index and wallet hashmap
     pub async fn create_wallet(
         &mut self,
         password: String,
-        user_name: UserName,
+        name: WalletName,
     ) -> Result<AccountAddress, WalletManagerError> {
         let (wallet, account_address) = lulw::generate_wallet(password).map_err(WalletManagerError::WalletError)?;
 
@@ -122,20 +129,14 @@ impl WalletManager {
         path.push(format!("{}.json", &account_address));
 
         write_file(path, &wallet).map_err(WalletManagerError::IOError)?;
-        self.create_index_entry(account_address.clone(), user_name.clone()).await?;
-        let wallet = Wallet {
-            name: user_name,
-            locked: true,
-            account_address: account_address.clone(),
-            authorized_roles: Vec::new(),
-            private_key: None,
-        };
+        self.create_index_entry(account_address.clone(), name.clone()).await?;
 
+        let wallet = Wallet::new(account_address.clone(), name);
         self.wallets.insert(account_address.clone(), wallet);
         Ok(account_address)
     }
 
-    // deletes wallet from the FS, and both indeces
+    /// deletes wallet from the FS, and both indeces
     pub async fn delete_wallet(&mut self, account_address: AccountAddress) -> Result<()> {
         self.delete_index_entry(&account_address).await?;
         self.wallets.remove(&account_address);
@@ -146,13 +147,13 @@ impl WalletManager {
         Ok(())
     }
 
-    // updates the user name associated with the wallet
+    /// updates the name associated with the wallet
     pub async fn rename_wallet(
         &mut self,
         account_address: AccountAddress,
-        user_name: UserName,
+        wallet: WalletName,
     ) -> Result<(), WalletManagerError> {
-        self.index.insert(account_address, user_name);
+        self.index.insert(account_address, wallet);
         self.write_index().await
     }
 
@@ -163,18 +164,20 @@ impl WalletManager {
     ) -> Result<(), WalletManagerError> {
         let wallet_file = self.read_wallet_file(&account_address).await?;
         let wallet = self.wallets.get_mut(&account_address).ok_or(WalletManagerError::NotFoundError)?;
+
         if !(wallet.locked) {
             return Ok(());
         }
 
-        wallet.private_key =
-            Some(lulw::unlock_wallet(&wallet_file, password).map_err(WalletManagerError::WalletError)?);
+        {
+            let private_key = lulw::unlock_wallet(&wallet_file, password).map_err(WalletManagerError::WalletError)?;
+            wallet.set_private_key(&private_key);
+        }
 
-        wallet.locked = false;
         Ok(())
     }
 
-    // reads all wallets from the FS
+    /// reads all wallets from the FS
     async fn initialize_wallets(&mut self) -> Result<(), WalletManagerError> {
         let path = self.get_wallets_path().await?;
         let paths = std::fs::read_dir(path).map_err(WalletManagerError::IOError)?;
@@ -183,47 +186,40 @@ impl WalletManager {
 
             let file_name = path
                 .file_name()
-                .ok_or_else(|| WalletManagerError::Unknown("invalid wallet path name".to_string()))?
+                .ok_or_else(|| WalletManagerError::Unknown("invalid wallet path".to_string()))?
                 .to_string_lossy();
 
             let account_address: String = file_name.split('.').collect::<Vec<&str>>()[0].to_owned();
 
-            let user_name = self
+            let name = self
                 .index
                 .get(&account_address)
-                .ok_or_else(|| WalletManagerError::Unknown("no user owns this wallet".to_string()))?;
+                .ok_or_else(|| WalletManagerError::Unknown("no wallet with this name".to_string()))?;
 
-            let wallet = Wallet {
-                name: user_name.clone(),
-                locked: true,
-                account_address: account_address.clone(),
-                authorized_roles: Vec::new(),
-                private_key: None,
-            };
-
+            let wallet = Wallet::new(account_address.clone(), name.clone());
             self.wallets.insert(account_address.to_string(), wallet);
         }
 
         Ok(())
     }
 
-    // adds a wallet to the index
+    /// adds a wallet to the index
     async fn create_index_entry(
         &mut self,
         account_address: AccountAddress,
-        user_name: UserName,
+        name: WalletName,
     ) -> Result<(), WalletManagerError> {
-        self.index.insert(account_address, user_name);
+        self.index.insert(account_address, name);
         self.write_index().await
     }
 
-    // removes the index of the wallet
+    /// removes the index of the wallet
     async fn delete_index_entry(&mut self, account_address: &AccountAddress) -> Result<(), WalletManagerError> {
         self.index.remove(account_address);
         self.write_index().await
     }
 
-    // reads the wallet from the FS
+    /// reads the wallet from the FS
     #[allow(dead_code)]
     async fn read_wallet_file(&self, account_address: &AccountAddress) -> Result<String, WalletManagerError> {
         let mut path = self.get_wallets_path().await?;
@@ -231,8 +227,8 @@ impl WalletManager {
         Ok(read_file(path)?)
     }
 
-    // writes the index as json to file
-    // inefficient to write the entire file when a new entry is added, maybe small DB? or optimize write
+    /// writes the index as json to file
+    /// inefficient to write the entire file when a new entry is added, maybe small DB? or optimize write
     async fn write_index(&self) -> Result<(), WalletManagerError> {
         let json = serde_json::to_string_pretty(&self.index)?;
         let mut path = self.get_base_path().await?;
@@ -240,8 +236,8 @@ impl WalletManager {
         Ok(write_file(path, &json)?)
     }
 
-    // reads the index.json and deserializes into self.index
-    async fn read_index(&self) -> Result<HashMap<AccountAddress, UserName>, WalletManagerError> {
+    /// reads the index.json and deserializes into self.index
+    async fn read_index(&self) -> Result<HashMap<AccountAddress, WalletName>, WalletManagerError> {
         let mut path = self.get_base_path().await?;
         path.push("index.json");
         let content = read_file(path.clone())?;
@@ -254,7 +250,7 @@ impl WalletManager {
         Ok(res)
     }
 
-    // returns pog_path\data\walletmanager
+    /// returns pog_path\data\walletmanager
     async fn get_base_path(&self) -> Result<PathBuf, WalletManagerError> {
         let champ_state =
             self.state.clone().ok_or_else(|| WalletManagerError::Unknown("state not loaded".to_string()))?;
@@ -268,7 +264,7 @@ impl WalletManager {
     }
 
     #[inline]
-    // returns base_path\wallets
+    /// returns base_path\wallets
     async fn get_wallets_path(&self) -> Result<PathBuf, WalletManagerError> {
         let mut path = self.get_base_path().await?;
         path.push("wallets");
@@ -296,10 +292,9 @@ mod tests {
     use crate::config::Config;
     use crate::ChampState;
 
-    // creates a wallet manager where the config path is change to /test/
+    /// creates a wallet manager where the config path is change to /test/
     async fn get_wallet_manager() -> Result<WalletManager, WalletManagerError> {
-        // this is big yikes, but the mocked champstated doesn't have a default datapath
-        let mut wallet_manager = WalletManager::new(WalletManagerConfig::default());
+        let mut wallet_manager = WalletManager::new();
         let champstate = ChampState::mock().await;
 
         // get the default path of the .toml pop and it add a test folder.
@@ -319,29 +314,30 @@ mod tests {
     #[tokio::test]
     async fn create_wallet() {
         // prepare
-        let username = "Malox".to_string();
+        let wallet_name = "Malox".to_string();
         let password = "1234".to_string();
         let mut wallet_manager = get_wallet_manager().await.unwrap();
 
         // act
         let _ = wallet_manager.initialize().await;
         let account_address =
-            wallet_manager.create_wallet(password.clone(), username.clone()).await.expect("Creating wallet failed");
+            wallet_manager.create_wallet(password.clone(), wallet_name.clone()).await.expect("Creating wallet failed");
 
         // assert
         assert!(wallet_manager.wallets.contains_key(&account_address));
 
         let wallet = wallet_manager.wallets.get(&account_address).expect("no wallet found").clone();
         assert_eq!(wallet.account_address, account_address);
-        assert_eq!(wallet.name, username);
+        assert_eq!(wallet.name, wallet_name);
 
         assert!(wallet_manager.index.contains_key(&account_address));
-        assert_eq!(wallet_manager.index[&account_address], username);
+        assert_eq!(wallet_manager.index[&account_address], wallet_name);
 
         // unlock wallet and check if the password unlocked it
         let result = wallet_manager.unlock_wallet(wallet.account_address, password).await;
         result.expect("Couldn't unlock wallet");
         let wallet = wallet_manager.wallets.get(&account_address).expect("no wallet found").clone();
+
         let private_key = wallet.private_key;
         assert!(private_key.is_some())
     }
@@ -349,9 +345,10 @@ mod tests {
     #[tokio::test]
     async fn delete_wallet() {
         let password = "1234".to_string();
-        let username = "Malox".to_string();
+        let wallet_name = "Malox".to_string();
         let mut wallet_manager = get_wallet_manager().await.unwrap();
-        let account_address = wallet_manager.create_wallet(password, username).await.expect("Couldn't create wallet");
+        let account_address =
+            wallet_manager.create_wallet(password, wallet_name).await.expect("Couldn't create wallet");
 
         // check if valid was indeed created
         assert!(wallet_manager.wallets.contains_key(account_address.as_str()));
