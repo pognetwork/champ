@@ -3,6 +3,7 @@ use crate::{state::ChampStateArc, storage::DatabaseError};
 
 use crypto::{self, signatures::ed25519::verify_signature};
 use encoding::account::{generate_account_address, validate_account_address};
+
 use pog_proto::api::{
     transaction::{Data, TxClaim, TxSend},
     SignedBlock, Transaction,
@@ -41,6 +42,8 @@ pub enum Validation {
 pub enum Node {
     #[error("block data not found")]
     BlockDataNotFound,
+    #[error("block header not found")]
+    BlockHeaderNotFound,
     #[error("block not found")]
     BlockNotFound,
     #[error{"tx not found"}]
@@ -71,9 +74,9 @@ pub enum BlockValidationError {
 pub async fn validate(block: &SignedBlock, state: &ChampStateArc) -> Result<(), BlockValidationError> {
     debug!("validating a block");
 
-    let data = block.clone().data.ok_or(Node::BlockDataNotFound)?;
-    let public_key = &block.public_key;
-    let signature = &block.signature;
+    let public_key = &block.header.public_key;
+    let signature = &block.header.signature;
+
     let db = &state.db.lock().await;
     let account_id = generate_account_address(public_key.to_vec()).map_err(|_| Node::CryptoError)?;
 
@@ -85,15 +88,14 @@ pub async fn validate(block: &SignedBlock, state: &ChampStateArc) -> Result<(), 
         _ => return Err(Node::BlockNotFound.into()),
     };
 
-    let id = block.get_id().map_err(|_| Node::BlockIdError)?;
-    match db.get_block_by_id(id).await {
+    match db.get_block_by_id(block.get_id()).await {
         Ok(_) => return Err(Validation::BlockDuplicate.into()),
         Err(storage::DatabaseError::BlockNotFound) => (),
         Err(e) => return Err(Node::DBError(e).into()),
     }
 
     // signature
-    verify_signature(&data.encode_to_vec(), public_key, signature).map_err(|_| Node::CryptoError)?;
+    verify_signature(&block.data.encode_to_vec(), public_key, signature).map_err(|_| Node::CryptoError)?;
     // height / previous block
     verify_previous_block(block, &latest_block)?;
     // transactions / balance
@@ -114,22 +116,19 @@ async fn verify_transactions(
     debug!("verify transactions");
     // go through all tx in the block and do math to see new balance
     // check against block balance
-    let new_data = new_block.data.clone().ok_or(Node::BlockDataNotFound)?;
-    let prev_data = prev_block.data.clone().ok_or(Node::BlockDataNotFound)?;
-
     let mut transaction_ids: Vec<[u8; 32]> = vec![];
 
-    if new_data.transactions.len() > 255 {
+    if new_block.data.transactions.len() > 255 {
         return Err(Validation::TooManyTransactions.into());
     }
 
-    let mut new_balance: i128 = prev_data.balance as i128;
+    let mut new_balance: i128 = prev_block.data.balance as i128;
     let mut tokio_tasks: Vec<JoinHandle<Result<i128, BlockValidationError>>> = vec![];
 
-    for transaction in &new_data.transactions {
+    for (i, transaction) in new_block.data.transactions.iter().enumerate() {
         // validate that transaction is not duplicated
-        let blockid = new_block.get_id().map_err(|_| Node::BlockNotFound)?;
-        let txid = transaction.get_id(blockid).map_err(|_| Node::TxNotFound)?;
+        let blockid = new_block.get_id();
+        let txid = Transaction::get_id(blockid, i as u32).map_err(|_| Node::TxNotFound)?;
         if transaction_ids.contains(&txid) {
             return Err(Validation::DuplicatedTx.into());
         }
@@ -139,6 +138,7 @@ async fn verify_transactions(
         let tx = transaction.clone();
         let block = new_block.clone();
         let balance = new_balance;
+
         // concurrent verification
         let task: JoinHandle<Result<i128, BlockValidationError>> =
             tokio::spawn(async move { tx_verification(&s, block, &balance, &tx).await });
@@ -149,7 +149,7 @@ async fn verify_transactions(
         new_balance += t.await.map_err(|_| Node::AsyncError)??;
     }
 
-    if new_balance == new_data.balance as i128 && new_balance >= 0 {
+    if new_balance == new_block.data.balance as i128 && new_balance >= 0 {
         return Ok(());
     }
 
@@ -176,32 +176,28 @@ async fn tx_verification(
 // Verifies the block height and previous block
 fn verify_previous_block(new_block: &SignedBlock, prev_block: &SignedBlock) -> Result<(), BlockValidationError> {
     debug!("verify previous block");
-    let new_data = new_block.data.as_ref().ok_or(Node::BlockDataNotFound)?;
-    let prev_data = prev_block.data.as_ref().ok_or(Node::BlockDataNotFound)?;
 
-    if new_data.height - 1 != prev_data.height {
+    if new_block.data.height - 1 != prev_block.data.height {
         return Err(Validation::BlockHeightError.into());
     }
-    if new_data.previous != prev_block.get_id().map_err(|_| Node::BlockNotFound)?.to_vec() {
+    if new_block.data.previous != prev_block.get_id().to_vec() {
         return Err(Validation::PreviousBlockError.into());
     }
+
     Ok(())
 }
 
 // Verifies the block height and previous block
 fn verify_account_genesis_block(block: &SignedBlock) -> Result<(), BlockValidationError> {
-    let data = block.data.clone().ok_or(BlockValidationError::Error(Node::BlockDataNotFound))?;
-
-    if data.height != 0 {
-        return Err(Validation::BlockHeightError.into());
+    match block.data.height {
+        0 => Ok(()),
+        _ => Err(Validation::BlockHeightError.into()),
     }
-
-    Ok(())
 }
 
 fn validate_send(amount: u64, tx: &TxSend, new_block: SignedBlock) -> Result<i128, BlockValidationError> {
     let receiver = tx.receiver.clone();
-    if receiver == generate_account_address(new_block.public_key).map_err(|_| Node::AccountError)? {
+    if receiver == generate_account_address(new_block.header.public_key).map_err(|_| Node::AccountError)? {
         return Err(Validation::ReceiverAccountError.into());
     }
 
@@ -240,7 +236,7 @@ async fn validate_collect(
         None => return Err(Validation::SendTxNotFound.into()),
     };
 
-    let account_id = generate_account_address(block.public_key.to_vec()).map_err(|_| Node::AccountError)?;
+    let account_id = generate_account_address(block.header.public_key.to_vec()).map_err(|_| Node::AccountError)?;
     // check if account is allowed to receive
     if account_id.to_vec() != sendtx.receiver {
         return Err(Validation::TxValidationError("validate collect 3".to_string()).into());
@@ -256,40 +252,45 @@ mod tests {
     use anyhow::Result;
     use encoding::zbase32::FromZbase;
     use pog_proto::api::transaction::TxClaim;
+    use pog_proto::api::BlockHeader;
     use pog_proto::api::{
-        signed_block::BlockData,
         transaction::{Data, TxSend},
-        SignedBlock, Transaction,
+        BlockData, SignedBlock, Transaction,
     };
 
     #[test]
     fn test_verify_previous_block() -> Result<()> {
-        let prev_block = SignedBlock {
-            signature: b"thisIsNewSignature".to_vec(),
-            public_key: b"someOtherKey".to_vec(),
-            timestamp: 1,
-            data: Some(BlockData {
+        let prev_block = SignedBlock::new(
+            BlockHeader {
+                signature: b"thisIsNewSignature".to_vec(),
+                public_key: b"someOtherKey".to_vec(),
+                timestamp: 1,
+            },
+            BlockData {
                 version: 0,
                 signature_type: 0,
                 balance: 100,
                 height: 4,
                 previous: b"blockBeforeMe".to_vec(),
                 transactions: [].to_vec(),
-            }),
-        };
-        let new_block = SignedBlock {
-            signature: b"signedByMe".to_vec(),
-            public_key: b"someKey".to_vec(),
-            timestamp: 1,
-            data: Some(BlockData {
+            },
+        );
+
+        let new_block = SignedBlock::new(
+            BlockHeader {
+                signature: b"signedByMe".to_vec(),
+                public_key: b"someKey".to_vec(),
+                timestamp: 1,
+            },
+            BlockData {
                 version: 0,
                 signature_type: 0,
                 balance: 100,
                 height: 5,
-                previous: prev_block.get_id().expect("get Block ID").to_vec(),
+                previous: prev_block.get_id().to_vec(),
                 transactions: [].to_vec(),
-            }),
-        };
+            },
+        );
 
         assert!(verify_previous_block(&new_block, &prev_block).is_ok());
         Ok(())
@@ -297,29 +298,34 @@ mod tests {
 
     #[tokio::test]
     async fn test_verify_transactions() -> Result<()> {
-        let prev_block = SignedBlock {
-            signature: b"thisIsNewSignature".to_vec(),
-            public_key: b"someOtherKey".to_vec(),
-            timestamp: 1,
-            data: Some(BlockData {
+        let prev_block = SignedBlock::new(
+            BlockHeader {
+                signature: b"thisIsNewSignature".to_vec(),
+                public_key: b"someOtherKey".to_vec(),
+                timestamp: 1,
+            },
+            BlockData {
                 version: 0,
                 signature_type: 0,
                 balance: 100,
                 height: 4,
                 previous: b"blockBeforeMe".to_vec(),
                 transactions: vec![],
-            }),
-        };
-        let block = SignedBlock {
-            signature: b"signedByMe".to_vec(),
-            public_key: b"someKey".to_vec(),
-            timestamp: 1,
-            data: Some(BlockData {
+            },
+        );
+
+        let block = SignedBlock::new(
+            BlockHeader {
+                signature: b"signedByMe".to_vec(),
+                public_key: b"someKey".to_vec(),
+                timestamp: 1,
+            },
+            BlockData {
                 version: 0,
                 signature_type: 0,
                 balance: 40,
                 height: 5,
-                previous: prev_block.get_id().expect("get Block ID").to_vec(),
+                previous: prev_block.get_id().to_vec(),
                 transactions: vec![
                     Transaction {
                         data: Some(Data::TxSend(TxSend {
@@ -336,8 +342,9 @@ mod tests {
                         })),
                     },
                 ],
-            }),
-        };
+            },
+        );
+
         let check_claim_tx = Transaction {
             data: Some(Data::TxSend(TxSend {
                 receiver: Vec::from_zbase("yy5xyknabqan31b8fkpyrd4nydtwpausi3kxgta").unwrap(),
@@ -345,52 +352,59 @@ mod tests {
                 data: vec![],
             })),
         };
-        let data_block_1 = SignedBlock {
-            signature: b"data_block_one".to_vec(),
-            public_key: b"key_one".to_vec(),
-            timestamp: 1,
-            data: Some(BlockData {
+
+        let data_block_1 = SignedBlock::new(
+            BlockHeader {
+                signature: b"data_block_one".to_vec(),
+                public_key: b"key_one".to_vec(),
+                timestamp: 1,
+            },
+            BlockData {
                 version: 0,
                 signature_type: 0,
                 balance: 40,
                 height: 0,
-                previous: prev_block.get_id().expect("get Block ID").to_vec(),
+                previous: prev_block.get_id().to_vec(),
                 transactions: vec![check_claim_tx.clone()],
-            }),
-        };
-        let check_claim_previous = SignedBlock {
-            signature: b"data_block_one".to_vec(),
-            public_key: b"key_one".to_vec(),
-            timestamp: 1,
-            data: Some(BlockData {
+            },
+        );
+
+        let check_claim_previous = SignedBlock::new(
+            BlockHeader {
+                signature: b"data_block_one".to_vec(),
+                public_key: b"key_one".to_vec(),
+                timestamp: 1,
+            },
+            BlockData {
                 version: 0,
                 signature_type: 0,
                 balance: 40,
                 height: 5,
                 previous: b"some_previous".to_vec(),
                 transactions: vec![],
-            }),
-        };
-        let check_claim = SignedBlock {
-            signature: b"data_block_one".to_vec(),
-            public_key: b"test".to_vec(),
-            timestamp: 1,
-            data: Some(BlockData {
+            },
+        );
+
+        let check_claim = SignedBlock::new(
+            BlockHeader {
+                signature: b"data_block_one".to_vec(),
+                public_key: b"test".to_vec(),
+                timestamp: 1,
+            },
+            BlockData {
                 version: 0,
                 signature_type: 0,
                 balance: 50,
                 height: 6,
-                previous: check_claim_previous.get_id().expect("get block ID").to_vec(),
+                previous: check_claim_previous.get_id().to_vec(),
                 transactions: vec![Transaction {
                     data: Some(Data::TxClaim(TxClaim {
-                        send_transaction_id: check_claim_tx
-                            .get_id(data_block_1.get_id().expect("get block ID"))
-                            .expect("get Tx ID")
-                            .to_vec(),
+                        send_transaction_id: Transaction::get_id(data_block_1.get_id(), 0).expect("get id").to_vec(),
                     })),
                 }],
-            }),
-        };
+            },
+        );
+
         let state = ChampState::mock().await;
         state.db.lock().await.add_block(data_block_1).await.expect("block should be added");
         verify_transactions(&block, &prev_block, &state).await.expect("should work");

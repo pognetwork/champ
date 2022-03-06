@@ -17,7 +17,7 @@ anyhow = "1.0"
 async-trait = "0.1"
 clap = "3.0.7"
 lazy_static = "1.4"
-pog-proto = {git = "https://github.com/pognetwork/proto"}
+pog-proto = {git = "https://github.com/pognetwork/proto", branch = "adad-format"}
 prometheus = {version = "0.13", features = ["process"]}
 serde = "1"
 thiserror = "1.0"

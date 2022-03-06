@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use anyhow::{anyhow, Context, Result};
+use pog_proto::api::SignedBlock;
 use tokio::sync::{
     mpsc::{self, Receiver, Sender},
     oneshot,
@@ -36,8 +37,11 @@ pub struct BlockpoolClient {
 }
 
 impl BlockpoolClient {
-    pub async fn process_block(&self, block: pog_proto::api::SignedBlock) -> Result<()> {
+    pub async fn process_block(&self, block: pog_proto::api::RawBlock) -> Result<()> {
         let (resp_tx, resp_rx) = oneshot::channel();
+
+        let block: SignedBlock = block.try_into()?;
+
         self.tx
             .send(Command::ProcessBlock {
                 block,
@@ -50,6 +54,7 @@ impl BlockpoolClient {
 
     pub async fn process_vote(&self) -> Result<()> {
         let (resp_tx, resp_rx) = oneshot::channel();
+
         self.tx
             .send(Command::ProcessVote {
                 resp: resp_tx,
@@ -61,6 +66,7 @@ impl BlockpoolClient {
 
     pub async fn get_queue_size(&self) -> Result<u64> {
         let (resp_tx, resp_rx) = oneshot::channel();
+
         self.tx
             .send(Command::GetQueueSize {
                 resp: resp_tx,

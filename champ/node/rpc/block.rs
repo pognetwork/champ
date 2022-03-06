@@ -38,12 +38,9 @@ impl Block for BlockService {
         let db_response = db.get_latest_block_by_account(address).await;
         let response = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
 
-        match &response.data {
-            Some(data) => Ok(Response::new(BalanceReply {
-                balance: data.balance,
-            })),
-            None => Err(Status::new(tonic::Code::Internal, "missing Block data")),
-        }
+        Ok(Response::new(BalanceReply {
+            balance: response.data.balance,
+        }))
     }
 
     async fn get_block_height(
@@ -64,9 +61,7 @@ impl Block for BlockService {
         let db_response = db.get_latest_block_by_account(address).await;
 
         let height = match db_response {
-            Ok(response) => {
-                response.data.as_ref().ok_or_else(|| Status::new(tonic::Code::Internal, "missing Block data"))?.height
-            }
+            Ok(response) => response.data.height,
             Err(storage::DatabaseError::NoLastBlock) => 0,
             _ => return Err(Status::new(tonic::Code::Internal, "couldn't get last block")),
         };
@@ -116,7 +111,7 @@ impl Block for BlockService {
         let block = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
 
         Ok(Response::new(BlockByIdReply {
-            block: Some(block),
+            block: Some(block.into()),
         }))
     }
 

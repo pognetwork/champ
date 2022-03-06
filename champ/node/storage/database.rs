@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use anyhow::Result;
 use async_trait::async_trait;
-use pog_proto::api::{self};
+use pog_proto::api;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
