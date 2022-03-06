@@ -189,7 +189,7 @@ impl Config {
 pub fn read_or_create_file(path: PathBuf) -> Result<String> {
     let mut file = String::new();
     let mut f = OpenOptions::new().read(true).write(true).create(true).open(path)?;
-    f.read_to_string(&mut file).expect("should read file to string");
+    f.read_to_string(&mut file)?;
     drop(f);
     Ok(file)
 }
@@ -205,7 +205,7 @@ pub fn write_file(path: PathBuf, data: &str) -> Result<(), std::io::Error> {
 pub fn read_file(path: PathBuf) -> Result<String, std::io::Error> {
     let mut file_content = String::new();
     let mut file = OpenOptions::new().read(true).open(path)?;
-    file.read_to_string(&mut file_content).expect("should read file to string");
+    file.read_to_string(&mut file_content)?;
     drop(file);
     Ok(file_content)
 }
