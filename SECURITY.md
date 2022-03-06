@@ -1,0 +1,68 @@
+# Security Policy
+
+## Supported Versions
+
+| Version | Supported          |
+| ------- | ------------------ |
+| `main`  | :white_check_mark: |
+| >0.9.0  | :white_check_mark: |
+| <=0.9.0 | :x:                |
+
+## Reporting a Vulnerability
+
+Please report security issues to `security@pog.network`
+
+We provide the following pgp key for encrypted communication. You can verify its authenticity at https://keybase.io/explodingcamera.
+
+```
+-----BEGIN PGP PUBLIC KEY BLOCK-----
+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
+/SfP3yuwkDS5xgWpR4GOwMiuCrdKqgR4+lNAng==
+=yi3R
+-----END PGP PUBLIC KEY BLOCK-----
+```
