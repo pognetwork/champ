@@ -85,6 +85,6 @@ impl RequestResponseCodec for PogCodec {
 
 pub type Pog = RequestResponse<PogCodec>;
 
-pub fn new() -> RequestResponse<PogCodec> {
+pub fn new() -> Pog {
     RequestResponse::new(PogCodec(), std::iter::once((PogProtocol(), ProtocolSupport::Full)), Default::default())
 }

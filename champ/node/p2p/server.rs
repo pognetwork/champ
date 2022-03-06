@@ -10,6 +10,7 @@ use libp2p::{PeerId, Swarm};
 use tracing::info;
 
 pub struct P2PServer {
+    #[allow(dead_code)]
     state: ChampStateArc,
 }
 
