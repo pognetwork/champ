@@ -67,11 +67,26 @@ pub enum DatabaseError {
     #[error("no last block")]
     NoLastBlock,
     #[error("Block not found")]
+    InvalidTransactionData,
+    #[error("Invalid txdata")]
     BlockNotFound,
-    #[error("db insert failed at {0}")]
-    DBInsertFailed(u32),
+    #[error("db insert failed at")]
+    DBInsertFailed,
     #[error("An error occured: {0}")]
     Specific(String),
+
+    #[error(transparent)]
+    DecodeError(#[from] prost::DecodeError),
+
+    // Backend Specific Erros
+    #[cfg(feature = "sql")]
+    #[error(transparent)]
+    SeaORM(#[from] entity::sea_orm::DbErr),
+
+    // Backend Specific Erros
+    #[cfg(feature = "sled")]
+    #[error(transparent)]
+    Sled(#[from] sled::sled::Error),
 }
 
 pub async fn new(cfg: &DatabaseConfig) -> Result<Box<dyn Database>, DatabaseError> {

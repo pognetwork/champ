@@ -13,6 +13,9 @@ pub enum BlockVersion {
 pub struct Model {
     #[sea_orm(primary_key)]
     pub block_id: Vec<u8>,
+
+    pub height: u64,
+    pub account_id_v1: Vec<u8>,
     pub public_key: Vec<u8>,
     pub signature: Vec<u8>,
     pub version: BlockVersion,
@@ -23,8 +26,21 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    #[sea_orm(
+        belongs_to = "super::account::Entity",
+        from = "Column::PublicKey",
+        to = "super::account::Column::PublicKey"
+    )]
+    Account,
+
     #[sea_orm(has_many = "super::transaction::Entity")]
     Transaction,
+}
+
+impl Related<super::account::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Account.def()
+    }
 }
 
 impl ActiveModelBehavior for ActiveModel {}

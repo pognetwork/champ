@@ -17,16 +17,22 @@ pub enum WalletError {
     EncryptionError(String),
     #[error("error encrypting private key: {0}")]
     EncodingError(String),
-    #[error("failed to serialize wallet: {0}")]
-    SerializationError(String),
-    #[error("failed to deserialize wallet: {0}")]
-    DeserializationError(String),
+
+    #[error(transparent)]
+    SerializationError(#[from] serde_json::Error),
+
     #[error("failed to decode base64: {0}")]
-    DecodeError(String),
+    DecodeError(#[from] base64::DecodeError),
+
+    #[error("Invalid property: {0}")]
+    InvalidProperty(String),
+
     #[error("invalid wallet format")]
     InvalidWalletFormat,
+
     #[error("invalid wallet kdf params")]
     InvalidKDFParams,
+
     #[error("error decrypting private key: {0}")]
     DecryptionError(String),
 }
@@ -65,12 +71,12 @@ pub fn generate_wallet(password: String) -> Result<String, WalletError> {
         },
     };
 
-    let json = serde_json::to_string_pretty(&wallet).map_err(|e| WalletError::SerializationError(e.to_string()))?;
+    let json = serde_json::to_string_pretty(&wallet).map_err(WalletError::SerializationError)?;
     Ok(json)
 }
 
 pub fn unlock_wallet(wallet: &str, password: String) -> Result<Vec<u8>, WalletError> {
-    let wallet: Lulw = serde_json::from_str(wallet).map_err(|e| WalletError::DeserializationError(e.to_string()))?;
+    let wallet: Lulw = serde_json::from_str(wallet).map_err(WalletError::SerializationError)?;
 
     if !(wallet.version == 1
         && wallet.crypto.cipher == Cipher::XChacha20Poly1305AEAD
@@ -87,17 +93,17 @@ pub fn unlock_wallet(wallet: &str, password: String) -> Result<Vec<u8>, WalletEr
         return Err(WalletError::InvalidKDFParams);
     }
 
-    let data = decode(wallet.crypto.ciphertext).map_err(|_| WalletError::DecodeError("ciphertext".to_string()))?;
+    let data = decode(wallet.crypto.ciphertext).map_err(WalletError::DecodeError)?;
 
     let salt: [u8; 16] = decode(wallet.crypto.kdfparams.salt)
-        .map_err(|_| WalletError::DecodeError("salt".to_string()))?
+        .map_err(WalletError::DecodeError)?
         .try_into()
-        .map_err(|_| WalletError::DecodeError("salt".to_string()))?;
+        .map_err(|_| WalletError::InvalidProperty("salt".to_string()))?;
 
     let nonce: [u8; 24] = decode(wallet.crypto.cipherparams.nonce)
-        .map_err(|_| WalletError::DecodeError("nonce".to_string()))?
+        .map_err(WalletError::DecodeError)?
         .try_into()
-        .map_err(|_| WalletError::DecodeError("nonce".to_string()))?;
+        .map_err(|_| WalletError::InvalidProperty("salt".to_string()))?;
 
     let private_key =
         decrypt(&data, password.as_bytes(), salt, nonce).map_err(|e| WalletError::DecryptionError(e.to_string()))?;

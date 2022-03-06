@@ -1,10 +1,10 @@
 // #[cfg(feature = "backend-rocksdb")]
 // mod rocksdb;
 #[cfg(feature = "backend-sled")]
-mod sled;
+pub mod sled;
 
 #[cfg(feature = "sql")]
-mod sql;
+pub mod sql;
 
 mod database;
 pub use database::*;
