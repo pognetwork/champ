@@ -1,10 +1,11 @@
 use async_trait::async_trait;
 use encoding::adad;
+
 pub use libp2p::request_response::RequestResponseEvent;
 pub use libp2p::request_response::RequestResponseMessage::{Request as RequestMessage, Response as ResponseMessage};
 
 use libp2p::{
-    core::{upgrade::write_length_prefixed, ProtocolName},
+    core::ProtocolName,
     futures::{io, AsyncRead, AsyncWrite, AsyncWriteExt},
     request_response::{ProtocolSupport, RequestResponse, RequestResponseCodec, RequestResponseMessage},
 };

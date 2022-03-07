@@ -1,14 +1,19 @@
+#![allow(dead_code, unused_variables)]
+
 use crate::p2p::pogprotocol::{self, PogProtocol};
 use crate::state::ChampStateArc;
 use anyhow::Result;
-use libp2p::core::{identity, upgrade, Transport};
-use libp2p::futures::StreamExt;
-use libp2p::mplex::MplexConfig;
-use libp2p::noise::{Keypair, NoiseConfig, X25519Spec};
-use libp2p::request_response::{RequestId, RequestResponseEvent, ResponseChannel};
-use libp2p::swarm::{SwarmBuilder, SwarmEvent};
-use libp2p::tcp::TokioTcpConfig;
-use libp2p::{PeerId, Swarm};
+
+use libp2p::{
+    core::{identity, upgrade, Transport},
+    futures::StreamExt,
+    mplex::MplexConfig,
+    noise::{Keypair, NoiseConfig, X25519Spec},
+    request_response::{RequestId, RequestResponseEvent, ResponseChannel},
+    swarm::{SwarmBuilder, SwarmEvent},
+    tcp::TokioTcpConfig,
+    {PeerId, Swarm},
+};
 
 use super::pogprotocol::{PogBehavior, PogMessage, PogRequest, PogResponse};
 
