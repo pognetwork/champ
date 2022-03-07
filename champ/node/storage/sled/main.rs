@@ -20,7 +20,7 @@ pub struct SledDB {
 }
 
 fn encode_block(block: api::SignedBlock) -> Vec<u8> {
-    adad::encode(adad::ADAD {
+    adad::default.encode(adad::Data {
         associated_data: block.header.encode_to_vec(),
         associated_data_codec: adad::Codecs::Protobuf as usize,
         authenticated_data: block.data_raw,
@@ -29,7 +29,8 @@ fn encode_block(block: api::SignedBlock) -> Vec<u8> {
 }
 
 fn decode_block(block: &[u8]) -> Result<api::SignedBlock, DatabaseError> {
-    let block = adad::read(block).map_err(|_| DatabaseError::Specific("falied to decode block".to_string()))?;
+    let block =
+        adad::default.read(block).map_err(|_| DatabaseError::Specific("falied to decode block".to_string()))?;
 
     assert_eq!(block.associated_data_codec, adad::Codecs::Protobuf as usize);
     assert_eq!(block.authenticated_data_codec, adad::Codecs::Protobuf as usize);

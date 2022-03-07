@@ -1,30 +1,31 @@
 use async_trait::async_trait;
 use encoding::adad;
+pub use libp2p::request_response::RequestResponseEvent;
+pub use libp2p::request_response::RequestResponseMessage::{Request as RequestMessage, Response as ResponseMessage};
+
 use libp2p::{
     core::{upgrade::write_length_prefixed, ProtocolName},
     futures::{io, AsyncRead, AsyncWrite, AsyncWriteExt},
-    request_response::{ProtocolSupport, RequestResponse, RequestResponseCodec},
+    request_response::{ProtocolSupport, RequestResponse, RequestResponseCodec, RequestResponseMessage},
 };
-use pog_proto::{p2p, Message};
 
 #[derive(Debug, Clone)]
 pub struct PogCodec();
 
 #[derive(Debug, Clone)]
 pub struct PogRequest {
-    pub header: p2p::RequestHeader,
+    pub header: Vec<u8>,
     pub data: Vec<u8>,
 }
 
 #[derive(Debug, Clone)]
 pub struct PogResponse {
-    pub header: p2p::ResponseHeader,
-    pub data: p2p::ResponseData,
-    pub data_raw: Vec<u8>,
+    pub header: Vec<u8>,
+    pub data: Vec<u8>,
 }
 
 #[derive(Debug, Clone)]
-pub struct PogProtocol();
+pub struct PogProtocol {}
 
 impl ProtocolName for PogProtocol {
     fn protocol_name(&self) -> &[u8] {
@@ -54,16 +55,14 @@ impl RequestResponseCodec for PogCodec {
     where
         T: AsyncRead + Unpin + Send,
     {
-        let data = adad::async_read(io).await.map_err(|_| invalid_data_error("invalid data 😔"))?;
+        let data = adad::default.async_read(io).await.map_err(|_| invalid_data_error("invalid data 😔"))?;
 
         is_proto(data.authenticated_data_codec)?;
         is_proto(data.associated_data_codec)?;
 
-        let header = p2p::RequestHeader::decode(&*data.associated_data)?;
-
         Ok(PogRequest {
             data: data.authenticated_data,
-            header,
+            header: data.associated_data,
         })
     }
 
@@ -71,18 +70,14 @@ impl RequestResponseCodec for PogCodec {
     where
         T: AsyncRead + Unpin + Send,
     {
-        let raw_data = adad::async_read(io).await.map_err(|_| invalid_data_error("invalid data 😔"))?;
+        let raw_data = adad::default.async_read(io).await.map_err(|_| invalid_data_error("invalid data 😔"))?;
 
         is_proto(raw_data.authenticated_data_codec)?;
         is_proto(raw_data.associated_data_codec)?;
 
-        let header = p2p::ResponseHeader::decode(&*raw_data.associated_data)?;
-        let data = p2p::ResponseData::decode(&*raw_data.authenticated_data)?;
-
         Ok(PogResponse {
-            data,
-            data_raw: raw_data.authenticated_data,
-            header,
+            data: raw_data.authenticated_data,
+            header: raw_data.associated_data,
         })
     }
 
@@ -98,10 +93,10 @@ impl RequestResponseCodec for PogCodec {
     where
         T: AsyncWrite + Unpin + Send,
     {
-        let associated_data = header.encode_to_vec();
-        let authenticated_data = data.encode_to_vec();
+        let associated_data = header;
+        let authenticated_data = data;
 
-        let buf = adad::encode(adad::ADAD {
+        let buf = adad::default.encode(adad::Data {
             associated_data,
             associated_data_codec: adad::Codecs::Protobuf as usize,
             authenticated_data,
@@ -120,17 +115,16 @@ impl RequestResponseCodec for PogCodec {
         io: &mut T,
         PogResponse {
             header,
-            data_raw,
-            data: _,
+            data,
         }: PogResponse,
     ) -> io::Result<()>
     where
         T: AsyncWrite + Unpin + Send,
     {
-        let associated_data = header.encode_to_vec();
-        let authenticated_data = data_raw;
+        let associated_data = header;
+        let authenticated_data = data;
 
-        let buf = adad::encode(adad::ADAD {
+        let buf = adad::default.encode(adad::Data {
             associated_data,
             associated_data_codec: adad::Codecs::Protobuf as usize,
             authenticated_data,
@@ -144,8 +138,15 @@ impl RequestResponseCodec for PogCodec {
     }
 }
 
-pub type Pog = RequestResponse<PogCodec>;
+impl PogProtocol {
+    pub fn new() -> Self {
+        PogProtocol {}
+    }
 
-pub fn new() -> Pog {
-    RequestResponse::new(PogCodec(), std::iter::once((PogProtocol(), ProtocolSupport::Full)), Default::default())
+    pub fn behavior(self) -> PogBehavior {
+        RequestResponse::new(PogCodec(), std::iter::once((self, ProtocolSupport::Full)), Default::default())
+    }
 }
+
+pub type PogBehavior = RequestResponse<PogCodec>;
+pub type PogMessage = RequestResponseMessage<PogRequest, PogResponse>;
