@@ -570,7 +570,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "cargo-husky",
- "clap 3.1.5",
+ "clap 3.1.6",
  "crypto",
  "directories",
  "encoding",
@@ -650,9 +650,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "3.1.5"
+version = "3.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ced1892c55c910c1219e98d6fc8d71f6bddba7905866ce740066d8bfea859312"
+checksum = "d8c93436c21e4698bacadf42917db28b23017027a4deccb35dbe47a7e7840123"
 dependencies = [
  "atty",
  "bitflags",
@@ -3517,7 +3517,7 @@ dependencies = [
 [[package]]
 name = "pog-proto"
 version = "0.1.0"
-source = "git+https://github.com/pognetwork/proto#0c20f81fc3c79a7b5316fab60f4cad5132f4ea55"
+source = "git+https://github.com/pognetwork/proto#4eab973a97faaa458ba0823d2f58ed33c7fa499e"
 dependencies = [
  "prost",
  "sha3 0.10.1",
