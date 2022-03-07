@@ -4,10 +4,14 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::p2p::pogprotocol::{self, PogProtocol};
 use crate::state::ChampStateArc;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use crypto::signatures::ed25519::create_signature;
 use libp2p::noise::AuthenticKeypair;
-use pog_proto::p2p::{RequestData, RequestHeader, ResponseBody, ResponseHeader};
+use pog_proto::p2p::Failure;
+use pog_proto::p2p::{
+    request_body::Data as RequestBodyData, response_body::Data as ResponseBodyData, RequestBody, RequestHeader,
+    ResponseBody, ResponseHeader,
+};
 use pog_proto::Message;
 
 use libp2p::{
@@ -27,6 +31,10 @@ pub struct P2PServer {
     state: ChampStateArc,
     swarm: Swarm<PogBehavior>,
     keypair: AuthenticKeypair<X25519Spec>,
+}
+
+fn timestamp() -> u64 {
+    SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs() as u64
 }
 
 impl P2PServer {
@@ -82,7 +90,7 @@ impl P2PServer {
     }
 
     fn process_message(&mut self, peer: PeerId, message: PogMessage) {
-        match message {
+        let res = match message {
             pogprotocol::RequestMessage {
                 channel,
                 request,
@@ -92,66 +100,81 @@ impl P2PServer {
                 request_id,
                 response,
             } => self.process_response(request_id, response),
+        };
+
+        if let Err(err) = res {
+            tracing::error!("error while processing request for peer {peer}: {err}");
         }
     }
 
-    // How to send resonses/requests:
-    //
-    // self.swarm.behaviour_mut().send_response(
-    //     channel,
-    //     PogResponse {
-    //         data: vec![],
-    //         header: vec![],
-    //     },
-    // )
-
-    fn process_request(&mut self, channel: ResponseChannel<PogResponse>, request: PogRequest, request_id: RequestId) {
-        let header_result = RequestHeader::decode(&*request.header);
-        let header = match header_result {
-            Ok(h) => h,
-            _ => {
-                tracing::error!("could not decode header");
-                self.send_response(channel, pog_proto::p2p::response_body::Data::Failure(0));
-                return;
+    fn process_request(
+        &mut self,
+        channel: ResponseChannel<PogResponse>,
+        request: PogRequest,
+        request_id: RequestId,
+    ) -> Result<()> {
+        let header = match RequestHeader::decode(&*request.header) {
+            Ok(header) => header,
+            Err(err) => {
+                self.send_response(channel, ResponseBodyData::Failure(Failure::MalformedRequest.into()))?;
+                return Err(err.into());
             }
         };
 
         let data = request.data;
+        Ok(())
     }
-    fn process_response(&self, request_id: RequestId, response: PogResponse) {}
-    fn send_response(&mut self, channel: ResponseChannel<PogResponse>, response: pog_proto::p2p::response_body::Data) {
-        let data = ResponseBody {
-            timestamp: SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs() as u64,
+
+    fn sign(&mut self, data: &[u8]) -> Result<Vec<u8>> {
+        Ok(create_signature(data, self.keypair.secret().as_ref())?.to_vec())
+    }
+
+    fn public_key(&mut self) -> Vec<u8> {
+        self.keypair.public().as_ref().to_vec()
+    }
+
+    fn process_response(&self, request_id: RequestId, response: PogResponse) -> Result<()> {
+        Ok(())
+    }
+
+    pub fn send_request(&mut self, peer: &PeerId, request: RequestBodyData) -> Result<RequestId> {
+        let request_body = RequestBody {
+            data: Some(request),
+            signature_type: 0,
+            timestamp: timestamp(),
+        }
+        .encode_to_vec();
+
+        let header = ResponseHeader {
+            signature: self.sign(&request_body)?,
+            public_key: self.public_key(),
+        };
+
+        let request = PogRequest {
+            data: request_body,
+            header: header.encode_to_vec(),
+        };
+
+        Ok(self.swarm.behaviour_mut().send_request(peer, request))
+    }
+
+    fn send_response(&mut self, channel: ResponseChannel<PogResponse>, response: ResponseBodyData) -> Result<()> {
+        let response_body = ResponseBody {
+            timestamp: timestamp(),
             data: Some(response),
         }
         .encode_to_vec();
 
-        let signature = match create_signature(&*data, self.keypair.secret().as_ref()) {
-            Ok(s) => s,
-            _ => {
-                tracing::error!("could not create signature");
-                return;
-            }
-        }
-        .to_vec();
-        let public_key = self.keypair.public().as_ref().to_vec();
-
         let header = ResponseHeader {
-            signature,
-            public_key,
-        }
-        .encode_to_vec();
+            signature: self.sign(&response_body)?,
+            public_key: self.public_key(),
+        };
 
-        let result = self.swarm.behaviour_mut().send_response(
-            channel,
-            PogResponse {
-                data,
-                header,
-            },
-        );
+        let response = PogResponse {
+            data: response_body,
+            header: header.encode_to_vec(),
+        };
 
-        if let Err(error) = result {
-            tracing::error!("error during response sending");
-        }
+        self.swarm.behaviour_mut().send_response(channel, response).map_err(|_| anyhow!("response failed"))
     }
 }
