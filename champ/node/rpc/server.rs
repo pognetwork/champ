@@ -1,6 +1,6 @@
 use crate::auth::interceptors::interceptor_auth;
 use crate::metrics::ServiceStatus;
-use crate::rpc::block::{BlockServer, BlockService};
+use crate::rpc::lattice::{LatticeServer, LatticeService};
 use crate::rpc::node_admin::{NodeAdminServer, NodeAdminService};
 use crate::rpc::node_user::{NodeUserServer, NodeUserService};
 use crate::rpc::node_wallet_manager::{NodeWalletManagerServer, NodeWalletManagerService};
@@ -40,7 +40,7 @@ impl RpcServer {
         let cloned_public_key = public_key.clone();
         let cloned_users = users.clone();
 
-        let block_server = BlockServer::new(BlockService::new(self.state.clone()));
+        let block_service_server = LatticeServer::new(LatticeService::new(self.state.clone()));
 
         let node_admin_server = NodeAdminServer::with_interceptor(
             NodeAdminService::new(self.state.clone()),
@@ -62,7 +62,8 @@ impl RpcServer {
 
         // The stack of middleware that our service will be wrapped in
         let timeout = tower::ServiceBuilder::new().timeout(Duration::from_secs(30)).into_inner();
-        let server = Server::builder().accept_http1(true).layer(timeout).add_service(grpc_web.enable(block_server));
+        let server =
+            Server::builder().accept_http1(true).layer(timeout).add_service(grpc_web.enable(block_service_server));
 
         GRPC_HEALTH.set(ServiceStatus::Healthy as i64);
 

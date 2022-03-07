@@ -5,18 +5,18 @@ use crate::state::ChampStateArc;
 use crate::storage;
 
 use pog_proto::api;
-use pog_proto::rpc::block::*;
+use pog_proto::rpc::lattice::*;
 
-pub use pog_proto::rpc::block::block_server::{Block, BlockServer};
+pub use pog_proto::rpc::lattice::lattice_server::{Lattice, LatticeServer};
 
 use tonic::{Request, Response, Status};
 use tracing::debug;
 #[derive(Debug)]
-pub struct BlockService {
+pub struct LatticeService {
     pub state: ChampStateArc,
 }
 
-impl BlockService {
+impl LatticeService {
     pub fn new(state: ChampStateArc) -> Self {
         Self {
             state,
@@ -25,7 +25,7 @@ impl BlockService {
 }
 
 #[tonic::async_trait]
-impl Block for BlockService {
+impl Lattice for LatticeService {
     async fn get_balance(&self, request: Request<BalanceRequest>) -> Result<Response<BalanceReply>, Status> {
         // We must use .into_inner() as the fields of gRPC requests and responses are private
         debug!("getting balance");
