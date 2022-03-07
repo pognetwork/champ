@@ -16,7 +16,7 @@ use anyhow::Result;
 use http::HttpServer;
 use roughtime::server::RoughTime;
 use tokio::{sync::RwLock, try_join};
-use tracing::{debug, trace, Level};
+use tracing::{debug, Level};
 
 use crate::{
     blockpool::Blockpool,
@@ -56,7 +56,7 @@ pub async fn run() -> Result<()> {
     let mut blockpool = Blockpool::new();
 
     debug!("initializing wallet manager");
-    let wallet_manager = WalletManager::new(config.read().await.wallets.clone());
+    let wallet_manager = WalletManager::new();
     let wallet_manager = RwLock::new(wallet_manager);
 
     debug!("initializing champ state");
@@ -67,8 +67,13 @@ pub async fn run() -> Result<()> {
         blockpool_client: blockpool.get_client(),
     });
 
-    trace!("injecting state into blockpool");
+    debug!("injecting state into blockpool");
     blockpool.add_state(state.clone());
+
+    debug!("injecting state into walletmanager");
+    let wallet_manager = &mut state.wallet_manager.write().await;
+    wallet_manager.add_state(state.clone());
+    wallet_manager.initialize().await?;
 
     if let Some(matches) = matches.subcommand_matches("admin") {
         debug!("command matched to admin subcommand");

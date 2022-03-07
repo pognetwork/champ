@@ -1,3 +1,4 @@
+pub mod account;
 pub mod block;
 pub mod pending_block;
 pub mod transaction;

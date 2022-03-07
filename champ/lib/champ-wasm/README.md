@@ -10,9 +10,9 @@ import init, { Wallet } from "champ-wasm";
 await init();
 
 const wallet = Wallet.generate("hunter2");
-const unlockedWallet = Wallet.unlock(wallet, "hunter2");
+const { json, address } = Wallet.unlock(wallet, "hunter2");
 
-console.log(unlockedWallet); // Don't do this :)
+console.log(json, address); // Don't do this :)
 ```
 
 ## Building

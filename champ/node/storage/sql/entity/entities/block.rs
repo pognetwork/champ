@@ -1,3 +1,7 @@
+use pog_proto::api;
+use pog_proto::DecodeError;
+use pog_proto::Message;
+
 use sea_orm::entity::prelude::*;
 
 #[derive(Debug, Clone, PartialEq, EnumIter, DeriveActiveEnum)]
@@ -13,6 +17,9 @@ pub enum BlockVersion {
 pub struct Model {
     #[sea_orm(primary_key)]
     pub block_id: Vec<u8>,
+
+    pub height: u64,
+    pub account_id_v1: Vec<u8>,
     pub public_key: Vec<u8>,
     pub signature: Vec<u8>,
     pub version: BlockVersion,
@@ -21,10 +28,42 @@ pub struct Model {
     pub data: Vec<u8>,
 }
 
+impl TryInto<api::SignedBlock> for Model {
+    type Error = DecodeError;
+
+    fn try_into(self) -> Result<pog_proto::api::SignedBlock, Self::Error> {
+        let data = api::BlockData::decode(&*self.data)?;
+        let header = api::BlockHeader {
+            public_key: self.public_key,
+            signature: self.signature,
+            timestamp: self.timestamp.timestamp() as u64,
+        };
+
+        Ok(api::SignedBlock {
+            data_raw: self.data,
+            data,
+            header,
+        })
+    }
+}
+
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    #[sea_orm(
+        belongs_to = "super::account::Entity",
+        from = "Column::PublicKey",
+        to = "super::account::Column::PublicKey"
+    )]
+    Account,
+
     #[sea_orm(has_many = "super::transaction::Entity")]
     Transaction,
+}
+
+impl Related<super::account::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Account.def()
+    }
 }
 
 impl ActiveModelBehavior for ActiveModel {}

@@ -9,6 +9,7 @@ version = "0.0.9"
 [dependencies]
 crypto = {path = "../lib/crypto"}
 encoding = {path = "../lib/encoding"}
+lulw = {path = "../lib/lulw"}
 pog-jwt = {path = "../lib/jwt"}
 pwned = {path = "../lib/pwned"}
 roughtime = {path = "../lib/roughtime"}
@@ -20,6 +21,7 @@ lazy_static = "1.4"
 pog-proto = {git = "https://github.com/pognetwork/proto"}
 prometheus = {version = "0.13", features = ["process"]}
 serde = "1"
+serde_json = "1.0"
 thiserror = "1.0"
 tokio = {version = "1.0", features = ["macros", "rt-multi-thread"]}
 toml = "0.5"
@@ -61,9 +63,9 @@ path = "lib.rs"
 [features]
 backend-sled = ["sled"]
 
-backend-mysql = ["sql", "entity", "entity/mysql"]
-backend-postgres = ["sql", "entity", "entity/postgres"]
-backend-sqlite = ["sql", "entity", "entity/sqlite"]
-sql = []
+backend-mysql = ["sql", "entity/mysql"]
+backend-postgres = ["sql", "entity/postgres"]
+backend-sqlite = ["sql", "entity/sqlite"]
+sql = ["entity"]
 
 default = ["backend-sled", "backend-sqlite"]

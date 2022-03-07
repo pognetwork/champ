@@ -1,6 +1,6 @@
 use crate::auth::permissions::verify_perms;
 use crate::state::ChampStateArc;
-use pog_proto::rpc::node_admin::*;
+use pog_proto::{api::Empty, rpc::node_admin::*};
 use tonic::{Response, Status};
 
 pub use pog_proto::rpc::node_admin::node_admin_server::{NodeAdmin, NodeAdminServer};

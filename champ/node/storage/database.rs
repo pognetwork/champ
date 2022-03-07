@@ -2,15 +2,15 @@ use std::fmt::Debug;
 
 use anyhow::Result;
 use async_trait::async_trait;
-use pog_proto::api::{self};
+use pog_proto::api;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-// #[cfg(feature = "sql")]
-// use super::sql;
-
 #[cfg(feature = "backend-sled")]
 use super::sled;
+
+#[allow(unused_imports)]
+#[cfg(feature = "sql")]
 use super::sql;
 
 /// Represents a generic storage backend
@@ -67,14 +67,30 @@ pub enum DatabaseError {
     #[error("no last block")]
     NoLastBlock,
     #[error("Block not found")]
+    InvalidTransactionData,
+    #[error("Invalid txdata")]
     BlockNotFound,
-    #[error("db insert failed at {0}")]
-    DBInsertFailed(u32),
+    #[error("db insert failed at")]
+    DBInsertFailed,
     #[error("An error occured: {0}")]
     Specific(String),
+
+    #[error(transparent)]
+    DecodeError(#[from] prost::DecodeError),
+
+    // Backend Specific Erros
+    #[cfg(feature = "sql")]
+    #[error(transparent)]
+    SeaORM(#[from] entity::sea_orm::DbErr),
+
+    // Backend Specific Erros
+    #[cfg(feature = "sled")]
+    #[error(transparent)]
+    Sled(#[from] sled::sled::Error),
 }
 
 pub async fn new(cfg: &DatabaseConfig) -> Result<Box<dyn Database>, DatabaseError> {
+    #[allow(clippy::needless_late_init)]
     let db: Box<dyn Database>;
     match cfg.kind {
         #[cfg(feature = "backend-sqlite")]

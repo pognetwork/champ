@@ -42,15 +42,15 @@ pub fn inactive_tax_graph(new_block_balance: u64, old_block_balance: u64, net_im
 
 pub fn block_graph(block_height: u64, new_block: &SignedBlock, old_block: Option<&SignedBlock>) -> f64 {
     let old_block_time = match old_block {
-        Some(b) => b.timestamp,
-        None => new_block.timestamp,
+        Some(b) => b.header.timestamp,
+        None => new_block.header.timestamp,
     };
     // to get the time between the first and most recent block
     // we need the minimum to not give too high power from the start
-    let time = if new_block.timestamp - old_block_time < WEEK_IN_SECONDS as u64 {
+    let time = if new_block.header.timestamp - old_block_time < WEEK_IN_SECONDS as u64 {
         WEEK_IN_SECONDS
     } else {
-        (new_block.timestamp - old_block_time) as f64
+        (new_block.header.timestamp - old_block_time) as f64
     };
 
     // x is the nr of tx based on the account life in weeks
@@ -77,7 +77,7 @@ pub fn age_graph(account_age: u64) -> f64 {
 #[cfg(test)]
 mod tests {
     use insta::assert_yaml_snapshot;
-    use pog_proto::api::{signed_block::BlockData, SignedBlock};
+    use pog_proto::api::{BlockData, BlockHeader, SignedBlock};
 
     use crate::consensus::graphs::{age_graph, balance_graph, block_graph, cashflow_graph, inactive_tax_graph};
 
@@ -99,35 +99,41 @@ mod tests {
     }
     #[test]
     fn test_block_graph() {
-        let new_block = SignedBlock {
-            signature: b"signature".to_vec(),
-            public_key: b"public_key".to_vec(),
-            timestamp: 100_000,
-            data: Some(BlockData {
+        let new_block = SignedBlock::new(
+            BlockHeader {
+                signature: b"signature".to_vec(),
+                public_key: b"public_key".to_vec(),
+                timestamp: 100_000,
+            },
+            BlockData {
                 version: 0,
                 signature_type: 1,
                 balance: 1000,
                 height: 20,
                 previous: b"previous".to_vec(),
                 transactions: vec![],
-            }),
-        };
-        let old_block = Some(SignedBlock {
-            signature: b"signature".to_vec(),
-            public_key: b"public_key".to_vec(),
-            timestamp: 50_000,
-            data: Some(BlockData {
+            },
+        );
+
+        let old_block = SignedBlock::new(
+            BlockHeader {
+                signature: b"signature".to_vec(),
+                public_key: b"public_key".to_vec(),
+                timestamp: 50_000,
+            },
+            BlockData {
                 version: 0,
                 signature_type: 1,
                 balance: 500,
                 height: 19,
                 previous: b"other_previous".to_vec(),
                 transactions: vec![],
-            }),
-        });
+            },
+        );
+
         assert_eq!(
             (20.17295623738592 * 100_000_f64) as u64,
-            (block_graph(10, &new_block, old_block.as_ref()) * 100_000_f64) as u64
+            (block_graph(10, &new_block, Some(&old_block)) * 100_000_f64) as u64
         );
     }
     #[test]

@@ -5,18 +5,18 @@ use crate::state::ChampStateArc;
 use crate::storage;
 
 use pog_proto::api;
-use pog_proto::rpc::block::*;
+use pog_proto::rpc::lattice::*;
 
-pub use pog_proto::rpc::block::block_server::{Block, BlockServer};
+pub use pog_proto::rpc::lattice::lattice_server::{Lattice, LatticeServer};
 
 use tonic::{Request, Response, Status};
 use tracing::debug;
 #[derive(Debug)]
-pub struct BlockService {
+pub struct LatticeService {
     pub state: ChampStateArc,
 }
 
-impl BlockService {
+impl LatticeService {
     pub fn new(state: ChampStateArc) -> Self {
         Self {
             state,
@@ -25,7 +25,7 @@ impl BlockService {
 }
 
 #[tonic::async_trait]
-impl Block for BlockService {
+impl Lattice for LatticeService {
     async fn get_balance(&self, request: Request<BalanceRequest>) -> Result<Response<BalanceReply>, Status> {
         // We must use .into_inner() as the fields of gRPC requests and responses are private
         debug!("getting balance");
@@ -38,12 +38,9 @@ impl Block for BlockService {
         let db_response = db.get_latest_block_by_account(address).await;
         let response = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
 
-        match &response.data {
-            Some(data) => Ok(Response::new(BalanceReply {
-                balance: data.balance,
-            })),
-            None => Err(Status::new(tonic::Code::Internal, "missing Block data")),
-        }
+        Ok(Response::new(BalanceReply {
+            balance: response.data.balance,
+        }))
     }
 
     async fn get_block_height(
@@ -64,9 +61,7 @@ impl Block for BlockService {
         let db_response = db.get_latest_block_by_account(address).await;
 
         let height = match db_response {
-            Ok(response) => {
-                response.data.as_ref().ok_or_else(|| Status::new(tonic::Code::Internal, "missing Block data"))?.height
-            }
+            Ok(response) => response.data.height,
             Err(storage::DatabaseError::NoLastBlock) => 0,
             _ => return Err(Status::new(tonic::Code::Internal, "couldn't get last block")),
         };
@@ -116,7 +111,7 @@ impl Block for BlockService {
         let block = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
 
         Ok(Response::new(BlockByIdReply {
-            block: Some(block),
+            block: Some(block.into()),
         }))
     }
 
