@@ -1,7 +1,5 @@
-use pog_proto::api::{BlockData, BlockHeader, SignedBlock};
-
-use common::storage::TestStorage;
 mod common;
+use common::storage::TestStorage;
 
 #[tokio::test]
 async fn test_mock() {
@@ -11,8 +9,7 @@ async fn test_mock() {
 #[tokio::test]
 async fn test_add_block() {
     let mut db = TestStorage::new().await.db;
-
-    let block = SignedBlock::new(BlockHeader::default(), BlockData::default());
+    let block = TestStorage::mock_simple_signed_block();
 
     let block_id = block.get_id();
     db.add_block(block.clone()).await.expect("should add block to database");

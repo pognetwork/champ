@@ -22,8 +22,9 @@ pub enum ADADError {
         size: usize,
     },
 
-    #[error("failed to read associated data length")]
+    #[error("failed to read data length")]
     VarIntReadError(#[from] unsigned_varint::io::ReadError),
+
     #[error(transparent)]
     IOReadError(#[from] std::io::Error),
 }
@@ -82,7 +83,7 @@ impl ADAD {
         let aud_codec = usize_to_varint(data.authenticated_data_codec);
         let aud_varint = usize_to_varint(aud_length);
 
-        let mut buf: Vec<u8> = Vec::with_capacity(asd_varint.len() + aud_length + asd_length);
+        let mut buf: Vec<u8> = Vec::new();
 
         buf.extend(asd_varint);
         buf.extend(asd_codec);
@@ -139,8 +140,8 @@ impl ADAD {
             });
         }
 
-        let mut buf = vec![];
-        reader.read_to_end(&mut buf)?;
+        let mut buf = vec![0; length];
+        reader.read_exact(&mut buf)?;
         Ok((buf, codec))
     }
 
@@ -159,8 +160,8 @@ impl ADAD {
             });
         }
 
-        let mut buf = vec![];
-        reader.read_to_end(&mut buf).await?;
+        let mut buf = vec![0; length];
+        reader.read_exact(&mut buf).await?;
         Ok((buf, codec))
     }
 }
@@ -210,6 +211,8 @@ mod tests {
                     authenticated_data: authenticated_data.to_vec(),
                     authenticated_data_codec: codec2,
                 });
+
+                println!("encoded: {encoded:?}");
 
                 let decoded = adad.read(&mut encoded.as_slice()).expect("should decode");
 
