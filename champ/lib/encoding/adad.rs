@@ -9,6 +9,19 @@ use thiserror::Error;
 pub enum ADADError {
     #[error("unknown error")]
     Unknown,
+
+    #[error("invalid associaced-data length, {size} exceedes {max}")]
+    InvalidAssociacedDataSize {
+        max: usize,
+        size: usize,
+    },
+
+    #[error("invalid authenticated-data length, {size} exceedes {max}")]
+    InvalidAuthenticatedDataSize {
+        max: usize,
+        size: usize,
+    },
+
     #[error("failed to read associated data length")]
     VarIntReadError(#[from] unsigned_varint::io::ReadError),
     #[error(transparent)]
@@ -61,27 +74,31 @@ impl ADAD {
 
     /// Encodes data as ADAD bytes
     pub fn encode(&self, data: Data) -> Vec<u8> {
-        let aud_length = data.authenticated_data.len();
         let asd_length = data.associated_data.len();
-
+        let asd_codec = usize_to_varint(data.associated_data_codec);
         let asd_varint = usize_to_varint(asd_length);
-        let associated_data_codec = usize_to_varint(data.associated_data_codec);
-        let authenticated_data_codec = usize_to_varint(data.authenticated_data_codec);
+
+        let aud_length = data.authenticated_data.len();
+        let aud_codec = usize_to_varint(data.authenticated_data_codec);
+        let aud_varint = usize_to_varint(aud_length);
 
         let mut buf: Vec<u8> = Vec::with_capacity(asd_varint.len() + aud_length + asd_length);
 
         buf.extend(asd_varint);
-        buf.extend(associated_data_codec);
+        buf.extend(asd_codec);
         buf.extend(&data.associated_data);
-        buf.extend(authenticated_data_codec);
+        buf.extend(aud_varint);
+        buf.extend(aud_codec);
         buf.extend(&data.authenticated_data);
         buf
     }
 
     /// Reads ADAD data from a reader and decodes it to associated data and authenticated data
     pub fn read<T: std::io::Read>(&self, mut reader: T) -> Result<Data, ADADError> {
-        let (associated_data, associated_data_codec) = self.read_associated_data(&mut reader)?;
-        let (authenticated_data, authenticated_data_codec) = self.read_authenticated_data(&mut reader)?;
+        let (associated_data, associated_data_codec) = ADAD::read_part(&mut reader, self.associated_data_max_size)?;
+
+        let (authenticated_data, authenticated_data_codec) =
+            ADAD::read_part(&mut reader, self.authenticated_data_max_size)?;
 
         Ok(Data {
             associated_data,
@@ -89,24 +106,6 @@ impl ADAD {
             authenticated_data,
             authenticated_data_codec,
         })
-    }
-
-    /// Reads authenticated data from a async reader
-    pub fn read_authenticated_data<T: std::io::Read>(&self, mut reader: T) -> Result<(Vec<u8>, usize), ADADError> {
-        let codec = unsigned_varint::io::read_usize(&mut reader)?;
-        let mut authenticated_data = vec![];
-        reader.read_to_end(&mut authenticated_data)?;
-        Ok((authenticated_data, codec))
-    }
-
-    /// Reads associated data from a reader
-    pub fn read_associated_data<T: std::io::Read>(&self, mut reader: T) -> Result<(Vec<u8>, usize), ADADError> {
-        let length = unsigned_varint::io::read_usize(&mut reader)?;
-        let codec = unsigned_varint::io::read_usize(&mut reader)?;
-        let mut associated_data = vec![0u8; length];
-
-        reader.read_exact(&mut associated_data)?;
-        Ok((associated_data, codec))
     }
 
     /// Reads ADAD data from a async reader and decodes it to associated data and authenticated data
@@ -114,8 +113,11 @@ impl ADAD {
     where
         T: AsyncRead + Unpin + Send,
     {
-        let (associated_data, associated_data_codec) = self.async_read_associated_data(&mut reader).await?;
-        let (authenticated_data, authenticated_data_codec) = self.async_read_authenticated_data(&mut reader).await?;
+        let (associated_data, associated_data_codec) =
+            ADAD::async_read_part(&mut reader, self.associated_data_max_size).await?;
+
+        let (authenticated_data, authenticated_data_codec) =
+            ADAD::async_read_part(&mut reader, self.authenticated_data_max_size).await?;
 
         Ok(Data {
             associated_data,
@@ -125,32 +127,41 @@ impl ADAD {
         })
     }
 
-    /// Reads associated data from a async reader
-    pub async fn async_read_associated_data<T>(&self, mut reader: T) -> Result<(Vec<u8>, usize), ADADError>
+    /// Reads data from a reader
+    pub fn read_part<T: std::io::Read>(mut reader: T, max_size: usize) -> Result<(Vec<u8>, usize), ADADError> {
+        let length = unsigned_varint::io::read_usize(&mut reader)?;
+        let codec = unsigned_varint::io::read_usize(&mut reader)?;
+
+        if length > max_size {
+            return Err(ADADError::InvalidAssociacedDataSize {
+                size: length,
+                max: max_size,
+            });
+        }
+
+        let mut buf = vec![];
+        reader.read_to_end(&mut buf)?;
+        Ok((buf, codec))
+    }
+
+    /// Reads data from a async reader
+    pub async fn async_read_part<T>(mut reader: T, max_size: usize) -> Result<(Vec<u8>, usize), ADADError>
     where
         T: futures::io::AsyncRead + Unpin + Send,
     {
         let length = unsigned_varint::aio::read_usize(&mut reader).await?;
         let codec = unsigned_varint::aio::read_usize(&mut reader).await?;
 
-        todo!("pls add max size to prevent ddos");
-        let mut associated_data = vec![0u8; length];
+        if length > max_size {
+            return Err(ADADError::InvalidAssociacedDataSize {
+                size: length,
+                max: max_size,
+            });
+        }
 
-        reader.read_exact(&mut associated_data).await?;
-        Ok((associated_data, codec))
-    }
-
-    /// Reads authenticated data from a async reader
-    pub async fn async_read_authenticated_data<T>(&self, mut reader: T) -> Result<(Vec<u8>, usize), ADADError>
-    where
-        T: futures::io::AsyncRead + Unpin + Send,
-    {
-        let codec = unsigned_varint::aio::read_usize(&mut reader).await?;
-        let mut authenticated_data = vec![];
-
-        todo!("pls add max size to prevent ddos");
-        reader.read_to_end(&mut authenticated_data).await?;
-        Ok((authenticated_data, codec))
+        let mut buf = vec![];
+        reader.read_to_end(&mut buf).await?;
+        Ok((buf, codec))
     }
 }
 

@@ -103,7 +103,7 @@ impl RequestResponseCodec for PogCodec {
             authenticated_data_codec: adad::Codecs::Protobuf as usize,
         });
 
-        write_length_prefixed(io, buf).await?;
+        io.write_all(&buf).await?;
         io.close().await?;
 
         Ok(())
@@ -131,7 +131,7 @@ impl RequestResponseCodec for PogCodec {
             authenticated_data_codec: adad::Codecs::Protobuf as usize,
         });
 
-        write_length_prefixed(io, buf).await?;
+        io.write_all(&buf).await?;
         io.close().await?;
 
         Ok(())
