@@ -83,6 +83,16 @@ impl P2PServer {
         }
     }
 
+    // How to send resonses/requests:
+    //
+    // self.swarm.behaviour_mut().send_response(
+    //     channel,
+    //     PogResponse {
+    //         data: vec![],
+    //         header: vec![],
+    //     },
+    // )
+
     fn process_request(&self, channel: ResponseChannel<PogResponse>, request: PogRequest, request_id: RequestId) {}
     fn process_response(&self, request_id: RequestId, response: PogResponse) {}
 }
