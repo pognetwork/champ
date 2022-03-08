@@ -23,7 +23,7 @@ const MAX_LOOKBACK_RANGE: u64 = 60 * 60 * 24 * 30 * 2;
 /// Returns actual voting power of an account.
 /// Actual voting power is without the delegated power.
 #[tracing::instrument]
-pub async fn get_actual_power(state: &ChampStateArc, account_id: api::AccountID) -> Result<u32> {
+pub async fn get_actual_power(state: &ChampStateArc, account_id: api::AccountID) -> Result<u64> {
     debug!("Calculating actual voting power");
 
     let db = &state.db.lock().await;
@@ -63,7 +63,7 @@ pub async fn get_actual_power(state: &ChampStateArc, account_id: api::AccountID)
     let result = if graph_result < 0.0 {
         0
     } else {
-        graph_result as u32
+        graph_result as u64
     };
 
     trace!("total actual voting power result: {}", result);
@@ -74,7 +74,7 @@ pub async fn get_actual_power(state: &ChampStateArc, account_id: api::AccountID)
 /// Returns the active power of an account that is being used on the network.
 /// Active power is the account power with the delegated power.
 #[tracing::instrument]
-pub async fn get_active_power(state: &ChampStateArc, account_id: api::AccountID) -> Result<u32> {
+pub async fn get_active_power(state: &ChampStateArc, account_id: api::AccountID) -> Result<u64> {
     debug!("Calculating actual voting power");
     let actual_power = get_actual_power(state, account_id).await?;
     let delegate_power = get_delegated_power(state, account_id).await?;
@@ -88,7 +88,7 @@ pub async fn get_active_power(state: &ChampStateArc, account_id: api::AccountID)
 }
 
 /// Gets the sum of the power of each delegate of an account
-async fn get_delegated_power(state: &ChampStateArc, account_id: api::AccountID) -> Result<u32> {
+async fn get_delegated_power(state: &ChampStateArc, account_id: api::AccountID) -> Result<u64> {
     debug!("calculating delegated power");
     // TODO: Cache this
     let mut power = 0;
@@ -106,10 +106,10 @@ async fn get_delegated_power(state: &ChampStateArc, account_id: api::AccountID) 
 }
 
 /// Gets the max voting power in the system and sets a limit of a percentage
-fn get_max_voting_power() -> u32 {
+fn get_max_voting_power() -> u64 {
     //TODO: Get all voting power of all prime delegates combined
     let total_prime_delegate_power = 100_000_000_f64;
-    (total_prime_delegate_power * MAX_NETWORK_POWER) as u32
+    (total_prime_delegate_power * MAX_NETWORK_POWER) as u64
 }
 
 #[cfg(test)]

@@ -1,5 +1,6 @@
 #![allow(dead_code, unused_variables)]
 
+use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::p2p::pogprotocol::{self, PogProtocol};
@@ -28,10 +29,18 @@ use libp2p::{
 
 use super::pogprotocol::{PogBehavior, PogMessage, PogRequest, PogResponse};
 
+pub struct Peer {
+    public_key: [u8; 32],
+    voting_power: u64,
+    ip: libp2p::Multiaddr,
+    last_ping: std::time::Duration,
+}
+
 pub struct P2PServer {
     state: ChampStateArc,
     swarm: Swarm<PogBehavior>,
     keypair: AuthenticKeypair<X25519Spec>,
+    peers: HashMap<[u8; 32], Peer>,
 }
 
 fn timestamp() -> u64 {
@@ -53,11 +62,13 @@ impl P2PServer {
             .boxed();
 
         let swarm = SwarmBuilder::new(transp, pog_protocol.behavior(), peer_id).build();
+        let peers = HashMap::new();
 
         Self {
             state,
             swarm,
             keypair: dh_keys,
+            peers,
         }
     }
 
@@ -172,7 +183,8 @@ impl P2PServer {
         todo!("do smth")
     }
     fn process_final_vote(&self, data: FinalVote) -> Result<()> {
-        todo!("add block to blockpool")
+        todo!("count the final votes")
+        // count the final votes and once 60% of the online voting has been reached, add the block to the chain
     }
     fn process_vote_proposal(&self) -> Result<()> {
         todo!("run the consensus on the block and return voting score")
