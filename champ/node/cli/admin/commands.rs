@@ -3,6 +3,7 @@ use crate::{
     state::ChampStateArc,
 };
 
+use anyhow::Result;
 use clap::ArgMatches;
 use crypto::signatures::ecdsa;
 use tracing::{debug, trace};
@@ -14,7 +15,7 @@ pub async fn run(matches: &ArgMatches, state: &ChampStateArc) -> Result<(), CLIE
         {
             let config = state.config.read().await;
 
-            if config.admin.jwt_private_key.is_empty() || config.admin.jwt_public_key.is_empty() {
+            if config.admin.jwt_private_key.is_some() || config.admin.jwt_public_key.is_some() {
                 return Err(CLIError::NoKeyPair);
             }
         }
@@ -38,16 +39,20 @@ pub async fn run(matches: &ArgMatches, state: &ChampStateArc) -> Result<(), CLIE
         return Ok(());
     }
     if matches.subcommand_matches("generate-key").is_some() {
-        let mut config = state.config.write().await;
-
-        let key_pair =
-            ecdsa::generate_key_pair().map_err(|_| CLIError::Unknown("could not generate keypair".to_string()))?;
-        config.admin.jwt_public_key = key_pair.public_key;
-        config.admin.jwt_private_key = key_pair.private_key;
-        config.write().map_err(|e| CLIError::Unknown(e.to_string()))?;
+        generate_jwt_keys(state).await.map_err(|e| CLIError::Unknown(e.to_string()))?;
         debug!("Successfully generated JWT keys");
         return Ok(());
     }
 
     Err(CLIError::UnknownCommand)
+}
+
+pub async fn generate_jwt_keys(state: &ChampStateArc) -> Result<()> {
+    let mut config = state.config.write().await;
+
+    let key_pair =
+        ecdsa::generate_key_pair().map_err(|_| CLIError::Unknown("could not generate keypair".to_string()))?;
+    config.admin.jwt_public_key = Some(key_pair.public_key);
+    config.admin.jwt_private_key = Some(key_pair.private_key);
+    config.write()
 }

@@ -106,8 +106,8 @@ pub struct UserAccount {
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct Admin {
     pub enabled: bool,
-    pub jwt_private_key: String,
-    pub jwt_public_key: String,
+    pub jwt_private_key: Option<String>,
+    pub jwt_public_key: Option<String>,
     #[serde(default = "default_node_name")]
     pub node_name: String,
 }
