@@ -2,12 +2,15 @@
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use crate::blockpool::BlockpoolClient;
 use crate::p2p::pogprotocol::{self, PogProtocol};
 use crate::state::ChampStateArc;
 use anyhow::{anyhow, Result};
-use crypto::signatures::ed25519::create_signature;
+use crypto::signatures::ed25519::{create_signature, verify_signature};
+use libp2p::futures::TryFutureExt;
 use libp2p::noise::AuthenticKeypair;
-use pog_proto::p2p::Failure;
+use pog_proto::p2p::request_body::{FinalVote, Forward};
+use pog_proto::p2p::{request_body, Failure};
 use pog_proto::p2p::{
     request_body::Data as RequestBodyData, response_body::Data as ResponseBodyData, RequestBody, RequestHeader,
     ResponseBody, ResponseHeader,
@@ -121,8 +124,63 @@ impl P2PServer {
             }
         };
 
-        let data = request.data;
+        match verify_signature(&request.data, &self.public_key(), &*header.signature) {
+            Ok(_) => (),
+            Err(err) => {
+                self.send_response(channel, ResponseBodyData::Failure(Failure::MalformedRequest.into()))?;
+                return Err(err.into());
+            }
+        }
+
+        let body = match RequestBody::decode(&*request.data) {
+            Ok(body) => body,
+            Err(err) => {
+                self.send_response(channel, ResponseBodyData::Failure(Failure::MalformedRequest.into()))?;
+                return Err(err.into());
+            }
+        };
+
+        let data = match body.data {
+            Some(d) => d,
+            None => {
+                self.send_response(channel, ResponseBodyData::Failure(Failure::MalformedRequest.into()))?;
+                return Err(anyhow!("data was none"));
+            }
+        };
+
+        match self.match_request_body_data(data) {
+            Ok(_) => {
+                self.send_response(channel, ResponseBodyData::Success(pog_proto::p2p::response_body::Success {}))?;
+            }
+            Err(err) => {
+                self.send_response(channel, ResponseBodyData::Failure(Failure::MalformedRequest.into()))?;
+            }
+        }
+
         Ok(())
+    }
+
+    fn match_request_body_data(&mut self, body: request_body::Data) -> Result<()> {
+        let result = match body {
+            request_body::Data::Forward(data) => P2PServer::process_forward(*data),
+            request_body::Data::FinalVote(data) => P2PServer::process_final_vote(data),
+            request_body::Data::Vote(_) => P2PServer::process_vote(),
+            request_body::Data::Ping(_) => P2PServer::process_ping(),
+        };
+        Ok(())
+    }
+
+    fn process_final_vote(data: FinalVote) -> Result<()> {
+        todo!("add block to blockpool")
+    }
+    fn process_forward(body: Forward) -> Result<()> {
+        todo!("do smth")
+    }
+    fn process_vote() -> Result<()> {
+        todo!("run the consensus on the block and return voting score")
+    }
+    fn process_ping() -> Result<()> {
+        todo!("pong")
     }
 
     fn sign(&mut self, data: &[u8]) -> Result<Vec<u8>> {
