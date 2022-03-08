@@ -28,7 +28,7 @@ impl GeneratedWallet {
 #[wasm_bindgen]
 impl Wallet {
     #[wasm_bindgen(catch, js_name = "generate")]
-    pub fn generate_wallet(password: String) -> Result<GeneratedWallet, JsValue> {
+    pub fn generate_wallet(password: &str) -> Result<GeneratedWallet, JsValue> {
         let (wallet_json, wallet_address) =
             lulw::generate_wallet(password).map_err(|e| JsValue::from_str(&e.to_string()))?;
         Ok(GeneratedWallet {
@@ -38,7 +38,7 @@ impl Wallet {
     }
 
     #[wasm_bindgen(catch, js_name = "unlock")]
-    pub fn unlock_wallet(wallet: String, password: String) -> Result<String, JsValue> {
-        lulw::unlock_wallet(&wallet, password).map_err(|e| JsValue::from_str(&e.to_string())).map(encode)
+    pub fn unlock_wallet(wallet: &str, password: &str) -> Result<String, JsValue> {
+        lulw::unlock_wallet(wallet, password).map_err(|e| JsValue::from_str(&e.to_string())).map(encode)
     }
 }

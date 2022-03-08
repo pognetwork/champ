@@ -81,6 +81,12 @@ pub async fn run() -> Result<()> {
         return Ok(());
     }
 
+    if let Some(matches) = matches.subcommand_matches("wallet") {
+        debug!("command matched to wallet subcommand");
+        cli::wallet::run(matches, &state).await?;
+        return Ok(());
+    }
+
     let mut p2p_server = P2PServer::new(state.clone());
     let rpc_server = RpcServer::new(state.clone());
     let http_server = HttpServer::new();

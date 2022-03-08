@@ -598,6 +598,7 @@ dependencies = [
  "tower",
  "tracing",
  "tracing-subscriber",
+ "zeroize",
 ]
 
 [[package]]
