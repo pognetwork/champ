@@ -2623,9 +2623,9 @@ dependencies = [
 
 [[package]]
 name = "libz-sys"
-version = "1.1.4"
+version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df2bf61678a0a521c3f7daf815d2e6717d85a272a7dcd02c9768272b32bd1e2a"
+checksum = "6f35facd4a5673cb5a48822be2be1d4236c1c99cb4113cab7061ac720d5bf859"
 dependencies = [
  "cc",
  "pkg-config",
@@ -3518,7 +3518,7 @@ dependencies = [
 [[package]]
 name = "pog-proto"
 version = "0.1.0"
-source = "git+https://github.com/pognetwork/proto#1ebd73d14eef048cf18261810fa4a34b6534b444"
+source = "git+https://github.com/pognetwork/proto#f89f332e0546834a2fff64badcf0e649e396140e"
 dependencies = [
  "prost",
  "sha3 0.10.1",

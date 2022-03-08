@@ -158,26 +158,26 @@ impl P2PServer {
         Ok(())
     }
 
-    fn match_request_body_data(&mut self, body: request_body::Data) -> Result<()> {
-        let result = match body {
-            request_body::Data::Forward(data) => P2PServer::process_forward(*data),
-            request_body::Data::FinalVote(data) => P2PServer::process_final_vote(data),
-            request_body::Data::Vote(_) => P2PServer::process_vote(),
-            request_body::Data::Ping(_) => P2PServer::process_ping(),
+    fn match_request_body_data(&self, data: request_body::Data) -> Result<()> {
+        let result = match data {
+            request_body::Data::Forward(data) => self.process_forward(*data),
+            request_body::Data::FinalVote(data) => self.process_final_vote(data),
+            request_body::Data::VoteProposal(_) => self.process_vote_proposal(),
+            request_body::Data::Ping(_) => self.process_ping(),
         };
         Ok(())
     }
 
-    fn process_final_vote(data: FinalVote) -> Result<()> {
-        todo!("add block to blockpool")
-    }
-    fn process_forward(body: Forward) -> Result<()> {
+    fn process_forward(&self, body: Forward) -> Result<()> {
         todo!("do smth")
     }
-    fn process_vote() -> Result<()> {
+    fn process_final_vote(&self, data: FinalVote) -> Result<()> {
+        todo!("add block to blockpool")
+    }
+    fn process_vote_proposal(&self) -> Result<()> {
         todo!("run the consensus on the block and return voting score")
     }
-    fn process_ping() -> Result<()> {
+    fn process_ping(&self) -> Result<()> {
         todo!("pong")
     }
 
@@ -217,6 +217,7 @@ impl P2PServer {
     fn send_response(&mut self, channel: ResponseChannel<PogResponse>, response: ResponseBodyData) -> Result<()> {
         let response_body = ResponseBody {
             timestamp: timestamp(),
+            signature_type: 0,
             data: Some(response),
         }
         .encode_to_vec();
