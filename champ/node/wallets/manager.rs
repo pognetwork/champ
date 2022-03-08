@@ -1,7 +1,6 @@
 use crate::config::{read_file, write_file};
 use crate::state::ChampStateArc;
 use anyhow::Result;
-use crypto::signatures::ecdsa;
 use lulw;
 use serde_json;
 use std::collections::HashMap;
@@ -48,8 +47,12 @@ impl Wallet {
         self.locked = false;
     }
 
-    pub fn sign_data(_data: &[u8]) -> Vec<u8> {
-        todo!()
+    pub fn sign(&mut self, data: &[u8]) -> Result<[u8; 64], WalletManagerError> {
+        match &self.private_key {
+            Some(key) => crypto::signatures::ed25519::create_signature(data, key)
+                .map_err(|e| WalletManagerError::Unknown(format!("failed to generate signature: {e}"))),
+            None => Err(WalletManagerError::Locked),
+        }
     }
 }
 
