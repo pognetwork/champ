@@ -8,9 +8,7 @@ version = "0.0.9"
 
 [dependencies]
 base64 = "0.13"
-instant = "0.1"
 lulw = {path = "../lulw"}
-parking_lot_core = "0.9.0"
 wasm-bindgen = "0.2.78"
 
 [dev-dependencies]

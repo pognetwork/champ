@@ -14,7 +14,7 @@ pub struct TestAccount {
     public_key: [u8; 32],
 }
 
-const GENESIS_ID: &[u8; 32] = b"00000000000000000000000000000000";
+pub const GENESIS_ID: &[u8; 32] = b"00000000000000000000000000000000";
 
 impl TestStorage {
     pub async fn new() -> Self {
@@ -50,16 +50,20 @@ impl TestStorage {
         )
     }
 
+    pub fn mock_account() -> TestAccount {
+        let private_key = generate_private_key().expect("should generate private key");
+        let public_key = create_public_key(&private_key).expect("should calculate public key");
+        TestAccount {
+            private_key,
+            public_key,
+        }
+    }
+
     pub fn mock_accounts(count: u8) -> Vec<TestAccount> {
         let mut accounts: Vec<TestAccount> = vec![];
 
         for _ in 0..count {
-            let private_key = generate_private_key().expect("should generate private key");
-            let public_key = create_public_key(&private_key).expect("should calculate public key");
-            accounts.push(TestAccount {
-                private_key,
-                public_key,
-            })
+            accounts.push(TestStorage::mock_account())
         }
         accounts
     }
@@ -75,6 +79,22 @@ impl TestStorage {
         }
     }
 
+    pub fn mock_simple_signed_block() -> SignedBlock {
+        let account = TestStorage::mock_account();
+        let block_data = TestStorage::mock_blockdata(
+            100u64,
+            0,
+            GENESIS_ID,
+            vec![Transaction {
+                data: Some(pog_proto::api::transaction::Data::TxClaim(TxClaim {
+                    send_transaction_id: GENESIS_ID.to_vec(),
+                })),
+            }],
+        );
+
+        TestStorage::mock_sign_data(&block_data.encode_to_vec(), 0, &account.public_key, &account.private_key)
+    }
+
     pub async fn mock(&mut self) {
         let count = 10;
         let accounts = TestStorage::mock_accounts(count);
@@ -82,6 +102,7 @@ impl TestStorage {
         let genesis_tx = pog_proto::api::transaction::Data::TxClaim(TxClaim {
             send_transaction_id: GENESIS_ID.to_vec(),
         });
+
         let genesis_txs = vec![Transaction {
             data: Some(genesis_tx),
         }];

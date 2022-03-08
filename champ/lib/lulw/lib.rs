@@ -47,7 +47,7 @@ pub enum WalletError {
 
 pub type WalletAndAddress = (String, String);
 
-pub fn generate_wallet(password: String) -> Result<WalletAndAddress, WalletError> {
+pub fn generate_wallet(password: &str) -> Result<WalletAndAddress, WalletError> {
     debug!("generating wallet");
     let (public_key, (ciphertext, salt, nonce)) = {
         let private_key = crypto::signatures::ed25519::generate_private_key()
@@ -93,7 +93,7 @@ pub fn generate_wallet(password: String) -> Result<WalletAndAddress, WalletError
     Ok((json, account_address))
 }
 
-pub fn unlock_wallet(wallet: &str, password: String) -> Result<Vec<u8>, WalletError> {
+pub fn unlock_wallet(wallet: &str, password: &str) -> Result<Vec<u8>, WalletError> {
     let parsed_wallet: Lulw = serde_json::from_str(wallet).map_err(WalletError::SerializationError)?;
 
     if !(parsed_wallet.version == 0
@@ -155,15 +155,14 @@ mod tests {
                 }
             }
         }";
-        let passphrase = unlock_wallet(wallet, "1234".to_string());
+        let passphrase = unlock_wallet(wallet, "1234");
         assert!(passphrase.is_ok())
     }
 
     #[test]
     fn create_wallet_which_is_unlockable() {
-        let password = "1234".to_string();
-        let (wallet, _) = generate_wallet(password.clone()).expect("Couldn't generate wallet");
-
+        let password = "1234";
+        let (wallet, _) = generate_wallet(password).expect("Couldn't generate wallet");
         let result = unlock_wallet(wallet.as_str(), password);
         assert!(result.is_ok())
     }

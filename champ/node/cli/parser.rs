@@ -25,6 +25,25 @@ pub fn new() -> clap::ArgMatches {
                 .takes_value(true),
         )
         .subcommand(
+            clap::Command::new("wallet").about("access to the wallet manager").subcommand(
+                clap::Command::new("generate")
+                    .about("generate a new wallet")
+                    .arg(
+                        Arg::new("primary")
+                            .short('p')
+                            .help("Make this the new primary wallet (existing primary wallets will be demoted)")
+                            .required(false)
+                            .takes_value(false),
+                    )
+                    .arg(
+                        Arg::new("password")
+                            .help("Password for encrypting the wallet")
+                            .required(true)
+                            .takes_value(true),
+                    ),
+            ),
+        )
+        .subcommand(
             clap::Command::new("admin")
                 .about("access to the admin interface")
                 .subcommand(

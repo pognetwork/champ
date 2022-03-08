@@ -45,10 +45,6 @@ fn default_consensus() -> ConsensusSettings {
     }
 }
 
-fn default_wallets() -> WalletManagerConfig {
-    WalletManagerConfig::default()
-}
-
 fn default_node_name() -> String {
     "PogNetwork Node".to_string()
 }
@@ -63,9 +59,6 @@ pub struct Config {
 
     #[serde(default = "default_database")]
     pub database: DatabaseConfig,
-
-    #[serde(default = "default_wallets")]
-    pub wallets: WalletManagerConfig,
 
     #[serde(default = "default_consensus")]
     pub consensus: ConsensusSettings,
@@ -87,6 +80,8 @@ pub struct WalletManagerConfig {}
 pub struct ConsensusSettings {
     pub chain: String, // currently only `dev` is supported
 
+    pub primary_wallet: Option<String>,
+
     #[serde(with = "ModeDef")]
     pub mode: Mode,
 }
@@ -96,6 +91,7 @@ impl Default for ConsensusSettings {
         Self {
             chain: "dev".to_string(),
             mode: Mode::Validating,
+            primary_wallet: None,
         }
     }
 }
@@ -110,8 +106,8 @@ pub struct UserAccount {
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct Admin {
     pub enabled: bool,
-    pub jwt_private_key: String,
-    pub jwt_public_key: String,
+    pub jwt_private_key: Option<String>,
+    pub jwt_public_key: Option<String>,
     #[serde(default = "default_node_name")]
     pub node_name: String,
 }
@@ -162,6 +158,7 @@ impl Config {
         self.database = config.database.clone();
         self.admin = config.admin;
         self.node_users = config.node_users;
+        self.consensus = config.consensus;
 
         self.data_path = if let Some(path) = config.database.path {
             let path = path.parse::<PathBuf>()?;

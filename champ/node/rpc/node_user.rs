@@ -36,6 +36,7 @@ impl NodeUser for NodeUserService {
             let user = config.node_users.get(&username);
             let jwt_key = config.admin.jwt_private_key.clone();
             let user = user.ok_or_else(|| Status::new(tonic::Code::Internal, "invalid username"))?;
+            let jwt_key = jwt_key.ok_or_else(|| Status::new(tonic::Code::Internal, "no jwt key (config.admin)"))?;
             (jwt_key, user.clone())
         };
 

@@ -3,6 +3,7 @@ mod blockpool;
 mod cli;
 mod config;
 mod consensus;
+mod env;
 mod http;
 mod metrics;
 mod p2p;
@@ -20,6 +21,7 @@ use tracing::{debug, Level};
 
 use crate::{
     blockpool::Blockpool,
+    env::process_env,
     metrics::MetricsServer,
     p2p::server::P2PServer,
     rpc::server::RpcServer,
@@ -27,6 +29,8 @@ use crate::{
     wallets::WalletManager,
 };
 
+/// run is champ's main entry point
+/// This function processes cli arguments, sets up all global state, and starts various services
 pub async fn run() -> Result<()> {
     let matches = cli::parser::new();
     let log_level = match matches.value_of("loglevel") {
@@ -81,7 +85,15 @@ pub async fn run() -> Result<()> {
         return Ok(());
     }
 
-    let p2p_server = P2PServer::new(state.clone());
+    if let Some(matches) = matches.subcommand_matches("wallet") {
+        debug!("command matched to wallet subcommand");
+        cli::wallet::run(matches, &state).await?;
+        return Ok(());
+    }
+
+    process_env(state.clone()).await?;
+
+    let mut p2p_server = P2PServer::new(state.clone());
     let rpc_server = RpcServer::new(state.clone());
     let http_server = HttpServer::new();
     let rough_time_server = RoughTime::new();
