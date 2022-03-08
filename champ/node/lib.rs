@@ -12,9 +12,12 @@ pub mod storage;
 pub mod validation;
 pub mod wallets;
 
-use anyhow::Result;
+use std::env;
+
+use anyhow::{anyhow, Result};
 use http::HttpServer;
 use roughtime::server::RoughTime;
+use state::ChampStateArc;
 use tokio::{sync::RwLock, try_join};
 use tracing::{debug, Level};
 
@@ -27,6 +30,8 @@ use crate::{
     wallets::WalletManager,
 };
 
+/// run is champ's main entry point
+/// This function processes cli arguments, sets up all global state, and starts various services
 pub async fn run() -> Result<()> {
     let matches = cli::parser::new();
     let log_level = match matches.value_of("loglevel") {
@@ -87,6 +92,8 @@ pub async fn run() -> Result<()> {
         return Ok(());
     }
 
+    process_env(state.clone()).await?;
+
     let mut p2p_server = P2PServer::new(state.clone());
     let rpc_server = RpcServer::new(state.clone());
     let http_server = HttpServer::new();
@@ -110,5 +117,25 @@ pub async fn run() -> Result<()> {
     );
 
     tracing::error!("exiting, error occurred while starting services: {:?}", err);
+    Ok(())
+}
+
+/// process_env processes champ-related environment variables
+async fn process_env(state: ChampStateArc) -> Result<()> {
+    let mut config = state.config.write().await;
+    let mut wallet_manager = state.wallet_manager.write().await;
+
+    if let Ok(primary_wallet_password) = env::var("CHAMP_PRIMARY_WALLET_PASSWORD") {
+        if env::var("CHAMP_GENERATE_PRIMARY_WALLET").is_ok() {
+            config.consensus.primary_wallet = Some(wallet_manager.create_wallet(&primary_wallet_password).await?);
+            config.write()?;
+        }
+
+        match config.consensus.primary_wallet.clone() {
+            Some(primary_wallet) => wallet_manager.unlock_wallet(primary_wallet, &primary_wallet_password).await?,
+            None => return Err(anyhow!("CHAMP_PRIMARY_WALLET_PASSWORD defined but no primary wallet to unlock. Specify primary wallet in config.consensus.primary_wallet"))
+        }
+    }
+
     Ok(())
 }

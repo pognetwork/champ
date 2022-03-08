@@ -1,6 +1,7 @@
 use crate::config::{read_file, write_file};
 use crate::state::ChampStateArc;
 use anyhow::Result;
+use crypto::signatures::ecdsa;
 use lulw;
 use serde_json;
 use std::collections::HashMap;
@@ -34,6 +35,14 @@ impl Wallet {
         self.locked = true;
     }
 
+    pub fn public_key(&self) -> Result<[u8; 32], WalletManagerError> {
+        match &self.private_key {
+            Some(key) => crypto::signatures::ed25519::create_public_key(key)
+                .map_err(|e| WalletManagerError::Unknown(format!("failed to generate public key: {e}"))),
+            None => Err(WalletManagerError::Locked),
+        }
+    }
+
     pub fn set_private_key(&mut self, key: Vec<u8>) {
         self.private_key = Some(key);
         self.locked = false;
@@ -63,6 +72,8 @@ pub enum WalletManagerError {
     ReadError(String),
     #[error("Wallet not found")]
     NotFoundError,
+    #[error("wallet is locked")]
+    Locked,
     #[error("error with unlocking wallet: {0}")]
     UnlockError(String),
     #[error("error with creating wallet")]
@@ -95,6 +106,13 @@ impl WalletManager {
         }
     }
 
+    pub async fn primary_wallet(&mut self) -> Option<&Wallet> {
+        let state = self.state.clone()?;
+        let config = &state.config.read().await;
+        let primary_wallet = config.consensus.primary_wallet.as_ref()?;
+        self.get_wallet(primary_wallet).await
+    }
+
     pub async fn initialize(&mut self) -> Result<(), WalletManagerError> {
         let mut path = self.get_base_path().await?;
 
@@ -121,11 +139,11 @@ impl WalletManager {
 
     /// create a wallet from passphrase and user_name, write the wallet to disk and add it to the index and wallet hashmap
     pub async fn create_wallet(&mut self, password: &str) -> Result<AccountAddress, WalletManagerError> {
-        let (wallet, account_address) = lulw::generate_wallet(password).map_err(WalletManagerError::WalletError)?;
+        let (wallet, account_address) = lulw::generate_wallet(password)?;
 
         let mut path = self.get_wallets_path().await?;
         path.push(format!("{}.json", &account_address));
-        write_file(path, &wallet).map_err(WalletManagerError::IOError)?;
+        write_file(path, &wallet)?;
 
         let wallet = Wallet::new(account_address.clone());
         self.wallets.insert(account_address.clone(), wallet);
