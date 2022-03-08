@@ -2,12 +2,10 @@
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::blockpool::BlockpoolClient;
 use crate::p2p::pogprotocol::{self, PogProtocol};
 use crate::state::ChampStateArc;
 use anyhow::{anyhow, Result};
 use crypto::signatures::ed25519::{create_signature, verify_signature};
-use libp2p::futures::TryFutureExt;
 use libp2p::noise::AuthenticKeypair;
 use pog_proto::p2p::request_body::{FinalVote, Forward};
 use pog_proto::p2p::{request_body, Failure};
