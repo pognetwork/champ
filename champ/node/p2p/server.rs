@@ -6,10 +6,11 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::p2p::pogprotocol::{self, PogProtocol};
 use crate::state::ChampStateArc;
 use anyhow::{anyhow, Result};
+use crypto::rand::seq::IteratorRandom;
 use crypto::signatures::ed25519::{create_signature, verify_signature};
 use libp2p::noise::AuthenticKeypair;
 use pog_proto::p2p::request_body::{FinalVote, Forward};
-use pog_proto::p2p::{request_body, Failure};
+use pog_proto::p2p::{request_body, response_body, Failure};
 use pog_proto::p2p::{
     request_body::Data as RequestBodyData, response_body::Data as ResponseBodyData, RequestBody, RequestHeader,
     ResponseBody, ResponseHeader,
@@ -42,6 +43,8 @@ pub struct P2PServer {
     keypair: AuthenticKeypair<X25519Spec>,
     peers: HashMap<[u8; 32], Peer>,
 }
+
+const NR_OF_PEERS_SENT: usize = 10;
 
 fn timestamp() -> u64 {
     SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs() as u64
@@ -157,26 +160,17 @@ impl P2PServer {
             }
         };
 
-        match self.match_request_body_data(data) {
-            Ok(_) => {
-                self.send_response(channel, ResponseBodyData::Success(pog_proto::p2p::response_body::Success {}))?;
-            }
-            Err(err) => {
-                self.send_response(channel, ResponseBodyData::Failure(Failure::MalformedRequest.into()))?;
-            }
-        }
-
-        Ok(())
-    }
-
-    fn match_request_body_data(&self, data: request_body::Data) -> Result<()> {
         let result = match data {
             request_body::Data::Forward(data) => self.process_forward(*data),
             request_body::Data::FinalVote(data) => self.process_final_vote(data),
             request_body::Data::VoteProposal(_) => self.process_vote_proposal(),
-            request_body::Data::Ping(_) => self.process_ping(),
+            request_body::Data::Ping(data) => return self.process_ping(data, channel),
         };
-        Ok(())
+
+        match result {
+            Ok(_) => self.send_response(channel, ResponseBodyData::Success(pog_proto::p2p::response_body::Success {})),
+            Err(err) => self.send_response(channel, ResponseBodyData::Failure(Failure::MalformedRequest.into())),
+        }
     }
 
     fn process_forward(&self, body: Forward) -> Result<()> {
@@ -189,8 +183,20 @@ impl P2PServer {
     fn process_vote_proposal(&self) -> Result<()> {
         todo!("run the consensus on the block and return voting score")
     }
-    fn process_ping(&self) -> Result<()> {
-        todo!("pong")
+    fn process_ping(&mut self, data: request_body::Ping, channel: ResponseChannel<PogResponse>) -> Result<()> {
+        let mut r = crypto::rand::thread_rng();
+        // chose a number of random peers
+        let peers = self
+            .peers
+            .values()
+            .choose_multiple(&mut r, NR_OF_PEERS_SENT)
+            .iter()
+            .map(|p| p.ip.to_vec())
+            .collect::<Vec<Vec<u8>>>();
+        let pong = response_body::Pong {
+            peers,
+        };
+        self.send_response(channel, ResponseBodyData::Pong(pong))
     }
 
     fn sign(&mut self, data: &[u8]) -> Result<Vec<u8>> {
