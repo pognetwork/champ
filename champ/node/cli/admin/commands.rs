@@ -15,7 +15,7 @@ pub async fn run(matches: &ArgMatches, state: &ChampStateArc) -> Result<(), CLIE
         {
             let config = state.config.read().await;
 
-            if config.admin.jwt_private_key.is_some() || config.admin.jwt_public_key.is_some() {
+            if config.admin.jwt_private_key.is_none() || config.admin.jwt_public_key.is_none() {
                 return Err(CLIError::NoKeyPair);
             }
         }

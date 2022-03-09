@@ -5,7 +5,7 @@ use lulw;
 use serde_json;
 use std::collections::HashMap;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use thiserror::Error;
 use zeroize::Zeroize;
 
@@ -262,7 +262,7 @@ impl WalletManager {
         let base_path =
             config.data_path.clone().ok_or_else(|| WalletManagerError::Unknown("unknown base path".to_string()))?;
 
-        Ok(PathBuf::from(format!("{base_path}\\walletmanager")))
+        Ok(Path::new(&base_path).join("walletmanager"))
     }
 
     #[inline]
