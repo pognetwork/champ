@@ -606,9 +606,12 @@ name = "champ-wasm"
 version = "0.0.9"
 dependencies = [
  "base64",
+ "crypto",
+ "encoding",
  "lulw",
  "wasm-bindgen",
  "wasm-bindgen-test",
+ "zeroize",
 ]
 
 [[package]]
