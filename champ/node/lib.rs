@@ -13,7 +13,7 @@ pub mod storage;
 pub mod validation;
 pub mod wallets;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use http::HttpServer;
 use roughtime::server::RoughTime;
 use tokio::{sync::RwLock, try_join};
@@ -106,15 +106,18 @@ pub async fn run() -> Result<()> {
     let metrics_addr = "0.0.0.0:50048".parse()?;
 
     debug!("starting services");
-    let err = try_join!(
+    match try_join!(
         p2p_server.start(),
         rpc_server.start(rpc_addr),
         metrics_server.start(metrics_addr, matches.is_present("metrics")),
         http_server.start(http_addr, matches.is_present("web")),
         rough_time_server.start(rough_time_addr, matches.is_present("roughtime")),
         blockpool.start(),
-    );
-
-    tracing::error!("exiting, error occurred while starting services: {:?}", err);
-    Ok(())
+    ) {
+        Err(err) => {
+            tracing::error!("exiting, error occurred while starting services: {:?}", err);
+            return Err(anyhow!("unrecoverable state"));
+        }
+        Ok(_) => Ok(()),
+    }
 }

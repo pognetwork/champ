@@ -78,14 +78,16 @@ impl RpcServer {
                 .serve(addr)
                 .await
             {
-                tracing::error!("error while starting grpc server: {}", e);
+                tracing::error!("error while starting grpc server: {e:?}");
                 GRPC_HEALTH.set(ServiceStatus::Broken as i64);
+                return Err(anyhow!("failed to start grpc server").into());
             }
         } else {
             info!("admin service is disabled");
             if let Err(e) = server.serve(addr).await {
-                tracing::error!("error while starting grpc server: {}", e);
+                tracing::error!("error while starting grpc server: {e:?}");
                 GRPC_HEALTH.set(ServiceStatus::Broken as i64);
+                return Err(anyhow!("failed to start grpc server").into());
             }
         }
 
