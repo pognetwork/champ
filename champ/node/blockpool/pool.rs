@@ -1,14 +1,14 @@
 #![allow(dead_code)]
 
 use anyhow::{anyhow, Context, Result};
-use pog_proto::api::SignedBlock;
+use pog_proto::api::{BlockID, SignedBlock};
 use tokio::sync::{
     mpsc::{self, Receiver, Sender},
     oneshot,
 };
 use tracing::info;
 
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 
 use crate::{state::ChampStateArc, validation::block};
 
@@ -23,6 +23,7 @@ pub struct Blockpool {
     rx: Receiver<Command>,
     block_queue: VecDeque<QueueItem>,
     state: Option<ChampStateArc>,
+    block_votes: HashMap<BlockID, Vec<u64>>,
 }
 
 impl Default for Blockpool {
@@ -31,7 +32,7 @@ impl Default for Blockpool {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BlockpoolClient {
     tx: Sender<Command>,
 }
@@ -75,6 +76,13 @@ impl BlockpoolClient {
             .with_context(|| "error sending process request")?;
         resp_rx.await?
     }
+
+    /// Gets the total voting power in the network
+    pub fn get_total_network_power(&self) -> f64 {
+        //TODO: Get all voting power of all prime delegates combined
+        let total_prime_delegate_power = 100_000_000_f64;
+        total_prime_delegate_power
+    }
 }
 
 impl Blockpool {
@@ -85,6 +93,7 @@ impl Blockpool {
             rx,
             block_queue: VecDeque::with_capacity(10_000),
             state: None,
+            block_votes: HashMap::new(),
         }
     }
 
@@ -114,6 +123,7 @@ impl Blockpool {
                     resp,
                 } => {
                     let result = block::validate(&block, &state).await;
+                    self.calculate_quorum(&block);
                     match result {
                         Ok(_) => {
                             self.block_queue.push_back(QueueItem {
@@ -142,6 +152,21 @@ impl Blockpool {
             }
         }
         Ok(())
+    }
+
+    fn calculate_quorum(&mut self, block: &SignedBlock) {
+        // count the final votes received based on a blockID and once 60% of the online voting has been reached, add the block to the chain
+        let block_id = block.get_id();
+        let all_votes = &self.block_votes[&block_id];
+        let total_votes = all_votes.iter().sum::<u64>() as f64;
+        let total_network_power = self.state.as_ref().unwrap().blockpool_client.get_total_network_power();
+        let percentage_voted = total_votes / total_network_power;
+        if percentage_voted > 0.6 {
+            // if the block came from a final vote:
+            todo!("add the block to the chain and send own final vote")
+            // if the block came frma vote proposal:
+            // we check if we are prime delegate and if yes we cast our vote and send our vote out
+        }
     }
 }
 

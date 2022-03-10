@@ -65,6 +65,7 @@ impl P2PServer {
             .boxed();
 
         let swarm = SwarmBuilder::new(transp, pog_protocol.behavior(), peer_id).build();
+        //TODO: create logic to save these in case of crash
         let peers = HashMap::new();
 
         Self {
@@ -176,11 +177,19 @@ impl P2PServer {
     fn process_forward(&self, body: Forward) -> Result<()> {
         todo!("do smth")
     }
-    fn process_final_vote(&self, data: FinalVote) -> Result<()> {
-        todo!("count the final votes")
-        // count the final votes and once 60% of the online voting has been reached, add the block to the chain
+
+    #[tokio::main]
+    async fn process_final_vote(&self, data: FinalVote) -> Result<()> {
+        // all nodes who calculate a 60% quorum from the vote proposal need to send a final vote
+        let raw_block = match data.block {
+            Some(block) => block,
+            None => return Err(anyhow!("block was none")),
+        };
+
+        self.state.blockpool_client.process_block(raw_block).await
     }
     fn process_vote_proposal(&self) -> Result<()> {
+        // if prime delegate: cast own vote and send to all other prime delegates and 10 non prime delegates
         todo!("run the consensus on the block and return voting score")
     }
     fn process_ping(&mut self, data: request_body::Ping, channel: ResponseChannel<PogResponse>) -> Result<()> {
