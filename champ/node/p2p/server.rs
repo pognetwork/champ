@@ -9,7 +9,7 @@ use anyhow::{anyhow, Result};
 use crypto::rand::seq::IteratorRandom;
 use crypto::signatures::ed25519::{create_signature, verify_signature};
 use libp2p::noise::AuthenticKeypair;
-use pog_proto::p2p::request_body::{FinalVote, Forward};
+use pog_proto::p2p::request_body::{FinalVote, Forward, VoteProposal};
 use pog_proto::p2p::{request_body, response_body, Failure};
 use pog_proto::p2p::{
     request_body::Data as RequestBodyData, response_body::Data as ResponseBodyData, RequestBody, RequestHeader,
@@ -164,7 +164,7 @@ impl P2PServer {
         let result = match data {
             request_body::Data::Forward(data) => self.process_forward(*data),
             request_body::Data::FinalVote(data) => self.process_final_vote(data),
-            request_body::Data::VoteProposal(_) => self.process_vote_proposal(),
+            request_body::Data::VoteProposal(data) => self.process_vote_proposal(data),
             request_body::Data::Ping(data) => return self.process_ping(data, channel),
         };
 
@@ -186,11 +186,33 @@ impl P2PServer {
             None => return Err(anyhow!("block was none")),
         };
 
-        self.state.blockpool_client.process_block(raw_block).await
+        if self.state.blockpool_client.process_block(raw_block.clone()).await.is_err() {
+            return Err(anyhow!("error during processing vote"));
+        }
+
+        let data = request_body::FinalVote {
+            block: Some(raw_block),
+        };
+
+        self.standard_send(RequestBodyData::FinalVote(data))
     }
-    fn process_vote_proposal(&self) -> Result<()> {
+    #[tokio::main]
+    async fn process_vote_proposal(&self, data: VoteProposal) -> Result<()> {
         // if prime delegate: cast own vote and send to all other prime delegates and 10 non prime delegates
-        todo!("run the consensus on the block and return voting score")
+        let raw_block = match data.block {
+            Some(block) => block,
+            None => return Err(anyhow!("block was none")),
+        };
+
+        if self.state.blockpool_client.process_vote(raw_block.clone()).await.is_err() {
+            return Err(anyhow!("error during processing vote"));
+        }
+
+        let data = request_body::VoteProposal {
+            block: Some(raw_block),
+        };
+
+        self.standard_send(RequestBodyData::VoteProposal(data))
     }
     fn process_ping(&mut self, data: request_body::Ping, channel: ResponseChannel<PogResponse>) -> Result<()> {
         let mut r = crypto::rand::thread_rng();
@@ -220,6 +242,11 @@ impl P2PServer {
         Ok(())
     }
 
+    // standard send means that a request is sent to all Prime Delegates + 10 random non Prime Delegates
+    fn standard_send(&self, request: RequestBodyData) -> Result<()> {
+        todo!("send request to ")
+    }
+
     pub fn send_request(&mut self, peer: &PeerId, request: RequestBodyData) -> Result<RequestId> {
         let request_body = RequestBody {
             data: Some(request),
@@ -228,7 +255,7 @@ impl P2PServer {
         }
         .encode_to_vec();
 
-        let header = ResponseHeader {
+        let header = RequestHeader {
             signature: self.sign(&request_body)?,
             public_key: self.public_key(),
         };

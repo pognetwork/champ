@@ -53,11 +53,14 @@ impl BlockpoolClient {
         resp_rx.await?
     }
 
-    pub async fn process_vote(&self) -> Result<()> {
+    pub async fn process_vote(&self, block: pog_proto::api::RawBlock) -> Result<()> {
         let (resp_tx, resp_rx) = oneshot::channel();
+
+        let block: SignedBlock = block.try_into()?;
 
         self.tx
             .send(Command::ProcessVote {
+                block,
                 resp: resp_tx,
             })
             .await
@@ -123,25 +126,37 @@ impl Blockpool {
                     resp,
                 } => {
                     let result = block::validate(&block, &state).await;
-                    self.calculate_quorum(&block);
-                    match result {
-                        Ok(_) => {
-                            self.block_queue.push_back(QueueItem {
-                                block,
-                            });
-                            let _ = resp.send(Ok(()));
-                        } //TODO: Vote yes
-                        Err(block::BlockValidationError::Invalid(_)) => {
-                            let _ = resp.send(Ok(()));
-                        } //TODO: maybe retry or handle errors and then Start a vote
-                        Err(block::BlockValidationError::Error(err)) => {
-                            let _ = resp.send(Err(anyhow!("error {err}")));
+                    let quorum = self.calculate_quorum(&block);
+
+                    if quorum > 0.6 {
+                        match result {
+                            Ok(_) => {
+                                self.block_queue.push_back(QueueItem {
+                                    block,
+                                });
+                                let _ = resp.send(Ok(()));
+                            } //TODO: Send a final vote back
+                            Err(block::BlockValidationError::Invalid(_)) => {
+                                let _ = resp.send(Ok(()));
+                            } //TODO: maybe retry or handle errors and then Start a vote
+                            Err(block::BlockValidationError::Error(err)) => {
+                                let _ = resp.send(Err(anyhow!("error {err}")));
+                            }
                         }
                     }
                 }
                 ProcessVote {
+                    block,
                     resp,
                 } => {
+                    // If THIS_ID is a Prime Delegate get the voting power of this account
+                    //TODO: let own_voting = voting_power::get_active_power(self.state, THIS_ID);
+                    let _result = block::validate(&block, &state).await;
+                    //match result {
+                    //    Ok(_) => todo!("re-send the block to the network"),
+                    //    Err(_) => todo!("wait or discard block"),
+                    //}
+
                     let _ = resp.send(Err(anyhow!("not implemented")));
                 }
                 GetQueueSize {
@@ -154,19 +169,17 @@ impl Blockpool {
         Ok(())
     }
 
-    fn calculate_quorum(&mut self, block: &SignedBlock) {
+    fn calculate_quorum(&mut self, block: &SignedBlock) -> f64 {
         // count the final votes received based on a blockID and once 60% of the online voting has been reached, add the block to the chain
         let block_id = block.get_id();
         let all_votes = &self.block_votes[&block_id];
         let total_votes = all_votes.iter().sum::<u64>() as f64;
         let total_network_power = self.state.as_ref().unwrap().blockpool_client.get_total_network_power();
-        let percentage_voted = total_votes / total_network_power;
-        if percentage_voted > 0.6 {
-            // if the block came from a final vote:
-            todo!("add the block to the chain and send own final vote")
-            // if the block came frma vote proposal:
-            // we check if we are prime delegate and if yes we cast our vote and send our vote out
-        }
+        total_votes / total_network_power
+        // if the block came from a final vote:
+        // add the block to the chain and send own final vote"
+        // if the block came frma vote proposal:
+        // we check if we are prime delegate and if yes we cast our vote and send our vote out
     }
 }
 
@@ -179,6 +192,7 @@ pub enum Command {
         resp: Responder<()>,
     },
     ProcessVote {
+        block: pog_proto::api::SignedBlock,
         resp: Responder<()>,
     },
     GetQueueSize {
