@@ -2,7 +2,9 @@
 //!
 //! Following the latest draft of PRC-4: https://pog.network/specification/PIPs/04-ADAD/
 
+#[cfg(not(target_family = "wasm"))]
 use futures::io::{AsyncRead, AsyncReadExt};
+
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -110,6 +112,7 @@ impl ADAD {
     }
 
     /// Reads ADAD data from a async reader and decodes it to associated data and authenticated data
+    #[cfg(not(target_family = "wasm"))]
     pub async fn async_read<T>(&self, mut reader: T) -> Result<Data, ADADError>
     where
         T: AsyncRead + Unpin + Send,
@@ -146,6 +149,7 @@ impl ADAD {
     }
 
     /// Reads data from a async reader
+    #[cfg(not(target_family = "wasm"))]
     pub async fn async_read_part<T>(mut reader: T, max_size: usize) -> Result<(Vec<u8>, usize), ADADError>
     where
         T: futures::io::AsyncRead + Unpin + Send,
