@@ -20,6 +20,9 @@ const LOOKBACK_RANGE: u64 = 60 * 60 * 24 * 30;
 // 2 Months in Seconds
 const MAX_LOOKBACK_RANGE: u64 = 60 * 60 * 24 * 30 * 2;
 
+// Quorum Percentage (60%)
+pub const VOTE_PERCENTAGE_NEEDED: f64 = 0.6;
+
 /// Returns actual voting power of an account.
 /// Actual voting power is without the delegated power.
 #[tracing::instrument]

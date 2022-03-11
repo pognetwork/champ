@@ -31,7 +31,6 @@ use libp2p::{
 use super::pogprotocol::{PogBehavior, PogMessage, PogRequest, PogResponse};
 
 pub struct Peer {
-    public_key: [u8; 32],
     voting_power: u64,
     ip: libp2p::Multiaddr,
     last_ping: std::time::Duration,
@@ -186,12 +185,13 @@ impl P2PServer {
             None => return Err(anyhow!("block was none")),
         };
 
-        if self.state.blockpool_client.process_block(raw_block.clone()).await.is_err() {
+        if self.state.blockpool_client.process_block(raw_block.clone(), data.vote).await.is_err() {
             return Err(anyhow!("error during processing vote"));
         }
 
         let data = request_body::FinalVote {
             block: Some(raw_block),
+            vote: 0, //voting_power::get_active_power(self.state, THIS_ID);
         };
 
         self.standard_send(RequestBodyData::FinalVote(data))
@@ -204,12 +204,13 @@ impl P2PServer {
             None => return Err(anyhow!("block was none")),
         };
 
-        if self.state.blockpool_client.process_vote(raw_block.clone()).await.is_err() {
+        if self.state.blockpool_client.process_vote(raw_block.clone(), data.vote).await.is_err() {
             return Err(anyhow!("error during processing vote"));
         }
 
         let data = request_body::VoteProposal {
             block: Some(raw_block),
+            vote: 0, //voting_power::get_active_power(self.state, THIS_ID);
         };
 
         self.standard_send(RequestBodyData::VoteProposal(data))
