@@ -30,10 +30,12 @@ use libp2p::{
 
 use super::pogprotocol::{PogBehavior, PogMessage, PogRequest, PogResponse};
 
+#[derive(Clone)]
 pub struct Peer {
     voting_power: u64,
     ip: libp2p::Multiaddr,
     last_ping: std::time::Duration,
+    id: PeerId,
 }
 
 pub struct P2PServer {
@@ -47,6 +49,11 @@ const NR_OF_PEERS_SENT: usize = 10;
 
 fn timestamp() -> u64 {
     SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs() as u64
+}
+
+fn get_random_peers_id(peers: HashMap<[u8; 32], Peer>, max_nr_of_peers: usize) -> Vec<PeerId> {
+    let mut r = crypto::rand::thread_rng();
+    peers.values().choose_multiple(&mut r, max_nr_of_peers).iter().map(|p| p.id).collect::<Vec<PeerId>>()
 }
 
 impl P2PServer {
@@ -178,7 +185,7 @@ impl P2PServer {
     }
 
     #[tokio::main]
-    async fn process_final_vote(&self, data: FinalVote) -> Result<()> {
+    async fn process_final_vote(&mut self, data: FinalVote) -> Result<()> {
         // all nodes who calculate a 60% quorum from the vote proposal need to send a final vote
         let raw_block = match data.block {
             Some(block) => block,
@@ -197,7 +204,7 @@ impl P2PServer {
         self.standard_send(RequestBodyData::FinalVote(data))
     }
     #[tokio::main]
-    async fn process_vote_proposal(&self, data: VoteProposal) -> Result<()> {
+    async fn process_vote_proposal(&mut self, data: VoteProposal) -> Result<()> {
         // if prime delegate: cast own vote and send to all other prime delegates and 10 non prime delegates
         let raw_block = match data.block {
             Some(block) => block,
@@ -216,8 +223,8 @@ impl P2PServer {
         self.standard_send(RequestBodyData::VoteProposal(data))
     }
     fn process_ping(&mut self, data: request_body::Ping, channel: ResponseChannel<PogResponse>) -> Result<()> {
-        let mut r = crypto::rand::thread_rng();
         // chose a number of random peers
+        let mut r = crypto::rand::thread_rng();
         let peers = self
             .peers
             .values()
@@ -243,9 +250,29 @@ impl P2PServer {
         Ok(())
     }
 
+    fn get_prime_delegates(&self) -> Vec<PeerId> {
+        todo!("write a fn that gets all online prime delegates")
+    }
+
     // standard send means that a request is sent to all Prime Delegates + 10 random non Prime Delegates
-    fn standard_send(&self, request: RequestBodyData) -> Result<()> {
-        todo!("send request to ")
+    fn standard_send(&mut self, request: RequestBodyData) -> Result<()> {
+        let mut r = crypto::rand::thread_rng();
+        let prime_delegates = self.get_prime_delegates();
+        let random_peers = self
+            .peers
+            .values()
+            .choose_multiple(&mut r, NR_OF_PEERS_SENT)
+            .iter()
+            .map(|p| p.id)
+            .collect::<Vec<PeerId>>();
+
+        let all_peers = prime_delegates.iter().chain(random_peers.iter()).collect::<Vec<&PeerId>>();
+
+        for peers in all_peers {
+            let _ = self.send_request(peers, request.to_owned());
+        }
+
+        Ok(())
     }
 
     pub fn send_request(&mut self, peer: &PeerId, request: RequestBodyData) -> Result<RequestId> {
