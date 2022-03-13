@@ -18,7 +18,7 @@ const MAX_NETWORK_POWER: f64 = 0.3;
 // Month in Seconds
 const LOOKBACK_RANGE: u64 = 60 * 60 * 24 * 30;
 // 2 Months in Seconds
-const MAX_LOOKBACK_RANGE: u64 = 60 * 60 * 24 * 30 * 2;
+const MAX_LOOKBACK_RANGE: u64 = LOOKBACK_RANGE * 2;
 
 // Quorum Percentage (60%)
 pub const VOTE_PERCENTAGE_NEEDED: f64 = 0.6;
