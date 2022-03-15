@@ -30,7 +30,6 @@ jobs:
         run: |
           wasm-pack build --release --target web
           sed -i -e 's/"module": "champ_wasm.js",/"type": "module",\n  "main": "champ_wasm.js",/g' pkg/package.json
-          npm run
 
       - name: Bump npm package
         working-directory: ./scripts/js
