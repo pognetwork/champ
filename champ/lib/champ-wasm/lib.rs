@@ -97,7 +97,7 @@ pub fn from_private_key(key: String) -> Result<Wallet, JsError> {
 impl Wallet {
     #[wasm_bindgen(catch, js_name = "unlock")]
     pub fn unlock(&mut self, password: &str) -> Result<(), JsError> {
-        if !self.locked() {
+        if self.private_key.is_some() {
             return Err(JsError::new("wallet is already unlocked"));
         }
 
