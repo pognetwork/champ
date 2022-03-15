@@ -4,28 +4,25 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch: {}
 
 permissions:
   packages: write
 
 jobs:
-  build:
+  build_docker:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v1
         with:
           registry: ghcr.io
           username: pognetwork
           password: ${{ secrets.GITHUB_TOKEN }}
-
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           target: x86_64-unknown-linux-musl
-
       - uses: extractions/setup-just@v1
-
       - run: just canary-release

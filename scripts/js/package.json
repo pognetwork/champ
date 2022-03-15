@@ -1,0 +1,14 @@
+{
+  "name": "champ-scripts",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "bump-champ-wasm": "node bump-champ-wasm.js"
+  },
+  "devDependencies": {
+    "@types/node": "17.0.21"
+  },
+  "dependencies": {
+    "shelljs": "0.8.5"
+  }
+}

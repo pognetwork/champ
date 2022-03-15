@@ -1,0 +1,44 @@
+name: Canary Wasm Releases
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: {}
+
+jobs:
+  build_wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "16.x"
+          registry-url: "https://registry.npmjs.org"
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Build wasm
+        working-directory: ./champ/lib/champ-wasm
+        shell: bash
+        run: |
+          wasm-pack build --release --target web
+          sed -i -e 's/"module": "champ_wasm.js",/"type": "module",\n  "main": "champ_wasm.js",/g' pkg/package.json
+          npm run
+
+      - name: Bump npm package
+        working-directory: ./scripts/js
+        shell: bash
+        run: |
+          npm i
+          npm run bump-champ-wasm
+
+      - name: Publish wasm
+        working-directory: ./champ/lib/champ-wasm
+        run: wasm-pack publish --access public --tag canary
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
