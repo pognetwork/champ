@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "**/*.rs"
   workflow_dispatch: {}
 
 permissions:

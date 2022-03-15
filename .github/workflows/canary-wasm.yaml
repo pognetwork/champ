@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "champ/lib/**/*.rs"
   workflow_dispatch: {}
 
 jobs:
