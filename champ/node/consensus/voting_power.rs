@@ -18,7 +18,10 @@ const MAX_NETWORK_POWER: f64 = 0.3;
 // Month in Seconds
 const LOOKBACK_RANGE: u64 = 60 * 60 * 24 * 30;
 // 2 Months in Seconds
-const MAX_LOOKBACK_RANGE: u64 = 60 * 60 * 24 * 30 * 2;
+const MAX_LOOKBACK_RANGE: u64 = LOOKBACK_RANGE * 2;
+
+// Quorum Percentage (60%)
+pub const VOTE_PERCENTAGE_NEEDED: f64 = 0.6;
 
 /// Returns actual voting power of an account.
 /// Actual voting power is without the delegated power.
@@ -78,10 +81,13 @@ pub async fn get_active_power(state: &ChampStateArc, account_id: api::AccountID)
     debug!("Calculating actual voting power");
     let actual_power = get_actual_power(state, account_id).await?;
     let delegate_power = get_delegated_power(state, account_id).await?;
-    let total_network_power = get_max_voting_power();
+    // get max voting power in the network (all nodes combined)
+    let total_network_power = state.blockpool_client.clone().get_total_network_power();
+    // a single node can only have a percentage of the max network power (current 30% but this will change)
+    let total_allowed_voting_power = (total_network_power * MAX_NETWORK_POWER) as u64;
     let total_power = actual_power + delegate_power;
-    if total_power > total_network_power {
-        return Ok(total_network_power);
+    if total_power > total_allowed_voting_power {
+        return Ok(total_allowed_voting_power);
     }
     trace!("total active voting power result: {}", total_power);
     Ok(total_power)
@@ -103,13 +109,6 @@ async fn get_delegated_power(state: &ChampStateArc, account_id: api::AccountID) 
 
     trace!("total delegated voting power: {}", power);
     Ok(power)
-}
-
-/// Gets the max voting power in the system and sets a limit of a percentage
-fn get_max_voting_power() -> u64 {
-    //TODO: Get all voting power of all prime delegates combined
-    let total_prime_delegate_power = 100_000_000_f64;
-    (total_prime_delegate_power * MAX_NETWORK_POWER) as u64
 }
 
 #[cfg(test)]
