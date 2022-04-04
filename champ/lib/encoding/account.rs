@@ -24,23 +24,25 @@ pub fn generate_account_address(public_key: Vec<u8>) -> Result<[u8; 24], Account
     account_address.try_into().map_err(|_| AccountError::InvalidSizeError)
 }
 
-pub fn validate_account_address_string(addr: &str) -> Result<(), AccountError> {
+pub fn parse_account_address_string(addr: &str) -> Result<Vec<u8>, AccountError> {
     let address = match addr.strip_prefix("pog-") {
         Some(a) => a,
         None => addr,
     };
 
-    let decoded_address = Vec::from_zbase(address).map_err(|_| AccountError::Unknown)?;
-    validate_account_address(decoded_address)?;
-    Ok(())
+    Vec::from_zbase(address).map_err(|_| AccountError::Unknown)
+}
+
+pub fn validate_account_address_string(addr: &str) -> Result<(), AccountError> {
+    validate_account_address(parse_account_address_string(addr)?)
 }
 
 pub fn validate_account_address(address: Vec<u8>) -> Result<(), AccountError> {
     if address.len() != 24 {
         return Err(AccountError::InvalidSizeError);
     }
-    let (address, checksum) = address.split_at(21);
 
+    let (address, checksum) = address.split_at(21);
     if checksum != &sha3(&address)[0..3] {
         return Err(AccountError::InvalidChecksum);
     }

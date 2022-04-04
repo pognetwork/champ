@@ -71,7 +71,7 @@ impl P2PServer {
             .boxed();
 
         let swarm = SwarmBuilder::new(transp, pog_protocol.behavior(), peer_id).build();
-        //TODO: create logic to save these in case of crash
+        // TODO: create logic to save these in case of crash
         let peers = HashMap::new();
 
         Self {
@@ -203,6 +203,7 @@ impl P2PServer {
 
         self.standard_send(RequestBodyData::FinalVote(data))
     }
+
     #[tokio::main]
     async fn process_vote_proposal(&mut self, data: VoteProposal) -> Result<()> {
         // if prime delegate: cast own vote and send to all other prime delegates and 10 non prime delegates
@@ -222,6 +223,7 @@ impl P2PServer {
 
         self.standard_send(RequestBodyData::VoteProposal(data))
     }
+
     fn process_ping(&mut self, data: request_body::Ping, channel: ResponseChannel<PogResponse>) -> Result<()> {
         // chose a number of random peers
         let mut r = crypto::rand::thread_rng();
