@@ -17,7 +17,7 @@ type WalletName = String;
 pub struct Wallet {
     pub locked: bool,
     pub account_address: String,
-    pub account_address_bytes: Vec<u8>,
+    pub account_address_bytes: [u8; 24],
     private_key: Option<Vec<u8>>,
 }
 
@@ -25,7 +25,7 @@ impl Wallet {
     pub fn new(account_address: &str) -> Result<Self, WalletManagerError> {
         Ok(Wallet {
             account_address: account_address.to_string(),
-            account_address_bytes: parse_account_address_string(account_address)?.to_vec(),
+            account_address_bytes: parse_account_address_string(account_address)?,
             locked: true,
             private_key: None,
         })
