@@ -25,7 +25,7 @@ impl Wallet {
     pub fn new(account_address: &str) -> Result<Self, WalletManagerError> {
         Ok(Wallet {
             account_address: account_address.to_string(),
-            account_address_bytes: parse_account_address_string(&account_address)?,
+            account_address_bytes: parse_account_address_string(account_address)?.to_vec(),
             locked: true,
             private_key: None,
         })
