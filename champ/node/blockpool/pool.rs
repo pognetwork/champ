@@ -129,6 +129,7 @@ impl Blockpool {
                     resp,
                 } => {
                     let result = block::validate(&block, &state).await;
+                    //TODO: Fix this
                     let quorum = self.calculate_quorum(&block, vote);
 
                     // Quorum setting in Consensus module - currently 60%
@@ -154,8 +155,16 @@ impl Blockpool {
                     vote,
                     resp,
                 } => {
-                    // If THIS_ID is a Prime Delegate get the voting power of this account
-                    //TODO: let own_voting = voting_power::get_active_power(self.state, THIS_ID);
+                    //TODO: Fix this, idk what to do or what it does :)
+                    // here a vote is received
+                    // if prime delegate, add vote and send back
+                    // if quorum is reached, send final vote
+                    //TODO: add fn that adds own vote if this is prime delegate
+                    // let state = self.state;
+                    // let primary_wallet = state.wallet_manager.read().await;
+                    // if let Some(wallet) = primary_wallet.primary_wallet().await {
+                    // }
+                    // let Some(own_voting) = voting_power::get_active_power(&state, wallet.account_address_bytes).await.ok();
                     let _quorum = self.calculate_quorum(&block, vote);
                     let result = block::validate(&block, &state).await;
                     match result {
