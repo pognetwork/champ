@@ -328,7 +328,7 @@ impl P2PServer {
     #[tokio::main]
     async fn get_primary_wallet(state: &ChampStateArc) -> Result<Wallet> {
         let wallet_manager = state.wallet_manager.read().await;
-        let wallet = wallet_manager.primary_wallet().await.ok_or(anyhow!("no primary wallet found"))?;
+        let wallet = wallet_manager.primary_wallet().await.ok_or_else(|| anyhow!("no primary wallet found"))?;
         Ok(wallet.clone())
     }
 }
