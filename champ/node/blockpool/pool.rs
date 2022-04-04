@@ -147,7 +147,7 @@ impl Blockpool {
                                 let _ = resp.send(Err(anyhow!("error {err}")));
                             }
                         }
-                    }
+                    } // retry if quorum is not reached yet?
                 }
                 ProcessVote {
                     block,

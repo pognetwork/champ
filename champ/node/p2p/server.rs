@@ -3,8 +3,10 @@
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use crate::consensus::voting_power;
 use crate::p2p::pogprotocol::{self, PogProtocol};
 use crate::state::ChampStateArc;
+use crate::wallets::Wallet;
 use anyhow::{anyhow, Result};
 use crypto::rand::seq::IteratorRandom;
 use crypto::signatures::ed25519::{create_signature, verify_signature};
@@ -43,6 +45,7 @@ pub struct P2PServer {
     swarm: Swarm<PogBehavior>,
     keypair: AuthenticKeypair<X25519Spec>,
     peers: HashMap<[u8; 32], Peer>,
+    primary_wallet: Wallet,
 }
 
 const NR_OF_PEERS_SENT: usize = 10;
@@ -57,7 +60,7 @@ fn get_random_peers_id(peers: HashMap<[u8; 32], Peer>, max_nr_of_peers: usize) -
 }
 
 impl P2PServer {
-    pub fn new(state: ChampStateArc) -> Self {
+    pub fn new(state: ChampStateArc) -> Result<Self> {
         let id_keys = identity::Keypair::generate_ed25519();
         let dh_keys = Keypair::<X25519Spec>::new().into_authentic(&id_keys).unwrap();
         let peer_id = PeerId::from(id_keys.public());
@@ -74,12 +77,15 @@ impl P2PServer {
         // TODO: create logic to save these in case of crash
         let peers = HashMap::new();
 
-        Self {
+        let primary_wallet = P2PServer::get_primary_wallet(&state)?;
+
+        Ok(Self {
             state,
             swarm,
             keypair: dh_keys,
             peers,
-        }
+            primary_wallet,
+        })
     }
 
     pub async fn start(&mut self) -> Result<(), Box<dyn std::error::Error>> {
@@ -198,7 +204,7 @@ impl P2PServer {
 
         let data = request_body::FinalVote {
             block: Some(raw_block),
-            vote: 0, //voting_power::get_active_power(self.state, THIS_ID);
+            vote: voting_power::get_active_power(&self.state, self.primary_wallet.account_address_bytes).await?,
         };
 
         self.standard_send(RequestBodyData::FinalVote(data))
@@ -218,14 +224,14 @@ impl P2PServer {
 
         let data = request_body::VoteProposal {
             block: Some(raw_block),
-            vote: 0, //voting_power::get_active_power(self.state, THIS_ID);
+            vote: voting_power::get_active_power(&self.state, self.primary_wallet.account_address_bytes).await?,
         };
 
         self.standard_send(RequestBodyData::VoteProposal(data))
     }
 
     fn process_ping(&mut self, data: request_body::Ping, channel: ResponseChannel<PogResponse>) -> Result<()> {
-        // chose a number of random peers
+        // choose a number of random peers
         let mut r = crypto::rand::thread_rng();
         let peers = self
             .peers
@@ -317,5 +323,12 @@ impl P2PServer {
         };
 
         self.swarm.behaviour_mut().send_response(channel, response).map_err(|_| anyhow!("response failed"))
+    }
+
+    #[tokio::main]
+    async fn get_primary_wallet(state: &ChampStateArc) -> Result<Wallet> {
+        let wallet_manager = state.wallet_manager.read().await;
+        let wallet = wallet_manager.primary_wallet().await.ok_or(anyhow!("no primary wallet found"))?;
+        Ok(wallet.clone())
     }
 }
