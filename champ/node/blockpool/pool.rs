@@ -162,7 +162,7 @@ impl Blockpool {
                     vote,
                     resp,
                 } => {
-                    //TODO: Fix this, idk what to do or what it does :)
+                    //TODO: Fix this
                     // here a vote is received
                     // if prime delegate, add vote and send back
                     // if quorum is reached, send final vote
@@ -191,12 +191,14 @@ impl Blockpool {
                     }
                     let this_voting_power = result.unwrap();
 
+                    // TODO: only add own voting if this is delegate
                     // TODO: check somewhere that the same sender cant vote twice
-                    self.add_vote(this_voting_power, &block_id);
-                    self.add_vote(vote, &block_id);
+                    self.save_vote(vote, &block_id);
+                    self.save_vote(this_voting_power, &block_id);
 
                     // Add own vote to quorum if prime delegate
                     let _quorum = self.calculate_quorum(&block);
+
                     let result = block::validate(&block, &state).await;
                     match result {
                         Ok(_) => {
@@ -227,13 +229,9 @@ impl Blockpool {
 
         let total_network_power = self.state.as_ref().unwrap().blockpool_client.get_total_network_power();
         total_votes / total_network_power
-        // if the block came from a final vote:
-        // add the block to the chain and send own final vote"
-        // if the block came frma vote proposal:
-        // we check if we are prime delegate and if yes we cast our vote and send our vote out
     }
 
-    fn add_vote(&mut self, vote: u64, block_id: &[u8; 32]) {
+    fn save_vote(&mut self, vote: u64, block_id: &[u8; 32]) {
         let all_votes = match self.block_votes.get(block_id) {
             Some(v) => {
                 v.to_owned().push(vote);

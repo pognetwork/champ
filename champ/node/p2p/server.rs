@@ -228,6 +228,7 @@ impl P2PServer {
             vote: voting_power::get_active_power(&self.state, self.primary_wallet.account_address_bytes).await?,
         };
 
+        //TODO: If quorum has been reached, send FinalVote
         self.standard_send(RequestBodyData::VoteProposal(data))
     }
 
