@@ -222,6 +222,7 @@ impl P2PServer {
             return Err(anyhow!("error during processing vote"));
         }
 
+        //TODO: Only add vote if this is a prime delegate
         let data = request_body::VoteProposal {
             block: Some(raw_block),
             vote: voting_power::get_active_power(&self.state, self.primary_wallet.account_address_bytes).await?,
