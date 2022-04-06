@@ -182,7 +182,7 @@ impl Blockpool {
                     let this_account_address = wallet.unwrap().account_address_bytes;
 
                     let result = voting_power::get_active_power(
-                        &self.state.as_ref().expect("how did this happen?"),
+                        self.state.as_ref().expect("how did this happen?"),
                         this_account_address,
                     )
                     .await;
@@ -242,7 +242,7 @@ impl Blockpool {
             None => vec![vote],
         };
 
-        let result = &self.block_votes.insert(*block_id, all_votes.clone());
+        let result = &self.block_votes.insert(*block_id, all_votes);
         if result.is_none() {
             panic!("something went wrong")
         }
