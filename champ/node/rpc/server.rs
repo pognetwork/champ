@@ -43,7 +43,6 @@ impl RpcServer {
         let node_user = NodeUserServer::new(NodeUserService::new(self.state.clone()));
 
         info!("starting rpc server at {}", addr);
-
         let grpc_web = tonic_web::config()
             // .allow_origins(vec!["http://admin.localhost:2020"])
             .allow_all_origins()

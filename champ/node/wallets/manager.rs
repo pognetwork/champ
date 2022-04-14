@@ -18,7 +18,17 @@ pub struct Wallet {
     pub locked: bool,
     pub account_address: String,
     pub account_address_bytes: [u8; 24],
-    private_key: Option<Vec<u8>>,
+    private_key: Option<[u8; 32]>,
+}
+
+pub trait WalletPrivateKey {
+    fn private_key(&self) -> Option<[u8; 32]>;
+}
+
+impl WalletPrivateKey for Wallet {
+    fn private_key(&self) -> Option<[u8; 32]> {
+        self.private_key
+    }
 }
 
 impl Wallet {
@@ -45,7 +55,7 @@ impl Wallet {
         }
     }
 
-    pub fn set_private_key(&mut self, key: Vec<u8>) {
+    pub fn set_private_key(&mut self, key: [u8; 32]) {
         self.private_key = Some(key);
         self.locked = false;
     }
