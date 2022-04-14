@@ -1,16 +1,15 @@
 #![allow(dead_code)]
 
-use anyhow::{anyhow, Context, Result};
+use crate::state::ChampStateArc;
+use anyhow::{Context, Result};
 use pog_proto::api::{BlockID, SignedBlock};
+use std::collections::{HashMap, HashSet, VecDeque};
 use tokio::sync::{
     mpsc::{self, Receiver, Sender},
     oneshot,
 };
+
 use tracing::info;
-
-use std::collections::{HashMap, VecDeque};
-
-use crate::{consensus, state::ChampStateArc, validation::block};
 
 #[derive(Debug)]
 struct QueueItem {
@@ -24,6 +23,7 @@ pub struct Blockpool {
     block_queue: VecDeque<QueueItem>,
     state: Option<ChampStateArc>,
     block_votes: HashMap<BlockID, Vec<u64>>,
+    sent_votes: HashSet<BlockID>,
 }
 
 impl Default for Blockpool {
@@ -38,15 +38,11 @@ pub struct BlockpoolClient {
 }
 
 impl BlockpoolClient {
-    pub async fn process_block(&self, block: pog_proto::api::RawBlock, vote: u64) -> Result<()> {
+    pub async fn process_block(&self) -> Result<()> {
         let (resp_tx, resp_rx) = oneshot::channel();
-
-        let block: SignedBlock = block.try_into()?;
 
         self.tx
             .send(Command::ProcessBlock {
-                block,
-                vote,
                 resp: resp_tx,
             })
             .await
@@ -54,7 +50,7 @@ impl BlockpoolClient {
         resp_rx.await?
     }
 
-    pub async fn process_vote(&self, block: pog_proto::api::RawBlock, vote: u64) -> Result<()> {
+    pub async fn process_vote(&self, block: pog_proto::api::RawBlock, vote: u64, final_vote: bool) -> Result<()> {
         let (resp_tx, resp_rx) = oneshot::channel();
 
         let block: SignedBlock = block.try_into()?;
@@ -63,6 +59,7 @@ impl BlockpoolClient {
             .send(Command::ProcessVote {
                 block,
                 vote,
+                final_vote,
                 resp: resp_tx,
             })
             .await
@@ -85,8 +82,7 @@ impl BlockpoolClient {
     /// Gets the total voting power in the network
     pub fn get_total_network_power(&self) -> f64 {
         //TODO: Get all voting power of all prime delegates combined
-        let total_prime_delegate_power = 100_000_000_f64;
-        total_prime_delegate_power
+        100_000_000_f64
     }
 }
 
@@ -99,6 +95,7 @@ impl Blockpool {
             block_queue: VecDeque::with_capacity(10_000),
             state: None,
             block_votes: HashMap::new(),
+            sent_votes: HashSet::new(),
         }
     }
 
@@ -117,55 +114,90 @@ impl Blockpool {
             panic!("add_state has to be called first")
         }
 
-        let state = self.state.clone().unwrap();
+        // let state = self.state.clone().unwrap();
 
         info!("blockpool started listening to incoming commands");
         while let Some(cmd) = self.rx.recv().await {
             use Command::*;
             match cmd {
                 ProcessBlock {
-                    block,
-                    vote,
-                    resp,
+                    resp: _,
                 } => {
-                    let result = block::validate(&block, &state).await;
-                    let quorum = self.calculate_quorum(&block, vote);
+                    // let result = block::validate(&block, &state).await;
+                    // //TODO: Fix this with different quorum!
+                    // let quorum = self.calculate_quorum(&block);
 
-                    // Quorum setting in Consensus module - currently 60%
-                    if quorum > consensus::voting_power::VOTE_PERCENTAGE_NEEDED {
-                        match result {
-                            Ok(_) => {
-                                self.block_queue.push_back(QueueItem {
-                                    block,
-                                });
-                                let _ = resp.send(Ok(()));
-                            } //TODO: Send a final vote back
-                            Err(block::BlockValidationError::Invalid(_)) => {
-                                let _ = resp.send(Ok(()));
-                            } //TODO: maybe retry or handle errors and then Start a vote
-                            Err(block::BlockValidationError::Error(err)) => {
-                                let _ = resp.send(Err(anyhow!("error {err}")));
-                            }
-                        }
-                    }
+                    // // Quorum setting in Consensus module - currently 60%
+                    // if quorum > consensus::voting_power::VOTE_PERCENTAGE_NEEDED {
+                    //     match result {
+                    //         Ok(_) => {
+                    //             self.block_queue.push_back(QueueItem {
+                    //                 block: block.clone(),
+                    //             });
+                    //             self.sent_votes.remove(&block.get_id());
+                    //             let _ = resp.send(Ok(()));
+                    //         } //TODO: Send a final vote back
+                    //         Err(block::BlockValidationError::Invalid(_)) => {
+                    //             let _ = resp.send(Ok(()));
+                    //         } //TODO: maybe retry or handle errors and then Start a vote
+                    //         Err(block::BlockValidationError::Error(err)) => {
+                    //             let _ = resp.send(Err(anyhow!("error {err}")));
+                    //         }
+                    //     }
+                    // }
                 }
                 ProcessVote {
-                    block,
-                    vote,
-                    resp,
+                    block: _,
+                    vote: _,
+                    final_vote: _,
+                    resp: _,
                 } => {
-                    // If THIS_ID is a Prime Delegate get the voting power of this account
-                    //TODO: let own_voting = voting_power::get_active_power(self.state, THIS_ID);
-                    let _quorum = self.calculate_quorum(&block, vote);
-                    let result = block::validate(&block, &state).await;
-                    match result {
-                        Ok(_) => {
-                            let _ = resp.send(Ok(()));
-                        }
-                        Err(_) => {
-                            let _ = resp.send(Err(anyhow!("not implemented")));
-                        }
-                    }
+                    // //TODO: Fix this
+                    // // here a vote is received
+                    // // if prime delegate, add vote and send back
+                    // // if quorum is reached, send final vote
+                    // let block_id = block.get_id();
+                    // if self.sent_votes.contains(&block_id) {
+                    //     let _ = resp.send(Err(anyhow!("block already processed")));
+                    //     continue;
+                    // }
+                    // self.sent_votes.insert(block_id);
+
+                    // let wallet_manager = state.wallet_manager.read().await;
+                    // let wallet =
+                    //     wallet_manager.primary_wallet().await.ok_or_else(|| anyhow!("no primary wallet found"));
+                    // if wallet.is_err() {
+                    //     continue;
+                    // }
+                    // let this_account_address = wallet.unwrap().account_address_bytes;
+
+                    // let result = voting_power::get_active_power(
+                    //     self.state.as_ref().expect("how did this happen?"),
+                    //     this_account_address,
+                    // )
+                    // .await;
+                    // if result.is_err() {
+                    //     continue;
+                    // }
+                    // let this_voting_power = result.unwrap();
+
+                    // // TODO: only add own voting if this is delegate
+                    // // TODO: check somewhere that the same sender cant vote twice
+                    // self.save_vote(vote, &block_id);
+                    // self.save_vote(this_voting_power, &block_id);
+
+                    // // Add own vote to quorum if prime delegate
+                    // let _quorum = self.calculate_quorum(&block);
+
+                    // let result = block::validate(&block, &state).await;
+                    // match result {
+                    //     Ok(_) => {
+                    //         let _ = resp.send(Ok(()));
+                    //     }
+                    //     Err(_) => {
+                    //         let _ = resp.send(Err(anyhow!("not implemented")));
+                    //     }
+                    // }
                 }
                 GetQueueSize {
                     resp,
@@ -177,12 +209,20 @@ impl Blockpool {
         Ok(())
     }
 
-    fn calculate_quorum(&mut self, block: &SignedBlock, vote: u64) -> f64 {
+    fn calculate_quorum(&self, block: &SignedBlock) -> f64 {
         // count the final votes received based on a blockID and once 60% of the online voting has been reached, add the block to the chain
         let block_id = block.get_id();
 
-        // TODO: check somewhere that the same sender cant vote twice
-        let all_votes = match self.block_votes.get(&block_id) {
+        let all_votes = self.block_votes.get(&block_id);
+
+        let total_votes = all_votes.unwrap().iter().sum::<u64>() as f64;
+
+        let total_network_power = self.state.as_ref().unwrap().blockpool_client.get_total_network_power();
+        total_votes / total_network_power
+    }
+
+    fn save_vote(&mut self, vote: u64, block_id: &[u8; 32]) {
+        let all_votes = match self.block_votes.get(block_id) {
             Some(v) => {
                 v.to_owned().push(vote);
                 v.to_owned()
@@ -190,18 +230,10 @@ impl Blockpool {
             None => vec![vote],
         };
 
-        let result = &self.block_votes.insert(block_id, all_votes.clone());
+        let result = &self.block_votes.insert(*block_id, all_votes);
         if result.is_none() {
             panic!("something went wrong")
         }
-        let total_votes = all_votes.iter().sum::<u64>() as f64;
-
-        let total_network_power = self.state.as_ref().unwrap().blockpool_client.get_total_network_power();
-        total_votes / total_network_power
-        // if the block came from a final vote:
-        // add the block to the chain and send own final vote"
-        // if the block came frma vote proposal:
-        // we check if we are prime delegate and if yes we cast our vote and send our vote out
     }
 }
 
@@ -210,13 +242,12 @@ type Responder<T> = oneshot::Sender<Result<T>>;
 #[derive(Debug)]
 pub enum Command {
     ProcessBlock {
-        block: pog_proto::api::SignedBlock,
-        vote: u64,
         resp: Responder<()>,
     },
     ProcessVote {
         block: pog_proto::api::SignedBlock,
         vote: u64,
+        final_vote: bool,
         resp: Responder<()>,
     },
     GetQueueSize {

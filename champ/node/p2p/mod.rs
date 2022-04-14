@@ -1,2 +1,4 @@
-mod pogprotocol;
+mod methods;
+pub mod protocol;
 pub mod server;
+mod types;

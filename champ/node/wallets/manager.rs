@@ -1,6 +1,7 @@
 use crate::config::{read_file, write_file};
 use crate::state::ChampStateArc;
 use anyhow::Result;
+use encoding::account::parse_account_address_string;
 use lulw;
 use serde_json;
 use std::collections::HashMap;
@@ -16,16 +17,28 @@ type WalletName = String;
 pub struct Wallet {
     pub locked: bool,
     pub account_address: String,
-    private_key: Option<Vec<u8>>,
+    pub account_address_bytes: [u8; 24],
+    private_key: Option<[u8; 32]>,
+}
+
+pub trait WalletPrivateKey {
+    fn private_key(&self) -> Option<[u8; 32]>;
+}
+
+impl WalletPrivateKey for Wallet {
+    fn private_key(&self) -> Option<[u8; 32]> {
+        self.private_key
+    }
 }
 
 impl Wallet {
-    pub fn new(account_address: String) -> Self {
-        Wallet {
-            account_address,
+    pub fn new(account_address: &str) -> Result<Self, WalletManagerError> {
+        Ok(Wallet {
+            account_address: account_address.to_string(),
+            account_address_bytes: parse_account_address_string(account_address)?,
             locked: true,
             private_key: None,
-        }
+        })
     }
 
     pub fn lock(&mut self) {
@@ -42,7 +55,7 @@ impl Wallet {
         }
     }
 
-    pub fn set_private_key(&mut self, key: Vec<u8>) {
+    pub fn set_private_key(&mut self, key: [u8; 32]) {
         self.private_key = Some(key);
         self.locked = false;
     }
@@ -69,6 +82,8 @@ pub enum WalletManagerError {
     IOError(#[from] std::io::Error),
     #[error("Wallet error: {0}")]
     WalletError(#[from] lulw::WalletError),
+    #[error("Account error: {0}")]
+    AccountError(#[from] encoding::account::AccountError),
     #[error("Unknown error: {0}")]
     Unknown(String),
     #[error("error with reading wallet: {0}")]
@@ -109,7 +124,7 @@ impl WalletManager {
         }
     }
 
-    pub async fn primary_wallet(&mut self) -> Option<&Wallet> {
+    pub async fn primary_wallet(&self) -> Option<&Wallet> {
         let state = self.state.clone()?;
         let config = &state.config.read().await;
         let primary_wallet = config.consensus.primary_wallet.as_ref()?;
@@ -148,7 +163,7 @@ impl WalletManager {
         path.push(format!("{}.json", &account_address));
         write_file(path, &wallet)?;
 
-        let wallet = Wallet::new(account_address.clone());
+        let wallet = Wallet::new(&account_address)?;
         self.wallets.insert(account_address.clone(), wallet);
         Ok(account_address)
     }
@@ -165,7 +180,7 @@ impl WalletManager {
     }
 
     /// updates the name associated with the wallet
-    pub async fn get_wallet(&mut self, account_address: &str) -> Option<&Wallet> {
+    pub async fn get_wallet(&self, account_address: &str) -> Option<&Wallet> {
         self.wallets.get(account_address)
     }
 
@@ -208,7 +223,7 @@ impl WalletManager {
                 .to_string_lossy();
 
             let account_address: String = file_name.split('.').collect::<Vec<&str>>()[0].to_owned();
-            let wallet = Wallet::new(account_address.clone());
+            let wallet = Wallet::new(&account_address)?;
             self.wallets.insert(account_address.to_string(), wallet);
         }
 

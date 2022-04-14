@@ -95,7 +95,7 @@ impl Wallet {
         let json = self.json.clone().ok_or_else(|| JsError::new("no json wallet"))?;
         let private_key = lulw::unlock_wallet(&json, password).map_err(|e| JsError::new(&e.to_string()))?;
         self.address = Some(Wallet::account_address_from_key(&private_key)?);
-        self.private_key = Some(private_key);
+        self.private_key = Some(private_key.to_vec());
         Ok(())
     }
 

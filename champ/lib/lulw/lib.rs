@@ -93,7 +93,7 @@ pub fn generate_wallet(password: &str) -> Result<WalletAndAddress, WalletError> 
     Ok((json, account_address))
 }
 
-pub fn unlock_wallet(wallet: &str, password: &str) -> Result<Vec<u8>, WalletError> {
+pub fn unlock_wallet(wallet: &str, password: &str) -> Result<[u8; 32], WalletError> {
     let parsed_wallet: Lulw = serde_json::from_str(wallet).map_err(WalletError::SerializationError)?;
 
     if !(parsed_wallet.version == 0
@@ -123,8 +123,10 @@ pub fn unlock_wallet(wallet: &str, password: &str) -> Result<Vec<u8>, WalletErro
         .try_into()
         .map_err(|_| WalletError::InvalidProperty("salt".to_string()))?;
 
-    let private_key =
-        decrypt(&data, password.as_bytes(), salt, nonce).map_err(|e| WalletError::DecryptionError(e.to_string()))?;
+    let private_key: [u8; 32] = decrypt(&data, password.as_bytes(), salt, nonce)
+        .map_err(|e| WalletError::DecryptionError(e.to_string()))?
+        .try_into()
+        .map_err(|_| WalletError::InvalidProperty("private key".to_string()))?;
 
     Ok(private_key)
 }

@@ -201,7 +201,7 @@ fn validate_send(amount: u64, tx: &TxSend, new_block: SignedBlock) -> Result<i12
         return Err(Validation::ReceiverAccountError.into());
     }
 
-    validate_account_address(receiver).map_err(|_| Validation::ReceiverAccountError)?;
+    validate_account_address(&receiver).map_err(|_| Validation::ReceiverAccountError)?;
 
     Ok(-(amount as i128))
 }
