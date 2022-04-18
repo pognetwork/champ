@@ -66,6 +66,8 @@ impl P2PServer {
             wallet.clone()
         };
 
+        println!("4");
+
         let id_keys = {
             let secret_key: ed25519::SecretKey =
                 ed25519::SecretKey::from_bytes(node_wallet.private_key().unwrap()).unwrap();

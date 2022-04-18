@@ -75,9 +75,11 @@ pub async fn run() -> Result<()> {
     blockpool.add_state(state.clone());
 
     debug!("injecting state into walletmanager");
-    let wallet_manager = &mut state.wallet_manager.write().await;
-    wallet_manager.add_state(state.clone());
-    wallet_manager.initialize().await?;
+    {
+        let wallet_manager = &mut state.wallet_manager.write().await;
+        wallet_manager.add_state(state.clone());
+        wallet_manager.initialize().await?;
+    }
 
     if let Some(matches) = matches.subcommand_matches("admin") {
         debug!("command matched to admin subcommand");
@@ -93,7 +95,12 @@ pub async fn run() -> Result<()> {
 
     process_env(state.clone()).await?;
 
+    println!("lol");
+
     let mut p2p_server = P2PServer::new(state.clone()).await?;
+
+    println!("lol2");
+
     let rpc_server = RpcServer::new(state.clone());
     let http_server = HttpServer::new();
     let rough_time_server = RoughTime::new();
