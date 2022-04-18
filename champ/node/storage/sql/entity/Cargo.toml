@@ -10,7 +10,7 @@ path = "lib.rs"
 [dependencies]
 chrono = "0.4"
 pog-proto = {git = "https://github.com/pognetwork/proto"}
-sea-orm = {version = "0.6", features = ["runtime-tokio-rustls", "macros"], default-features = false}
+sea-orm = {version = "0.7", features = ["runtime-tokio-rustls", "macros"], default-features = false}
 
 [features]
 default = ["sqlite"]
