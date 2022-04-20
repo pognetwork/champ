@@ -28,3 +28,11 @@ jobs:
           target: x86_64-unknown-linux-musl
       - uses: extractions/setup-just@v1
       - run: just canary-release
+  e2e_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: E2E testing webhook
+        uses: joelwmale/webhook-action@fd99bb3b8272237103e349e9bb4d9b0ead9a217c
+        with:
+          url: ${{ secrets.WEBHOOK_URL }}
+          body: '{"image": ${TAG}, "tag": ${GITHUB_REF#refs/heads/}, "commit": ${{ github.head_ref }}.${{ github.sha }}}'
