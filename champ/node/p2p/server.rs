@@ -1,5 +1,6 @@
 #![allow(dead_code, unused_variables)]
 
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -10,6 +11,7 @@ use crypto::rand::seq::IteratorRandom;
 use crypto::signatures::ed25519::verify_signature;
 use libp2p::identity::{self, ed25519};
 use libp2p::noise::AuthenticKeypair;
+use libp2p::Multiaddr;
 
 use pog_proto::Message;
 
@@ -32,14 +34,14 @@ use super::types::{ResponseBody, ResponseBodyData, ResponseHeader};
 
 #[derive(Clone)]
 pub struct Peer {
-    pub voting_power: u64,
-    pub ip: libp2p::Multiaddr,
-    pub last_ping: std::time::SystemTime,
     pub id: PeerId,
+    pub ip: libp2p::Multiaddr,
+    pub voting_power: Option<u64>,
+    pub last_ping: Option<std::time::SystemTime>,
 }
 
 pub struct P2PServer {
-    pub peers: HashMap<[u8; 32], Peer>,
+    pub peers: HashMap<PeerId, Peer>,
     state: ChampStateArc,
     swarm: Swarm<PogBehavior>,
     keypair: NodeKeypair,
@@ -53,7 +55,7 @@ fn timestamp() -> u64 {
     SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs() as u64
 }
 
-fn get_random_peers_id(peers: HashMap<[u8; 32], Peer>, max_nr_of_peers: usize) -> Vec<PeerId> {
+fn get_random_peers_id(peers: HashMap<PeerId, Peer>, max_nr_of_peers: usize) -> Vec<PeerId> {
     let mut r = crypto::rand::thread_rng();
     peers.values().choose_multiple(&mut r, max_nr_of_peers).iter().map(|p| p.id).collect::<Vec<PeerId>>()
 }
@@ -97,8 +99,18 @@ impl P2PServer {
         })
     }
 
+    async fn connect_to_initial_peers(&mut self) {
+        let peers = &self.state.config.read().await.consensus.initial_peers;
+        for peer in peers {
+            if let Ok(addr) = peer.parse::<Multiaddr>() {
+                let peer_ = self.swarm.dial(addr);
+            }
+        }
+    }
+
     pub async fn start(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         self.swarm.listen_on("/ip4/0.0.0.0/tcp/0".parse()?)?;
+        self.connect_to_initial_peers().await;
 
         loop {
             match self.swarm.select_next_some().await {
@@ -107,9 +119,21 @@ impl P2PServer {
                 }
                 SwarmEvent::ConnectionEstablished {
                     peer_id,
+                    endpoint,
+                    num_established,
                     ..
                 } => {
-                    println!("connection established: {peer_id}")
+                    println!("connection established: {peer_id}");
+                    let addr = endpoint.get_remote_address();
+                    let values = match self.peers.entry(peer_id) {
+                        Entry::Occupied(o) => o.into_mut(),
+                        Entry::Vacant(v) => v.insert(Peer {
+                            id: peer_id,
+                            ip: addr.clone(),
+                            last_ping: None,
+                            voting_power: None,
+                        }),
+                    };
                 }
                 SwarmEvent::Behaviour(event) => match event {
                     RequestResponseEvent::Message {

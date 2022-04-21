@@ -5,7 +5,7 @@ use clap::ArgMatches;
 use path_absolutize::Absolutize;
 use pog_proto::rpc::node_admin::Mode;
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::fs::OpenOptions;
 use std::io::Read;
 use std::io::Write;
@@ -80,6 +80,8 @@ pub struct WalletManagerConfig {}
 pub struct ConsensusSettings {
     pub chain: String, // currently only `dev` is supported
 
+    pub initial_peers: HashSet<String>,
+
     pub primary_wallet: Option<String>,
 
     #[serde(with = "ModeDef")]
@@ -92,6 +94,7 @@ impl Default for ConsensusSettings {
             chain: "dev".to_string(),
             mode: Mode::Validating,
             primary_wallet: None,
+            initial_peers: HashSet::new(),
         }
     }
 }
@@ -158,7 +161,6 @@ impl Config {
         self.database = config.database.clone();
         self.admin = config.admin;
         self.node_users = config.node_users;
-        self.consensus = config.consensus;
 
         self.data_path = if let Some(path) = config.database.path {
             let path = path.parse::<PathBuf>()?;
