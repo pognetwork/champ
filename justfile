@@ -9,9 +9,6 @@ node *FLAGS:
 wallet *FLAGS:
   cargo run --bin champ-wallet -- {{FLAGS}}
 
-scylla:
-  docker-compose -f ./scripts/scylla.docker-compose.yml up -d
-
 next-version:
   echo $([ $(convco version) == $(convco version --bump) ] && convco version --patch || convco version --bump)
 
@@ -24,8 +21,21 @@ generate-release-notes version:
 release:
   cargo release $(just next-version)
 
-release-docker platform image tag hash:
-  docker buildx build --platform {{platform}} -t {{image}}:{{tag}} -t {{image}}:{{tag}}-{{hash}} -f ./scripts/Dockerfile . --push
+build-docker platform dockerplatform name tag:
+  docker buildx build --platform {{dockerplatform}} -f ./scripts/Dockerfile -t {{name}}:{{tag}} . --build-arg PLATFORM={{platform}}
 
-build-local-docker image tag:
-  docker buildx build -t {{image}}:{{tag}} -f ./scripts/Dockerfile . --load
+docker-make-image platform dockerplatform name tag:
+  docker buildx build --platform {{dockerplatform}} -f ./scripts/Dockerfile -t {{name}}:{{tag}} . --build-arg PLATFORM={{platform}} --push
+
+image_name := "ghcr.io/pognetwork/champ"
+docker tag hash:
+  @echo "Building for arm64"
+  just docker-make-image aarch64-musl linux/arm64 {{image_name}} {{tag}}-arm64
+
+  @echo "Building for X86"
+  just docker-make-image x86_64-musl linux/amd64 {{image_name}} {{tag}}-amd64
+
+  docker manifest create {{image_name}}:{{tag}} {{image_name}}:{{tag}}-amd64 {{image_name}}:{{tag}}-arm64
+  docker manifest create {{image_name}}:{{tag}}-{{hash}} {{image_name}}:{{tag}}-amd64 {{image_name}}:{{tag}}-arm64
+  docker manifest push {{image_name}}:{{tag}}
+  docker manifest push {{image_name}}:{{tag}}-{{hash}}
