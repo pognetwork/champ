@@ -38,13 +38,14 @@ path-absolutize = "3.0"
 
 # /RPC
 hyper = "0.14"
-prost = "0.9"
-tonic = {version = "0.6", features = ["transport", "prost"]}
-tonic-web = "0.2"
+prost = "0.10"
+tonic = {version = "0.7", features = ["transport", "prost"]}
+tonic-web = "0.3"
 tower = "0.4"
 
 # /STORAGE
 entity = {path = "./storage/sql/entity", optional = true}
+libsqlite3-sys = {version = "*", features = ["bundled"], optional = true}# required for musl binaries
 sled = {version = "0.34", optional = true}
 
 [dev-dependencies]
@@ -66,7 +67,7 @@ backend-sled = ["sled"]
 
 backend-mysql = ["sql", "entity/mysql"]
 backend-postgres = ["sql", "entity/postgres"]
-backend-sqlite = ["sql", "entity/sqlite"]
+backend-sqlite = ["sql", "entity/sqlite", "libsqlite3-sys"]
 sql = ["entity"]
 
 default = ["backend-sled", "backend-sqlite"]
