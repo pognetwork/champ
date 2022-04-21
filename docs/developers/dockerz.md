@@ -6,7 +6,11 @@
 ## Why
 We created our own `end-to-end` testing framework because we needed an easy way to test our `peer-to-peer` logic. Traditional frameworks could not fit our requirements as we needed to test the interactions between a whole network of nodes. 
 
-## Timeline
+## DockerZ Container Timeline
+
+- ### GitHub Action
+    After a new commit is pushed to GitHub, a GitHub action is triggered to update the Docker image used on the Raspberry Pi and push this new image to the GitHub Container Registry.
+## Testing Timeline
 - ### Webhook
     If the `webhook` receives a new request (a new commit), it adds to the internal `queue`.
 
