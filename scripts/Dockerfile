@@ -1,6 +1,4 @@
-ARG TOOLCHAIN=1.60
 ARG ALPINE=3.15
-
 FROM alpine:${ALPINE} AS builder
 
 RUN apk add --no-cache \
@@ -11,7 +9,7 @@ RUN apk add --no-cache \
 ENV RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
     PATH=/usr/local/cargo/bin:$PATH \
-    RUST_VERSION=${TOOLCHAIN}
+    RUST_VERSION=1.60.0
 
 RUN set -eux; \
     apkArch="$(apk --print-arch)"; \
