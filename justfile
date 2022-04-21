@@ -24,10 +24,8 @@ generate-release-notes version:
 release:
   cargo release $(just next-version)
 
-build-docker:
-  docker run --rm -v "$(pwd)":/home/rust/src messense/rust-musl-cross:x86_64-musl cargo build --bin champ-node --release --target x86_64-unknown-linux-musl
-  docker build target/x86_64-unknown-linux-musl/release/ -t ghcr.io/pognetwork/champ:canary -f ./scripts/Dockerfile
+release-docker platform image tag hash:
+  docker buildx build --platform {{platform}} -t {{image}}:{{tag}} -t {{image}}:{{tag}}-{{hash}} -f ./scripts/Dockerfile . --push
 
-canary-release:
-  just build-docker
-  docker push ghcr.io/pognetwork/champ:canary
+build-local-docker image tag:
+  docker buildx build -t {{image}}:{{tag}} -f ./scripts/Dockerfile . --load

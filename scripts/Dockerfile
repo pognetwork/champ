@@ -1,21 +1,21 @@
-ARG IMG_BASE=messense/rust-musl-cross
-ARG TOOLCHAIN=1.60.0
-ARG IMG_ARCH=x86_64-musl
+ARG TOOLCHAIN=1.60
+ARG ALPINE=3.15
 
-FROM ${IMG_BASE}:${IMG_ARCH} AS builder
+FROM rust:${TOOLCHAIN}-alpine${ALPINE} AS builder
+RUN apk update && apk upgrade
+RUN apk add --no-cache build-base protoc
 
-WORKDIR /home/rust/src
-ADD . ./
+WORKDIR /usr/src/champ
+COPY . .
 
 RUN rustc --version
 RUN cargo build --release --bin champ-node
-RUN mv target/$CARGO_BUILD_TARGET out
-RUN ls out
 
-FROM alpine:3.14
+FROM alpine:${ALPINE}
 RUN apk update && apk upgrade
+
 COPY --from=builder \
-    /home/rust/src/out/release/champ-node \
+    /usr/src/champ/target/release/champ-node \
     /usr/local/bin/
 
 EXPOSE 50048

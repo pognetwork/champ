@@ -95,11 +95,7 @@ pub async fn run() -> Result<()> {
 
     process_env(state.clone()).await?;
 
-    println!("lol");
-
     let mut p2p_server = P2PServer::new(state.clone()).await?;
-
-    println!("lol2");
 
     let rpc_server = RpcServer::new(state.clone());
     let http_server = HttpServer::new();
