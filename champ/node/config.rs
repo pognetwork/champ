@@ -161,6 +161,7 @@ impl Config {
         self.database = config.database.clone();
         self.admin = config.admin;
         self.node_users = config.node_users;
+        self.consensus.primary_wallet = config.consensus.primary_wallet;
 
         self.data_path = if let Some(path) = config.database.path {
             let path = path.parse::<PathBuf>()?;

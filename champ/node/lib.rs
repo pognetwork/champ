@@ -33,6 +33,7 @@ use crate::{
 /// This function processes cli arguments, sets up all global state, and starts various services
 pub async fn run() -> Result<()> {
     let matches = cli::parser::new();
+
     let log_level = match matches.value_of("loglevel") {
         Some("trace") => Level::TRACE,
         Some("debug") => Level::DEBUG,
@@ -81,6 +82,8 @@ pub async fn run() -> Result<()> {
         wallet_manager.initialize().await?;
     }
 
+    debug!("injected state into walletmanager");
+
     if let Some(matches) = matches.subcommand_matches("admin") {
         debug!("command matched to admin subcommand");
         cli::admin::run(matches, &state).await?;
@@ -93,7 +96,11 @@ pub async fn run() -> Result<()> {
         return Ok(());
     }
 
+    debug!("proccessing env vars");
+
     process_env(state.clone()).await?;
+
+    debug!("starting services");
 
     let mut p2p_server = P2PServer::new(state.clone()).await?;
     let rpc_server = RpcServer::new(state.clone());

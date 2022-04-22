@@ -55,9 +55,9 @@ fn timestamp() -> u64 {
     SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs() as u64
 }
 
-fn get_random_peers_id(peers: HashMap<PeerId, Peer>, max_nr_of_peers: usize) -> Vec<PeerId> {
+fn get_random_peer_ids(peers: &HashMap<PeerId, Peer>, max_nr_of_peers: usize) -> Vec<Vec<u8>> {
     let mut r = crypto::rand::thread_rng();
-    peers.values().choose_multiple(&mut r, max_nr_of_peers).iter().map(|p| p.id).collect::<Vec<PeerId>>()
+    peers.values().choose_multiple(&mut r, max_nr_of_peers).iter().map(|p| p.id.to_bytes()).collect()
 }
 
 impl P2PServer {
@@ -87,7 +87,12 @@ impl P2PServer {
             .multiplex(MplexConfig::new())
             .boxed();
 
-        let swarm = SwarmBuilder::new(transp, pog_protocol.behavior(), peer_id).build();
+        let swarm = SwarmBuilder::new(transp, pog_protocol.behavior(), peer_id)
+            .executor(Box::new(|f| {
+                tokio::task::spawn(f);
+            }))
+            .build();
+
         let peers = HashMap::new();
 
         Ok(Self {
@@ -108,8 +113,17 @@ impl P2PServer {
         }
     }
 
+    fn send_ping(&mut self, peer_id: PeerId) {
+        let _ = self.send_request(
+            &peer_id,
+            RequestBodyData::Ping(request_body::Ping {
+                peers: get_random_peer_ids(&self.peers, 10),
+            }),
+        );
+    }
+
     pub async fn start(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        self.swarm.listen_on("/ip4/0.0.0.0/tcp/0".parse()?)?;
+        self.swarm.listen_on("/ip4/0.0.0.0/tcp/50052".parse()?)?;
         self.connect_to_initial_peers().await;
 
         loop {
@@ -125,7 +139,7 @@ impl P2PServer {
                 } => {
                     println!("connection established: {peer_id}");
                     let addr = endpoint.get_remote_address();
-                    let values = match self.peers.entry(peer_id) {
+                    let peer = match self.peers.entry(peer_id) {
                         Entry::Occupied(o) => o.into_mut(),
                         Entry::Vacant(v) => v.insert(Peer {
                             id: peer_id,
@@ -134,6 +148,8 @@ impl P2PServer {
                             voting_power: None,
                         }),
                     };
+
+                    self.send_ping(peer_id);
                 }
                 SwarmEvent::Behaviour(event) => match event {
                     RequestResponseEvent::Message {

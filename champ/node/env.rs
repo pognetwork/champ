@@ -42,8 +42,13 @@ pub async fn process_env(state: ChampStateArc) -> Result<()> {
             config.write()?;
         }
 
-        match config.consensus.primary_wallet.clone() {
-            Some(primary_wallet) => wallet_manager.unlock_wallet(primary_wallet, &primary_wallet_password).await?,
+        let primary_wallet = config.consensus.primary_wallet.clone();
+        drop(config);
+
+        match primary_wallet {
+            Some(primary_wallet) => {
+                 wallet_manager.unlock_wallet(primary_wallet, &primary_wallet_password).await?;
+            },
             None => return Err(anyhow!("{CHAMP_PRIMARY_WALLET_PASSWORD} defined but no primary wallet to unlock. Specify primary wallet in config.consensus.primary_wallet"))
         }
     }
