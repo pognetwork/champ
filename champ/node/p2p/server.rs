@@ -74,7 +74,6 @@ impl P2PServer {
             let keypair = ed25519::Keypair::from(secret_key);
             identity::Keypair::Ed25519(keypair)
         };
-
         let dh_keys = noise::Keypair::<noise::X25519Spec>::new().into_authentic(&id_keys).unwrap();
 
         let peer_id = PeerId::from(id_keys.public());
@@ -198,7 +197,7 @@ impl P2PServer {
             }
         };
 
-        if let Err(e) = verify_signature(&request.data, &self.node_wallet.public_key()?, &*header.signature) {
+        if let Err(e) = verify_signature(&request.data, &*header.public_key, &*header.signature) {
             self.send_response(channel, ResponseBodyData::Failure(Failure::MalformedRequest.into()))?;
             return Err(e.into());
         }
