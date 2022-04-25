@@ -70,7 +70,8 @@ impl P2PServer {
 
         let id_keys = {
             let secret_key: ed25519::SecretKey =
-                ed25519::SecretKey::from_bytes(node_wallet.private_key().unwrap()).unwrap();
+                ed25519::SecretKey::from_bytes(node_wallet.private_key().expect("node wallet needs to be unlocked"))
+                    .unwrap();
             let keypair = ed25519::Keypair::from(secret_key);
             identity::Keypair::Ed25519(keypair)
         };
