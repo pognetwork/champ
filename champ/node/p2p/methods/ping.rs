@@ -13,6 +13,8 @@ pub fn process_ping(
     _data: request_body::Ping,
     channel: ResponseChannel<PogResponse>,
 ) -> Result<()> {
+    print!("got a ping, now sending pong :)");
+
     // choose a number of random peers
     let mut r = crypto::rand::thread_rng();
     let peers = server

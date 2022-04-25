@@ -7,6 +7,7 @@ use crate::{
 };
 
 static CHAMP_PRIMARY_WALLET_PASSWORD: &str = "CHAMP_PRIMARY_WALLET_PASSWORD";
+static CHAMP_INITIAL_PEERS: &str = "CHAMP_INITIAL_PEERS";
 static CHAMP_GENERATE_PRIMARY_WALLET: &str = "CHAMP_GENERATE_PRIMARY_WALLET";
 static CHAMP_GENERATE_JWT_KEYS: &str = "CHAMP_GENERATE_JWT_KEYS";
 static CHAMP_DEBUG_CREATE_SUPERADMIN: &str = "CHAMP_DEBUG_CREATE_SUPERADMIN";
@@ -17,6 +18,12 @@ pub async fn process_env(state: ChampStateArc) -> Result<()> {
         if let Some((username, password)) = user.split_once("::") {
             create_user::run(&state, username, password, vec!["superadmin".to_string()]).await?;
         }
+    }
+
+    if let Ok(peers) = env::var(CHAMP_INITIAL_PEERS) {
+        let peers = peers.split(',').map(|s| s.to_string());
+        let mut config = state.config.write().await;
+        config.consensus.initial_peers.extend(peers)
     }
 
     if env::var(CHAMP_GENERATE_JWT_KEYS).is_ok() && {
@@ -35,8 +42,13 @@ pub async fn process_env(state: ChampStateArc) -> Result<()> {
             config.write()?;
         }
 
-        match config.consensus.primary_wallet.clone() {
-            Some(primary_wallet) => wallet_manager.unlock_wallet(primary_wallet, &primary_wallet_password).await?,
+        let primary_wallet = config.consensus.primary_wallet.clone();
+        drop(config);
+
+        match primary_wallet {
+            Some(primary_wallet) => {
+                 wallet_manager.unlock_wallet(primary_wallet, &primary_wallet_password).await?;
+            },
             None => return Err(anyhow!("{CHAMP_PRIMARY_WALLET_PASSWORD} defined but no primary wallet to unlock. Specify primary wallet in config.consensus.primary_wallet"))
         }
     }

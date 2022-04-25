@@ -38,8 +38,9 @@ pub fn new() -> clap::ArgMatches {
                     .arg(
                         Arg::new("password")
                             .help("Password for encrypting the wallet")
-                            .required(true)
-                            .takes_value(true),
+                            .takes_value(true)
+                            .value_name("PASSWORD")
+                            .forbid_empty_values(true),
                     ),
             ),
         )
