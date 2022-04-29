@@ -118,6 +118,7 @@ impl P2PServer {
                 let peer_ = self.swarm.dial(addr);
             }
         }
+        tracing::debug!("{peers:?}");
     }
 
     fn send_ping(&mut self, peer_id: PeerId) -> Result<()> {
