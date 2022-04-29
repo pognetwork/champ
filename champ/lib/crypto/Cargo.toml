@@ -6,7 +6,7 @@ publish = false
 version = "0.0.9"
 
 [dependencies]
-argon2 = "0.3"
+argon2 = "0.4"
 base64 = "0.13"
 chacha20poly1305 = "0.9"
 ed25519-zebra = "3"

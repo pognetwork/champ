@@ -10,7 +10,7 @@ crypto = {path = "../crypto"}
 hex = "0.4"
 reqwest = {version = "0.11", features = ["rustls-tls"], default-features = false}
 thiserror = "1.0"
-tokio = {version = "1.0", features = ["macros", "rt-multi-thread"]}
+tokio = {version = "1", features = ["macros", "rt-multi-thread"]}
 
 [lib]
 path = "lib.rs"
