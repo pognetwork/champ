@@ -2,14 +2,15 @@
 
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
-use std::sync::RwLock;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::sync::{Arc, RwLock};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use crate::state::ChampStateArc;
 use crate::wallets::{Wallet, WalletPrivateKey};
 use anyhow::{anyhow, Result};
 use crypto::rand::seq::IteratorRandom;
 use crypto::signatures::ed25519::verify_signature;
+use lazy_static::lazy_static;
 use libp2p::identity::{self, ed25519};
 use libp2p::noise::AuthenticKeypair;
 use libp2p::Multiaddr;
@@ -26,6 +27,7 @@ use libp2p::{
     tcp::TokioTcpConfig,
     {PeerId, Swarm},
 };
+use prometheus::register_int_gauge;
 
 use super::methods;
 use super::protocol::{PogBehavior, PogMessage, PogRequest, PogResponse};
@@ -40,17 +42,22 @@ pub struct Peer {
     pub voting_power: Option<u64>,
     pub last_ping: Option<u64>,
 }
-
 pub struct P2PServer {
-    pub peers: RwLock<HashMap<PeerId, Peer>>,
+    pub peers: Peers,
     state: ChampStateArc,
     swarm: Swarm<PogBehavior>,
     keypair: NodeKeypair,
     node_wallet: Wallet,
 }
 
+type Peers = Arc<RwLock<HashMap<PeerId, Peer>>>;
 pub type NodeKeypair = AuthenticKeypair<noise::X25519Spec>;
 const NR_OF_PEERS_SENT: usize = 10;
+
+lazy_static! {
+    static ref CONNECTED_PEERS: prometheus::IntGauge =
+        register_int_gauge!("connected_peers", "connected peers").unwrap();
+}
 
 pub fn timestamp() -> u64 {
     SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs() as u64
@@ -93,7 +100,7 @@ impl P2PServer {
             }))
             .build();
 
-        let peers = RwLock::new(HashMap::new());
+        let peers = Arc::new(RwLock::new(HashMap::new()));
 
         Ok(Self {
             state,
@@ -124,9 +131,44 @@ impl P2PServer {
         Ok(())
     }
 
+    fn ping_thread(peers: Arc<RwLock<HashMap<PeerId, Peer>>>) {
+        let _ = tokio::task::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_millis(600));
+            loop {
+                interval.tick().await;
+                // for peer in peers.read() {
+                //     send_ping(peer).expect("works");
+                // }
+            }
+        });
+    }
+
+    fn update_metrics(all_peers: Arc<RwLock<HashMap<PeerId, Peer>>>) {
+        let _ = tokio::task::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::new(5, 0));
+            loop {
+                interval.tick().await;
+                let now = timestamp();
+                if let Ok(peers) = all_peers.read() {
+                    let connected_peers = peers
+                        .iter()
+                        .filter(|(_, peer)| match peer.last_ping {
+                            Some(ping) => ping > (now - 120),
+                            None => false,
+                        })
+                        .count();
+                    CONNECTED_PEERS.set(connected_peers as i64);
+                }
+            }
+        });
+    }
+
     pub async fn start(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         self.swarm.listen_on("/ip4/0.0.0.0/tcp/50052".parse()?)?;
         self.connect_to_initial_peers().await;
+
+        //P2PServer::ping_thread(self.peers.clone());
+        P2PServer::update_metrics(self.peers.clone());
 
         loop {
             match self.swarm.select_next_some().await {
