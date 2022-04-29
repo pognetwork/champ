@@ -1,4 +1,4 @@
-name: Canary Releases
+name: Docker Image Updates
 
 on:
   push:
