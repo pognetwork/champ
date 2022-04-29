@@ -1,8 +1,7 @@
 #![allow(dead_code, unused_variables)]
 
-use std::collections::hash_map::Entry;
-use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
+use std::task::{Context, Poll, Waker};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use crate::state::ChampStateArc;
@@ -10,7 +9,9 @@ use crate::wallets::{Wallet, WalletPrivateKey};
 use anyhow::{anyhow, Result};
 use crypto::rand::seq::IteratorRandom;
 use crypto::signatures::ed25519::verify_signature;
+use dashmap::DashMap;
 use lazy_static::lazy_static;
+use libp2p::futures::task::noop_waker;
 use libp2p::identity::{self, ed25519};
 use libp2p::noise::AuthenticKeypair;
 use libp2p::Multiaddr;
@@ -28,6 +29,7 @@ use libp2p::{
     {PeerId, Swarm},
 };
 use prometheus::register_int_gauge;
+use tokio::sync::mpsc;
 
 use super::methods;
 use super::protocol::{PogBehavior, PogMessage, PogRequest, PogResponse};
@@ -50,7 +52,7 @@ pub struct P2PServer {
     node_wallet: Wallet,
 }
 
-type Peers = Arc<RwLock<HashMap<PeerId, Peer>>>;
+type Peers = Arc<DashMap<PeerId, Peer>>;
 pub type NodeKeypair = AuthenticKeypair<noise::X25519Spec>;
 const NR_OF_PEERS_SENT: usize = 10;
 
@@ -61,11 +63,6 @@ lazy_static! {
 
 pub fn timestamp() -> u64 {
     SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs() as u64
-}
-
-fn get_random_peer_ids(peers: &HashMap<PeerId, Peer>, max_nr_of_peers: usize) -> Vec<Vec<u8>> {
-    let mut r = crypto::rand::thread_rng();
-    peers.values().choose_multiple(&mut r, max_nr_of_peers).iter().map(|p| p.id.to_bytes()).collect()
 }
 
 impl P2PServer {
@@ -100,7 +97,7 @@ impl P2PServer {
             }))
             .build();
 
-        let peers = Arc::new(RwLock::new(HashMap::new()));
+        let peers = Arc::new(DashMap::new());
 
         Ok(Self {
             state,
@@ -121,45 +118,50 @@ impl P2PServer {
         tracing::debug!("{peers:?}");
     }
 
+    fn get_random_peer_ids(&mut self, max_nr_of_peers: usize) -> Vec<PeerId> {
+        let mut r = crypto::rand::thread_rng();
+        self.peers.iter().choose_multiple(&mut r, max_nr_of_peers).iter().map(|p| p.id).collect()
+    }
+
     fn send_ping(&mut self, peer_id: PeerId) -> Result<()> {
-        let peers = self.peers.read().map_err(|_| anyhow::anyhow!("could not read peers"))?.clone();
+        let peers = self.get_random_peer_ids(10).iter().map(|p| p.to_bytes()).collect();
+
         let _ = self.send_request(
             &peer_id,
             RequestBodyData::Ping(request_body::Ping {
-                peers: get_random_peer_ids(&peers, 10),
+                peers,
             }),
         );
         Ok(())
     }
 
-    fn ping_thread(peers: Arc<RwLock<HashMap<PeerId, Peer>>>) {
+    fn interval(milis: u64) -> mpsc::Receiver<()> {
+        let (tx, rx) = mpsc::channel::<()>(1);
+
         let _ = tokio::task::spawn(async move {
-            let mut interval = tokio::time::interval(Duration::from_millis(600));
             loop {
-                interval.tick().await;
-                // for peer in peers.read() {
-                //     send_ping(peer).expect("works");
-                // }
+                tokio::time::sleep(Duration::from_millis(milis)).await;
+                let _ = tx.send(()).await;
             }
         });
+
+        rx
     }
 
-    fn update_metrics(all_peers: Arc<RwLock<HashMap<PeerId, Peer>>>) {
+    fn update_metrics(peers: Peers) {
         let _ = tokio::task::spawn(async move {
             let mut interval = tokio::time::interval(Duration::new(5, 0));
             loop {
                 interval.tick().await;
                 let now = timestamp();
-                if let Ok(peers) = all_peers.read() {
-                    let connected_peers = peers
-                        .iter()
-                        .filter(|(_, peer)| match peer.last_ping {
-                            Some(ping) => ping > (now - 120),
-                            None => false,
-                        })
-                        .count();
-                    CONNECTED_PEERS.set(connected_peers as i64);
-                }
+                let connected_peers = peers
+                    .iter()
+                    .filter(|peer| match peer.last_ping {
+                        Some(ping) => ping > (now - 120),
+                        None => false,
+                    })
+                    .count();
+                CONNECTED_PEERS.set(connected_peers as i64);
             }
         });
     }
@@ -168,50 +170,67 @@ impl P2PServer {
         self.swarm.listen_on("/ip4/0.0.0.0/tcp/50052".parse()?)?;
         self.connect_to_initial_peers().await;
 
-        //P2PServer::ping_thread(self.peers.clone());
+        let mut rx = P2PServer::interval(5000);
         P2PServer::update_metrics(self.peers.clone());
+        let waker = noop_waker();
+        let mut cx = Context::from_waker(&waker);
 
         loop {
-            match self.swarm.select_next_some().await {
-                SwarmEvent::Dialing(peer_id) => {
-                    println!("dialing {peer_id}")
+            match rx.poll_recv(&mut cx) {
+                Poll::Pending => {}
+                Poll::Ready(None) => {
+                    return Err(Box::new(std::io::Error::new(
+                        std::io::ErrorKind::ConnectionAborted,
+                        "task queue closed",
+                    )))
                 }
-                SwarmEvent::ConnectionEstablished {
-                    peer_id,
-                    endpoint,
-                    num_established,
-                    ..
-                } => {
-                    println!("connection established: {peer_id}");
-                    let addr = endpoint.get_remote_address();
-                    let peer = match self
-                        .peers
-                        .write()
-                        .map_err(|_| anyhow::anyhow!("could not read peers"))?
-                        .entry(peer_id)
-                    {
-                        Entry::Occupied(o) => o.into_mut(),
-                        Entry::Vacant(v) => v.insert(Peer {
-                            id: peer_id,
-                            ip: addr.clone(),
-                            last_ping: None,
-                            voting_power: None,
-                        }),
-                    };
+                Poll::Ready(Some(_)) => {
+                    println!("1")
+                }
+            }
 
-                    let _ = self.send_ping(peer_id);
-                }
-                SwarmEvent::Behaviour(event) => match event {
-                    RequestResponseEvent::Message {
-                        peer,
-                        message,
-                    } => self.process_message(peer, message),
-                    RequestResponseEvent::ResponseSent {
+            match self.swarm.poll_next_unpin(&mut cx) {
+                Poll::Pending => {}
+                Poll::Ready(None) => {}
+                Poll::Ready(Some(val)) => match val {
+                    SwarmEvent::Dialing(peer_id) => {
+                        println!("dialing {peer_id}")
+                    }
+                    SwarmEvent::ConnectionEstablished {
+                        peer_id,
+                        endpoint,
+                        num_established,
                         ..
-                    } => {}
+                    } => {
+                        println!("connection established: {peer_id}");
+                        let addr = endpoint.get_remote_address();
+
+                        if !self.peers.contains_key(&peer_id) {
+                            self.peers.insert(
+                                peer_id,
+                                Peer {
+                                    id: peer_id,
+                                    ip: addr.clone(),
+                                    last_ping: None,
+                                    voting_power: None,
+                                },
+                            );
+                        }
+
+                        let _ = self.send_ping(peer_id);
+                    }
+                    SwarmEvent::Behaviour(event) => match event {
+                        RequestResponseEvent::Message {
+                            peer,
+                            message,
+                        } => self.process_message(peer, message),
+                        RequestResponseEvent::ResponseSent {
+                            ..
+                        } => {}
+                        _ => {}
+                    },
                     _ => {}
                 },
-                _ => {}
             }
         }
     }
@@ -294,18 +313,8 @@ impl P2PServer {
 
     // standard send means that a request is sent to all Prime Delegates + 10 random non Prime Delegates
     fn standard_send(&mut self, request: RequestBodyData) -> Result<()> {
-        let mut r = crypto::rand::thread_rng();
         let prime_delegates = self.get_prime_delegates();
-        let random_peers = self
-            .peers
-            .read()
-            .map_err(|_| anyhow::anyhow!("could not read peers"))?
-            .values()
-            .choose_multiple(&mut r, NR_OF_PEERS_SENT)
-            .iter()
-            .map(|p| p.id)
-            .collect::<Vec<PeerId>>();
-
+        let random_peers = self.get_random_peer_ids(NR_OF_PEERS_SENT);
         let all_peers = prime_delegates.iter().chain(random_peers.iter()).collect::<Vec<&PeerId>>();
 
         for peers in all_peers {

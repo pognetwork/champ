@@ -20,14 +20,20 @@ pub fn process_ping(
     print!("got a ping, now sending pong :)");
 
     let peers = {
-        let mut peers = server.peers.write().map_err(|_| anyhow::anyhow!("cannot write peers"))?;
-        let peer = peers.get_mut(&peer_id).ok_or_else(|| anyhow::anyhow!("cannot get peer"))?;
+        let mut peer = server.peers.get_mut(&peer_id).ok_or_else(|| anyhow::anyhow!("cannot get peer"))?;
         peer.last_ping = Some(timestamp());
 
         // choose a number of random peers
         let mut r = crypto::rand::thread_rng();
-        peers.values().choose_multiple(&mut r, PING_PEER_COUNT).iter().map(|p| p.ip.to_vec()).collect::<Vec<Vec<u8>>>()
+        server
+            .peers
+            .iter()
+            .choose_multiple(&mut r, PING_PEER_COUNT)
+            .iter()
+            .map(|p| p.ip.to_vec())
+            .collect::<Vec<Vec<u8>>>()
     };
+
     let pong = response_body::Pong {
         peers,
     };
