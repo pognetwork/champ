@@ -1,4 +1,4 @@
-name: Docker Image Updates
+name: Canary Releases
 
 on:
   push:
@@ -22,12 +22,13 @@ jobs:
           registry: ghcr.io
           username: pognetwork
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          target: x86_64-unknown-linux-musl
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
       - uses: extractions/setup-just@v1
-      - run: just canary-release
+      - run: just docker canary $(git log -1 --pretty=format:%h)
   e2e_tests:
     needs: [build_docker]
     runs-on: ubuntu-latest
