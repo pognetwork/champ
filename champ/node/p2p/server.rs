@@ -2,6 +2,7 @@
 
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::sync::RwLock;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::state::ChampStateArc;
@@ -37,11 +38,11 @@ pub struct Peer {
     pub id: PeerId,
     pub ip: libp2p::Multiaddr,
     pub voting_power: Option<u64>,
-    pub last_ping: Option<std::time::SystemTime>,
+    pub last_ping: Option<u64>,
 }
 
 pub struct P2PServer {
-    pub peers: HashMap<PeerId, Peer>,
+    pub peers: RwLock<HashMap<PeerId, Peer>>,
     state: ChampStateArc,
     swarm: Swarm<PogBehavior>,
     keypair: NodeKeypair,
@@ -51,7 +52,7 @@ pub struct P2PServer {
 pub type NodeKeypair = AuthenticKeypair<noise::X25519Spec>;
 const NR_OF_PEERS_SENT: usize = 10;
 
-fn timestamp() -> u64 {
+pub fn timestamp() -> u64 {
     SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards").as_secs() as u64
 }
 
@@ -92,7 +93,7 @@ impl P2PServer {
             }))
             .build();
 
-        let peers = HashMap::new();
+        let peers = RwLock::new(HashMap::new());
 
         Ok(Self {
             state,
@@ -112,13 +113,15 @@ impl P2PServer {
         }
     }
 
-    fn send_ping(&mut self, peer_id: PeerId) {
+    fn send_ping(&mut self, peer_id: PeerId) -> Result<()> {
+        let peers = self.peers.read().map_err(|_| anyhow::anyhow!("could not read peers"))?.clone();
         let _ = self.send_request(
             &peer_id,
             RequestBodyData::Ping(request_body::Ping {
-                peers: get_random_peer_ids(&self.peers, 10),
+                peers: get_random_peer_ids(&peers, 10),
             }),
         );
+        Ok(())
     }
 
     pub async fn start(&mut self) -> Result<(), Box<dyn std::error::Error>> {
@@ -138,7 +141,12 @@ impl P2PServer {
                 } => {
                     println!("connection established: {peer_id}");
                     let addr = endpoint.get_remote_address();
-                    let peer = match self.peers.entry(peer_id) {
+                    let peer = match self
+                        .peers
+                        .write()
+                        .map_err(|_| anyhow::anyhow!("could not read peers"))?
+                        .entry(peer_id)
+                    {
                         Entry::Occupied(o) => o.into_mut(),
                         Entry::Vacant(v) => v.insert(Peer {
                             id: peer_id,
@@ -148,7 +156,7 @@ impl P2PServer {
                         }),
                     };
 
-                    self.send_ping(peer_id);
+                    let _ = self.send_ping(peer_id);
                 }
                 SwarmEvent::Behaviour(event) => match event {
                     RequestResponseEvent::Message {
@@ -171,11 +179,11 @@ impl P2PServer {
                 channel,
                 request,
                 request_id,
-            } => self.process_request(channel, request, request_id),
+            } => self.process_request(channel, request, request_id, peer),
             protocol::ResponseMessage {
                 request_id,
                 response,
-            } => self.process_response(request_id, response),
+            } => self.process_response(request_id, response, peer),
         };
 
         if let Err(err) = res {
@@ -188,6 +196,7 @@ impl P2PServer {
         channel: ResponseChannel<PogResponse>,
         request: PogRequest,
         request_id: RequestId,
+        peer_id: PeerId,
     ) -> Result<()> {
         let header = match RequestHeader::decode(&*request.header) {
             Ok(header) => header,
@@ -222,7 +231,7 @@ impl P2PServer {
             // request_body::Data::Forward(data) => self.process_forward(*data),
             // request_body::Data::FinalVote(data) => self.process_final_vote(data),
             // request_body::Data::VoteProposal(data) => self.process_vote_proposal(data),
-            request_body::Data::Ping(data) => return methods::process_ping(self, data, channel),
+            request_body::Data::Ping(data) => return methods::process_ping(self, data, channel, peer_id),
             _ => Ok(()),
         };
 
@@ -232,7 +241,7 @@ impl P2PServer {
         }
     }
 
-    fn process_response(&self, request_id: RequestId, response: PogResponse) -> Result<()> {
+    fn process_response(&self, request_id: RequestId, response: PogResponse, peer_id: PeerId) -> Result<()> {
         Ok(())
     }
 
@@ -246,6 +255,8 @@ impl P2PServer {
         let prime_delegates = self.get_prime_delegates();
         let random_peers = self
             .peers
+            .read()
+            .map_err(|_| anyhow::anyhow!("could not read peers"))?
             .values()
             .choose_multiple(&mut r, NR_OF_PEERS_SENT)
             .iter()
