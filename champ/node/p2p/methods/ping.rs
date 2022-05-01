@@ -17,7 +17,7 @@ pub fn process_ping(
     channel: ResponseChannel<PogResponse>,
     peer_id: PeerId,
 ) -> Result<()> {
-    println!("got a ping, now sending pong");
+    tracing::debug!("got a ping, now sending pong");
 
     {
         let mut peer = server.peers.get_mut(&peer_id).ok_or_else(|| anyhow::anyhow!("cannot get peer"))?;

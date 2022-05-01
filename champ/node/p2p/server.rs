@@ -173,59 +173,6 @@ impl P2PServer {
         PEERS_CONNECTED.set(0);
         PEERS_TOTAL.set(0);
 
-        // loop {
-        //     match self.swarm.select_next_some().await {
-        //         SwarmEvent::Dialing(peer_id) => {
-        //             println!("dialing {peer_id}")
-        //         }
-        //         SwarmEvent::ConnectionEstablished {
-        //             peer_id,
-        //             endpoint,
-        //             num_established,
-        //             ..
-        //         } => {
-        //             println!("connection established: {peer_id}");
-        //             let addr = endpoint.get_remote_address();
-        //             if !self.peers.contains_key(&peer_id) {
-        //                 self.peers.insert(
-        //                     peer_id,
-        //                     Peer {
-        //                         id: peer_id,
-        //                         ip: addr.clone(),
-        //                         last_ping: None,
-        //                         voting_power: None,
-        //                     },
-        //                 );
-        //             }
-
-        //             tracing::debug!("sending initial ping to {peer_id}");
-        //             if let Err(e) = self.send_ping(peer_id) {
-        //                 tracing::error!("ping failed: {e}")
-        //             }
-        //         }
-        //         SwarmEvent::Behaviour(event) => match event {
-        //             RequestResponseEvent::Message {
-        //                 peer,
-        //                 message,
-        //             } => self.process_message(peer, message),
-        //             RequestResponseEvent::ResponseSent {
-        //                 ..
-        //             } => {}
-        //             RequestResponseEvent::InboundFailure {
-        //                 peer,
-        //                 request_id,
-        //                 error,
-        //             } => tracing::error!("inbound message failure: {peer:?}: {error:?}: {request_id}"),
-        //             RequestResponseEvent::OutboundFailure {
-        //                 peer,
-        //                 request_id,
-        //                 error,
-        //             } => tracing::error!("outbound message failure: {peer:?}: {error:?}: {request_id}"),
-        //         },
-        //         _ => {}
-        //     }
-        // }
-
         let mut interval = tokio::time::interval(Duration::from_secs(5));
 
         loop {
@@ -343,14 +290,14 @@ impl P2PServer {
             }
         };
 
-        println!("got a request: {data:?}");
+        tracing::trace!("got a request: {data:?}");
 
         let result: Result<()> = match data {
             // request_body::Data::Forward(data) => self.process_forward(*data),
             // request_body::Data::FinalVote(data) => self.process_final_vote(data),
             // request_body::Data::VoteProposal(data) => self.process_vote_proposal(data),
             request_body::Data::Ping(data) => {
-                println!("processing ping");
+                tracing::trace!("processing ping");
                 return methods::process_ping(self, data, channel, peer_id);
             }
             _ => {
@@ -358,8 +305,6 @@ impl P2PServer {
                 Ok(())
             }
         };
-
-        println!("HOW>>");
 
         if let Err(e) = result {
             tracing::error!("error while processing request: {e}");
