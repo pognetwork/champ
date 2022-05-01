@@ -19,11 +19,11 @@ https://pog-grpc.explodingcamera.com
 
 To try out the grpc api, I've set up our preliminary admin panel here:
 
-https://champ-admin-demo.netlify.app/
+[https://champ-admin-demo.netlify.app/](https://champ-admin-demo.netlify.app)
 
-| user  | password                     |
-| ----- | ---------------------------- |
-| admin | correct-horse-battery-staple |
+| user  | password            |
+| ----- | ------------------- |
+| admin | Ng3c35qsRHxyadDk3LM |
 
 ## Admin interface
 
