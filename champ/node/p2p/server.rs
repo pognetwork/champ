@@ -156,7 +156,7 @@ impl P2PServer {
             .filter(|peer| match peer.last_ping {
                 Some(ping) => {
                     print!("{ping}, {now}");
-                    ping > (now - 120)
+                    ping > (now - 20)
                 }
                 None => false,
             })
@@ -226,7 +226,7 @@ impl P2PServer {
         //     }
         // }
 
-        let mut interval = tokio::time::interval(Duration::from_secs(30));
+        let mut interval = tokio::time::interval(Duration::from_secs(5));
 
         loop {
             tokio::select! {
