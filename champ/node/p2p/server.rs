@@ -15,16 +15,17 @@ use libp2p::identity::{self, ed25519};
 use libp2p::noise::AuthenticKeypair;
 use libp2p::Multiaddr;
 
+use libp2p::yamux::YamuxLocalConfig;
 use pog_proto::Message;
 
 use libp2p::{
     core::{upgrade, Transport},
     futures::StreamExt,
-    mplex::MplexConfig,
     noise::{self},
     request_response::{RequestId, RequestResponseEvent, ResponseChannel},
     swarm::{SwarmBuilder, SwarmEvent},
     tcp::TokioTcpConfig,
+    yamux::YamuxConfig,
     {PeerId, Swarm},
 };
 use prometheus::register_int_gauge;
@@ -96,7 +97,7 @@ impl P2PServer {
         let transp = TokioTcpConfig::new()
             .upgrade(upgrade::Version::V1)
             .authenticate(noise)
-            .multiplex(MplexConfig::new())
+            .multiplex(YamuxConfig::server())
             .timeout(Duration::from_secs(10))
             .boxed();
 
@@ -218,7 +219,16 @@ impl P2PServer {
                     RequestResponseEvent::ResponseSent {
                         ..
                     } => {}
-                    _ => {}
+                    RequestResponseEvent::InboundFailure {
+                        peer,
+                        request_id,
+                        error,
+                    } => tracing::error!("inbound message failure: {peer:?}: {error:?}: {request_id}"),
+                    RequestResponseEvent::OutboundFailure {
+                        peer,
+                        request_id,
+                        error,
+                    } => tracing::error!("outbound message failure: {peer:?}: {error:?}: {request_id}"),
                 },
                 _ => {}
             }
@@ -286,8 +296,6 @@ impl P2PServer {
     }
 
     fn process_message(&mut self, peer: PeerId, message: PogMessage) {
-        tracing::debug!("processing message from {peer}: {message:?}");
-
         let res = match message {
             protocol::RequestMessage {
                 channel,
@@ -312,6 +320,8 @@ impl P2PServer {
         request_id: RequestId,
         peer_id: PeerId,
     ) -> Result<()> {
+        tracing::debug!("processing request from {peer_id}");
+
         let header = match RequestHeader::decode(&*request.header) {
             Ok(header) => header,
             Err(err) => {
@@ -341,6 +351,8 @@ impl P2PServer {
             }
         };
 
+        println!("got a request: {data:?}");
+
         let result: Result<()> = match data {
             // request_body::Data::Forward(data) => self.process_forward(*data),
             // request_body::Data::FinalVote(data) => self.process_final_vote(data),
@@ -356,6 +368,7 @@ impl P2PServer {
     }
 
     fn process_response(&self, request_id: RequestId, response: PogResponse, peer_id: PeerId) -> Result<()> {
+        tracing::debug!("processing response from {peer_id}");
         Ok(())
     }
 

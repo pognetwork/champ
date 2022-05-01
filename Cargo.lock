@@ -275,19 +275,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "asynchronous-codec"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0de5164e5edbf51c45fb8c2d9664ae1c095cce1b265ecf7569093c0d66ef690"
-dependencies = [
- "bytes",
- "futures-sink",
- "futures-util",
- "memchr",
- "pin-project-lite",
-]
-
-[[package]]
 name = "atoi"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1826,12 +1813,12 @@ dependencies = [
  "lazy_static",
  "libp2p-core",
  "libp2p-dns",
- "libp2p-mplex",
  "libp2p-noise",
  "libp2p-request-response",
  "libp2p-swarm",
  "libp2p-swarm-derive",
  "libp2p-tcp",
+ "libp2p-yamux",
  "multiaddr",
  "parking_lot 0.12.0",
  "pin-project 1.0.10",
@@ -1884,24 +1871,6 @@ dependencies = [
  "log",
  "smallvec",
  "trust-dns-resolver",
-]
-
-[[package]]
-name = "libp2p-mplex"
-version = "0.32.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "442eb0c9fff0bf22a34f015724b4143ce01877e079ed0963c722d94c07c72160"
-dependencies = [
- "asynchronous-codec",
- "bytes",
- "futures",
- "libp2p-core",
- "log",
- "nohash-hasher",
- "parking_lot 0.12.0",
- "rand 0.7.3",
- "smallvec",
- "unsigned-varint",
 ]
 
 [[package]]
@@ -1989,6 +1958,19 @@ dependencies = [
  "log",
  "socket2",
  "tokio",
+]
+
+[[package]]
+name = "libp2p-yamux"
+version = "0.36.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "be902ebd89193cd020e89e89107726a38cfc0d16d18f613f4a37d046e92c7517"
+dependencies = [
+ "futures",
+ "libp2p-core",
+ "parking_lot 0.12.0",
+ "thiserror",
+ "yamux",
 ]
 
 [[package]]
@@ -4709,7 +4691,6 @@ version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d86a8dc7f45e4c1b0d30e43038c38f274e77af056aa5f74b93c2cf9eb3c1c836"
 dependencies = [
- "asynchronous-codec",
  "bytes",
  "futures-io",
  "futures-util",
@@ -5131,6 +5112,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56c1936c4cc7a1c9ab21a1ebb602eb942ba868cbd44a99cb7cdc5892335e1c85"
 dependencies = [
  "linked-hash-map",
+]
+
+[[package]]
+name = "yamux"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c0608f53c1dc0bad505d03a34bbd49fbf2ad7b51eb036123e896365532745a1"
+dependencies = [
+ "futures",
+ "log",
+ "nohash-hasher",
+ "parking_lot 0.12.0",
+ "rand 0.8.5",
+ "static_assertions",
 ]
 
 [[package]]
