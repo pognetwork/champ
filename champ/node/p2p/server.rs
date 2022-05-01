@@ -58,8 +58,9 @@ pub type NodeKeypair = AuthenticKeypair<noise::X25519Spec>;
 const NR_OF_PEERS_SENT: usize = 10;
 
 lazy_static! {
-    static ref CONNECTED_PEERS: prometheus::IntGauge =
-        register_int_gauge!("connected_peers", "connected peers").unwrap();
+    static ref PEERS_CONNECTED: prometheus::IntGauge =
+        register_int_gauge!("peers_connected", "connected peers").unwrap();
+    static ref PEERS_TOTAL: prometheus::IntGauge = register_int_gauge!("peers_total", "connected peers").unwrap();
 }
 
 pub fn timestamp() -> u64 {
@@ -139,11 +140,10 @@ impl P2PServer {
 
     fn interval(milis: u64) -> mpsc::Receiver<()> {
         let (tx, rx) = mpsc::channel::<()>(1);
-
         let _ = tokio::task::spawn(async move {
             loop {
-                tokio::time::sleep(Duration::from_millis(milis)).await;
                 let _ = tx.send(()).await;
+                tokio::time::sleep(Duration::from_millis(milis)).await;
             }
         });
 
@@ -151,29 +151,30 @@ impl P2PServer {
     }
 
     fn update_metrics(peers: Peers) {
-        let _ = tokio::task::spawn(async move {
-            let mut interval = tokio::time::interval(Duration::new(5, 0));
-            loop {
-                interval.tick().await;
-                let now = timestamp();
-                let connected_peers = peers
-                    .iter()
-                    .filter(|peer| match peer.last_ping {
-                        Some(ping) => ping > (now - 120),
-                        None => false,
-                    })
-                    .count();
-                CONNECTED_PEERS.set(connected_peers as i64);
-            }
-        });
+        let now = timestamp();
+        let connected_peers = peers
+            .iter()
+            .filter(|peer| match peer.last_ping {
+                Some(ping) => {
+                    print!("{ping}, {now}");
+                    ping > (now - 120)
+                }
+                None => false,
+            })
+            .count();
+
+        PEERS_CONNECTED.set(connected_peers as i64);
+        PEERS_TOTAL.set(peers.iter().count() as i64);
     }
 
     pub async fn start(&mut self) -> Result<()> {
         self.swarm.listen_on("/ip4/0.0.0.0/tcp/50052".parse()?)?;
         self.connect_to_initial_peers().await;
 
+        PEERS_CONNECTED.set(0);
+        PEERS_TOTAL.set(0);
+
         let mut rx = P2PServer::interval(5000);
-        P2PServer::update_metrics(self.peers.clone());
         let waker = noop_waker();
         let mut cx = Context::from_waker(&waker);
 
@@ -182,57 +183,72 @@ impl P2PServer {
                 Poll::Pending => {}
                 Poll::Ready(None) => return Err(anyhow::anyhow!("task queue closed")),
                 Poll::Ready(Some(_)) => {
-                    println!("1")
+                    P2PServer::update_metrics(self.peers.clone());
+
+                    let peers: Vec<PeerId> = self.peers.iter().map(|p| p.id).collect();
+                    for peer in peers {
+                        if let Err(e) = self.send_ping(peer) {
+                            tracing::error!("ping failed: {e}");
+                        }
+                    }
                 }
             }
 
             match self.swarm.poll_next_unpin(&mut cx) {
                 Poll::Pending => {}
-                Poll::Ready(None) => {}
-                Poll::Ready(Some(val)) => match val {
-                    SwarmEvent::Dialing(peer_id) => {
-                        println!("dialing {peer_id}")
-                    }
-                    SwarmEvent::ConnectionEstablished {
-                        peer_id,
-                        endpoint,
-                        num_established,
-                        ..
-                    } => {
-                        println!("connection established: {peer_id}");
-                        let addr = endpoint.get_remote_address();
+                Poll::Ready(None) => tracing::error!("stream has terminated"),
+                Poll::Ready(Some(val)) => {
+                    tracing::info!("Val: {val:?}");
 
-                        if !self.peers.contains_key(&peer_id) {
-                            self.peers.insert(
-                                peer_id,
-                                Peer {
-                                    id: peer_id,
-                                    ip: addr.clone(),
-                                    last_ping: None,
-                                    voting_power: None,
-                                },
-                            );
+                    match val {
+                        SwarmEvent::Dialing(peer_id) => {
+                            tracing::debug!("dialing {peer_id}")
                         }
-
-                        let _ = self.send_ping(peer_id);
-                    }
-                    SwarmEvent::Behaviour(event) => match event {
-                        RequestResponseEvent::Message {
-                            peer,
-                            message,
-                        } => self.process_message(peer, message),
-                        RequestResponseEvent::ResponseSent {
+                        SwarmEvent::ConnectionEstablished {
+                            peer_id,
+                            endpoint,
+                            num_established,
                             ..
-                        } => {}
+                        } => {
+                            tracing::debug!("connection established: {peer_id}");
+                            let addr = endpoint.get_remote_address();
+
+                            if !self.peers.contains_key(&peer_id) {
+                                self.peers.insert(
+                                    peer_id,
+                                    Peer {
+                                        id: peer_id,
+                                        ip: addr.clone(),
+                                        last_ping: None,
+                                        voting_power: None,
+                                    },
+                                );
+                            }
+
+                            if let Err(e) = self.send_ping(peer_id) {
+                                tracing::error!("ping failed: {e}")
+                            }
+                        }
+                        SwarmEvent::Behaviour(event) => match event {
+                            RequestResponseEvent::Message {
+                                peer,
+                                message,
+                            } => self.process_message(peer, message),
+                            RequestResponseEvent::ResponseSent {
+                                ..
+                            } => {}
+                            _ => {}
+                        },
                         _ => {}
-                    },
-                    _ => {}
-                },
+                    }
+                }
             }
         }
     }
 
     fn process_message(&mut self, peer: PeerId, message: PogMessage) {
+        tracing::debug!("processing message from {peer}: {message:?}");
+
         let res = match message {
             protocol::RequestMessage {
                 channel,
