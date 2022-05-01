@@ -10,6 +10,7 @@ use crypto::rand::seq::IteratorRandom;
 use crypto::signatures::ed25519::verify_signature;
 use dashmap::DashMap;
 use lazy_static::lazy_static;
+use libp2p::dns::TokioDnsConfig;
 use libp2p::identity::{self, ed25519};
 use libp2p::noise::AuthenticKeypair;
 use libp2p::Multiaddr;
@@ -85,14 +86,7 @@ impl P2PServer {
         let pog_protocol = protocol::PogProtocol::new();
 
         let noise = noise::NoiseConfig::xx(dh_keys.clone()).into_authenticated();
-        // let transp = TokioDnsConfig::system(TokioTcpConfig::new())?
-        //     .upgrade(upgrade::Version::V1)
-        //     .authenticate(noise)
-        //     .multiplex(MplexConfig::new())
-        //     .timeout(Duration::from_secs(10))
-        //     .boxed();
-
-        let transp = TokioTcpConfig::new()
+        let transp = TokioDnsConfig::system(TokioTcpConfig::new())?
             .upgrade(upgrade::Version::V1)
             .authenticate(noise)
             .multiplex(YamuxConfig::default())
@@ -179,118 +173,118 @@ impl P2PServer {
         PEERS_CONNECTED.set(0);
         PEERS_TOTAL.set(0);
 
-        loop {
-            match self.swarm.select_next_some().await {
-                SwarmEvent::Dialing(peer_id) => {
-                    println!("dialing {peer_id}")
-                }
-                SwarmEvent::ConnectionEstablished {
-                    peer_id,
-                    endpoint,
-                    num_established,
-                    ..
-                } => {
-                    println!("connection established: {peer_id}");
-                    let addr = endpoint.get_remote_address();
-                    if !self.peers.contains_key(&peer_id) {
-                        self.peers.insert(
-                            peer_id,
-                            Peer {
-                                id: peer_id,
-                                ip: addr.clone(),
-                                last_ping: None,
-                                voting_power: None,
-                            },
-                        );
-                    }
-
-                    tracing::debug!("sending initial ping to {peer_id}");
-                    if let Err(e) = self.send_ping(peer_id) {
-                        tracing::error!("ping failed: {e}")
-                    }
-                }
-                SwarmEvent::Behaviour(event) => match event {
-                    RequestResponseEvent::Message {
-                        peer,
-                        message,
-                    } => self.process_message(peer, message),
-                    RequestResponseEvent::ResponseSent {
-                        ..
-                    } => {}
-                    RequestResponseEvent::InboundFailure {
-                        peer,
-                        request_id,
-                        error,
-                    } => tracing::error!("inbound message failure: {peer:?}: {error:?}: {request_id}"),
-                    RequestResponseEvent::OutboundFailure {
-                        peer,
-                        request_id,
-                        error,
-                    } => tracing::error!("outbound message failure: {peer:?}: {error:?}: {request_id}"),
-                },
-                _ => {}
-            }
-        }
-
-        // let mut interval = tokio::time::interval(Duration::from_secs(30));
-
         // loop {
-        //     tokio::select! {
-        //         event = self.swarm.select_next_some() => match event {
-        //             SwarmEvent::Behaviour(event) => match event {
-        //                 RequestResponseEvent::Message {
-        //                     peer,
-        //                     message,
-        //                 } => self.process_message(peer, message),
-        //                 RequestResponseEvent::ResponseSent {..} => {}
-        //                 RequestResponseEvent::InboundFailure { peer, request_id, error } => tracing::error!("inbound message failure: {peer:?}: {error:?}: {request_id}"),
-        //                 RequestResponseEvent::OutboundFailure { peer, request_id, error } => tracing::error!("outbound message failure: {peer:?}: {error:?}: {request_id}")
-        //             },
+        //     match self.swarm.select_next_some().await {
+        //         SwarmEvent::Dialing(peer_id) => {
+        //             println!("dialing {peer_id}")
+        //         }
+        //         SwarmEvent::ConnectionEstablished {
+        //             peer_id,
+        //             endpoint,
+        //             num_established,
+        //             ..
+        //         } => {
+        //             println!("connection established: {peer_id}");
+        //             let addr = endpoint.get_remote_address();
+        //             if !self.peers.contains_key(&peer_id) {
+        //                 self.peers.insert(
+        //                     peer_id,
+        //                     Peer {
+        //                         id: peer_id,
+        //                         ip: addr.clone(),
+        //                         last_ping: None,
+        //                         voting_power: None,
+        //                     },
+        //                 );
+        //             }
 
-        //             SwarmEvent::ConnectionEstablished {
-        //                 peer_id,
-        //                 endpoint,
-        //                 num_established,
+        //             tracing::debug!("sending initial ping to {peer_id}");
+        //             if let Err(e) = self.send_ping(peer_id) {
+        //                 tracing::error!("ping failed: {e}")
+        //             }
+        //         }
+        //         SwarmEvent::Behaviour(event) => match event {
+        //             RequestResponseEvent::Message {
+        //                 peer,
+        //                 message,
+        //             } => self.process_message(peer, message),
+        //             RequestResponseEvent::ResponseSent {
         //                 ..
-        //             } => {
-        //                 tracing::debug!("connection established: {peer_id}");
-        //                 let addr = endpoint.get_remote_address();
-
-        //                 if !self.peers.contains_key(&peer_id) {
-        //                     self.peers.insert(
-        //                         peer_id,
-        //                         Peer {
-        //                             id: peer_id,
-        //                             ip: addr.clone(),
-        //                             last_ping: None,
-        //                             voting_power: None,
-        //                         },
-        //                     );
-        //                 }
-
-        //                 tracing::debug!("sending initial ping to {peer_id}");
-        //                 if let Err(e) = self.send_ping(peer_id) {
-        //                     tracing::error!("ping failed: {e}")
-        //                 }
-        //             }
-        //             other => {
-        //                 tracing::debug!("Unhandled {:?}", other);
-        //             }
+        //             } => {}
+        //             RequestResponseEvent::InboundFailure {
+        //                 peer,
+        //                 request_id,
+        //                 error,
+        //             } => tracing::error!("inbound message failure: {peer:?}: {error:?}: {request_id}"),
+        //             RequestResponseEvent::OutboundFailure {
+        //                 peer,
+        //                 request_id,
+        //                 error,
+        //             } => tracing::error!("outbound message failure: {peer:?}: {error:?}: {request_id}"),
         //         },
-        //         _ = interval.tick() => {
-        //                 P2PServer::update_metrics(self.peers.clone());
-
-        //                 tracing::debug!("pinging all peers");
-        //                 let peers: Vec<PeerId> = self.peers.iter().map(|p| p.id).collect();
-        //                 for peer in peers {
-        //                     if let Err(e) = self.send_ping(peer) {
-        //                         tracing::error!("ping failed: {e}");
-        //                     }
-        //                 }
-
-        //             }
+        //         _ => {}
         //     }
         // }
+
+        let mut interval = tokio::time::interval(Duration::from_secs(30));
+
+        loop {
+            tokio::select! {
+                event = self.swarm.select_next_some() => match event {
+                    SwarmEvent::Behaviour(event) => match event {
+                        RequestResponseEvent::Message {
+                            peer,
+                            message,
+                        } => self.process_message(peer, message),
+                        RequestResponseEvent::ResponseSent {..} => {}
+                        RequestResponseEvent::InboundFailure { peer, request_id, error } => tracing::error!("inbound message failure: {peer:?}: {error:?}: {request_id}"),
+                        RequestResponseEvent::OutboundFailure { peer, request_id, error } => tracing::error!("outbound message failure: {peer:?}: {error:?}: {request_id}")
+                    },
+
+                    SwarmEvent::ConnectionEstablished {
+                        peer_id,
+                        endpoint,
+                        num_established,
+                        ..
+                    } => {
+                        tracing::debug!("connection established: {peer_id}");
+                        let addr = endpoint.get_remote_address();
+
+                        if !self.peers.contains_key(&peer_id) {
+                            self.peers.insert(
+                                peer_id,
+                                Peer {
+                                    id: peer_id,
+                                    ip: addr.clone(),
+                                    last_ping: None,
+                                    voting_power: None,
+                                },
+                            );
+                        }
+
+                        tracing::debug!("sending initial ping to {peer_id}");
+                        if let Err(e) = self.send_ping(peer_id) {
+                            tracing::error!("ping failed: {e}")
+                        }
+                    }
+                    other => {
+                        tracing::debug!("Unhandled {:?}", other);
+                    }
+                },
+                _ = interval.tick() => {
+                        P2PServer::update_metrics(self.peers.clone());
+
+                        tracing::debug!("pinging all peers");
+                        let peers: Vec<PeerId> = self.peers.iter().map(|p| p.id).collect();
+                        for peer in peers {
+                            if let Err(e) = self.send_ping(peer) {
+                                tracing::error!("ping failed: {e}");
+                            }
+                        }
+
+                    }
+            }
+        }
     }
 
     fn process_message(&mut self, peer: PeerId, message: PogMessage) {
