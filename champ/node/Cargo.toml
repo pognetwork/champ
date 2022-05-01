@@ -17,6 +17,7 @@ roughtime = {path = "../lib/roughtime"}
 anyhow = "1.0"
 async-trait = "0.1"
 clap = "3.0.7"
+dashmap = "5"
 lazy_static = "1.4"
 pog-proto = {git = "https://github.com/pognetwork/proto"}
 prometheus = {version = "0.13", features = ["process"]}
