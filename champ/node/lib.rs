@@ -115,7 +115,7 @@ pub async fn run() -> Result<()> {
     tokio::spawn(async move {
         if let Err(e) = p2p_server.start().await {
             tracing::error!("exiting, error occurred in p2p code: {:?}", e);
-            panic!()
+            panic!("unrecoverable state")
         }
     });
 
@@ -127,7 +127,7 @@ pub async fn run() -> Result<()> {
         blockpool.start(),
     ) {
         Err(err) => {
-            tracing::error!("exiting, error occurred while starting services: {:?}", err);
+            tracing::error!("exiting, error occurred: {:?}", err);
             return Err(anyhow!("unrecoverable state"));
         }
         Ok(_) => Ok(()),
