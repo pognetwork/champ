@@ -17,12 +17,14 @@ pub fn process_ping(
     channel: ResponseChannel<PogResponse>,
     peer_id: PeerId,
 ) -> Result<()> {
-    print!("got a ping, now sending pong :)");
+    println!("got a ping, now sending pong");
 
-    let peers = {
+    {
         let mut peer = server.peers.get_mut(&peer_id).ok_or_else(|| anyhow::anyhow!("cannot get peer"))?;
         peer.last_ping = Some(timestamp());
+    }
 
+    let peers = {
         // choose a number of random peers
         let mut r = crypto::rand::thread_rng();
         server

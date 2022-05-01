@@ -10,12 +10,10 @@ use crypto::rand::seq::IteratorRandom;
 use crypto::signatures::ed25519::verify_signature;
 use dashmap::DashMap;
 use lazy_static::lazy_static;
-use libp2p::dns::TokioDnsConfig;
 use libp2p::identity::{self, ed25519};
 use libp2p::noise::AuthenticKeypair;
 use libp2p::Multiaddr;
 
-use libp2p::yamux::YamuxLocalConfig;
 use pog_proto::Message;
 
 use libp2p::{
@@ -97,7 +95,7 @@ impl P2PServer {
         let transp = TokioTcpConfig::new()
             .upgrade(upgrade::Version::V1)
             .authenticate(noise)
-            .multiplex(YamuxConfig::server())
+            .multiplex(YamuxConfig::default())
             .timeout(Duration::from_secs(10))
             .boxed();
 
@@ -357,13 +355,23 @@ impl P2PServer {
             // request_body::Data::Forward(data) => self.process_forward(*data),
             // request_body::Data::FinalVote(data) => self.process_final_vote(data),
             // request_body::Data::VoteProposal(data) => self.process_vote_proposal(data),
-            request_body::Data::Ping(data) => return methods::process_ping(self, data, channel, peer_id),
-            _ => Ok(()),
+            request_body::Data::Ping(data) => {
+                println!("processing ping");
+                return methods::process_ping(self, data, channel, peer_id);
+            }
+            _ => {
+                tracing::error!("got unknown request");
+                Ok(())
+            }
         };
 
-        match result {
-            Ok(_) => self.send_response(channel, ResponseBodyData::Success(pog_proto::p2p::response_body::Success {})),
-            Err(err) => self.send_response(channel, ResponseBodyData::Failure(Failure::MalformedRequest.into())),
+        println!("HOW>>");
+
+        if let Err(e) = result {
+            tracing::error!("error while processing request: {e}");
+            self.send_response(channel, ResponseBodyData::Failure(Failure::MalformedRequest.into()))
+        } else {
+            self.send_response(channel, ResponseBodyData::Success(pog_proto::p2p::response_body::Success {}))
         }
     }
 
