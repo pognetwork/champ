@@ -129,13 +129,13 @@ impl P2PServer {
     fn send_ping(&mut self, peer_id: PeerId) -> Result<()> {
         let peers = self.get_random_peer_ids(10).iter().map(|p| p.to_bytes()).collect();
 
-        let _ = self.send_request(
+        self.send_request(
             &peer_id,
             RequestBodyData::Ping(request_body::Ping {
                 peers,
             }),
-        );
-        Ok(())
+        )
+        .map(|_| ())
     }
 
     fn interval(milis: u64) -> mpsc::Receiver<()> {
@@ -185,6 +185,7 @@ impl P2PServer {
                 Poll::Ready(Some(_)) => {
                     P2PServer::update_metrics(self.peers.clone());
 
+                    tracing::debug!("pinging all peers");
                     let peers: Vec<PeerId> = self.peers.iter().map(|p| p.id).collect();
                     for peer in peers {
                         if let Err(e) = self.send_ping(peer) {
@@ -198,7 +199,7 @@ impl P2PServer {
                 Poll::Pending => {}
                 Poll::Ready(None) => tracing::error!("stream has terminated"),
                 Poll::Ready(Some(val)) => {
-                    tracing::info!("Val: {val:?}");
+                    tracing::debug!("Val: {val:?}");
 
                     match val {
                         SwarmEvent::Dialing(peer_id) => {
@@ -225,6 +226,7 @@ impl P2PServer {
                                 );
                             }
 
+                            tracing::debug!("sending initial ping to {peer_id}");
                             if let Err(e) = self.send_ping(peer_id) {
                                 tracing::error!("ping failed: {e}")
                             }
