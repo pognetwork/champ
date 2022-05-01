@@ -7,6 +7,7 @@ nav:
       - Overview: "developers/overview.md"
       - RPC API: "developers/rpc-api.md"
       - CI/CD: "developers/cicd.md"
+      - DockerZ: "developers/dockerz.md"
       - Voting: "developers/voting.md"
       - Security: "developers/security.md"
       - Storage:
