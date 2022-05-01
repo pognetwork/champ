@@ -45,24 +45,24 @@
 ## A Transaction's journey (Work in progress)
 
 - User goes to https://wallet.pog.network
-  - React Website is loaded (hosted on cloudflare pages) (build from [pognetwork/catjam](https://github.com/pognetwork/catjam))
+  - React Website is loaded (hosted on Cloudflare pages) (build from [pognetwork/catjam](https://github.com/pognetwork/catjam))
 - User creates a new Wallet
   - Rust Code is called through `lib/champ-wasm`
     - `lib/crypto` is used to generate a new private key and derive a public key (`lib/crypto/signatures/es25519.rs`)
     - `lib/crypto` is used to encrypt this private key (`lib/crypto/aead/chacha.rs`)
     - `lib/lulw` is used to save this as a JSON file in the LULW format (Specified as [PRC-3](https://pog.network/specification/PIPs/03-LULW/))
-  - Wallet is downloaded to the users PC
-  - A Wallet Address (which they can use to recieve funds) is generated from their public key (`lib/encoding/account.rs`)
+  - Wallet is downloaded to the user's PC
+  - A Wallet Address (which they can use to receive funds) is generated from their public key (`lib/encoding/account.rs`)
 
-> Let's now assume that the user has recieved 10 POG from their friend and wants to use this to buy some robux.
+> Let's now assume that the user has received 10 POGs from their friend and wants to use this to buy some Robux.
 
 - The user goes back to the wallet website and selects their previously downloaded wallet file
-- The user enters their password and their private key is decrypted (`lib/crypto/aead/chacha.rs`)
-- The wallet shows 10 unclaimed POG
-- The user presses send and enters the recievers details
+- The user enters their password, and their private key is decrypted (`lib/crypto/aead/chacha.rs`)
+- The wallet shows ten unclaimed POG
+- The user presses send and enters the receivers details
 - The wallet creates a new block
   - The block format is defined in [pognetwork/proto](https://github.com/pognetwork/proto). We're mainly using the protocol buffers format for data serialization.
-  - The wallet includes a claim tranaction pointing to the transaction the user's friend send earlier
-  - The wallet adds another send transaction to roblox's wallet address to buy the robux
-- This block is send to a pog-node using its gRPC-API
-  - The node recieves this add block request (`node/rpc/block.rs`) (currently not implemented)
+  - The wallet includes a claim transaction pointing to the transaction the user's friend send earlier
+  - The wallet adds another send transaction to Roblox's wallet address to buy the Robux
+- This block is sent to a pog-node using its gRPC-API
+  - The node receives this add block request (`node/rpc/block.rs`) (currently not implemented)

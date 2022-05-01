@@ -6,7 +6,7 @@ If you are interested in the specific message types and parameters, check out [p
 
 The gRPC API is exposed (by default) on `[::1]:50051`. For interactions via websites, `grpc-web` support is available.
 
-In short, the 3 different services provided by Pog.Network are the _Block Service_, _Node Wallet Manager Service_ and the _Node Admin Service_.
+In short, the three different services provided are the _Block Service_, _Node Wallet Manager Service_ and the _Node Admin Service_.
 
 ## Canary Build
 
@@ -14,8 +14,8 @@ We provide an automated canary build with all the recent features and Henry Gres
 
 The test-server is available at:
 
-https://pog-metrics.explodingcamera.com
-https://pog-grpc.explodingcamera.com
+[https://pog-metrics.explodingcamera.com](https://pog-metrics.explodingcamera.com) and
+[https://pog-grpc.explodingcamera.com](https://pog-grpc.explodingcamera.com)
 
 To try out the grpc api, I've set up our preliminary admin panel here:
 
