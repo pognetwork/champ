@@ -97,10 +97,8 @@ pub async fn run() -> Result<()> {
     }
 
     debug!("proccessing env vars");
-
     process_env(state.clone()).await?;
-
-    debug!("starting services");
+    debug!("creating services");
 
     let mut p2p_server = P2PServer::new(state.clone()).await?;
     let rpc_server = RpcServer::new(state.clone());
@@ -114,9 +112,14 @@ pub async fn run() -> Result<()> {
     let rough_time_addr = "0.0.0.0:50049".parse()?;
     let metrics_addr = "0.0.0.0:50048".parse()?;
 
-    debug!("starting services");
+    tokio::spawn(async move {
+        if let Err(e) = p2p_server.start().await {
+            tracing::error!("exiting, error occurred in p2p code: {:?}", e);
+            panic!()
+        }
+    });
+
     match try_join!(
-        p2p_server.start(),
         rpc_server.start(rpc_addr),
         metrics_server.start(metrics_addr, matches.is_present("metrics")),
         http_server.start(http_addr, matches.is_present("web")),

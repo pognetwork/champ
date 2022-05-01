@@ -11,6 +11,7 @@ use crypto::rand::seq::IteratorRandom;
 use crypto::signatures::ed25519::verify_signature;
 use dashmap::DashMap;
 use lazy_static::lazy_static;
+use libp2p::dns::TokioDnsConfig;
 use libp2p::futures::task::noop_waker;
 use libp2p::identity::{self, ed25519};
 use libp2p::noise::AuthenticKeypair;
@@ -86,7 +87,7 @@ impl P2PServer {
         let pog_protocol = protocol::PogProtocol::new();
 
         let noise = noise::NoiseConfig::xx(dh_keys.clone()).into_authenticated();
-        let transp = TokioTcpConfig::new()
+        let transp = TokioDnsConfig::system(TokioTcpConfig::new())?
             .upgrade(upgrade::Version::V1)
             .authenticate(noise)
             .multiplex(MplexConfig::new())
@@ -167,7 +168,7 @@ impl P2PServer {
         });
     }
 
-    pub async fn start(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn start(&mut self) -> Result<()> {
         self.swarm.listen_on("/ip4/0.0.0.0/tcp/50052".parse()?)?;
         self.connect_to_initial_peers().await;
 
@@ -179,12 +180,7 @@ impl P2PServer {
         loop {
             match rx.poll_recv(&mut cx) {
                 Poll::Pending => {}
-                Poll::Ready(None) => {
-                    return Err(Box::new(std::io::Error::new(
-                        std::io::ErrorKind::ConnectionAborted,
-                        "task queue closed",
-                    )))
-                }
+                Poll::Ready(None) => return Err(anyhow::anyhow!("task queue closed")),
                 Poll::Ready(Some(_)) => {
                     println!("1")
                 }
