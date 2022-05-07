@@ -2692,7 +2692,7 @@ dependencies = [
 [[package]]
 name = "pog-proto"
 version = "0.1.0"
-source = "git+https://github.com/pognetwork/proto#d082f3fe67a5936bb14a2a981766afc2c9f4e823"
+source = "git+https://github.com/pognetwork/proto#974b57c9809a66794ed6aa0720b96dfbcaab046c"
 dependencies = [
  "prost 0.10.3",
  "sha3",

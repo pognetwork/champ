@@ -143,7 +143,20 @@ impl Lattice for LatticeService {
         &self,
         request: tonic::Request<GetBlocksRequest>,
     ) -> Result<tonic::Response<GetBlocksReply>, tonic::Status> {
-        unimplemented!()
+        let req = request.into_inner();
+        let db = self.state.db.lock().await;
+
+        match req {
+            r if r.limit > 10 => Err(Status::new(tonic::Code::Internal, "missing Block data")),
+            _ => {
+                let db_response = db.get_blocks(req.sort_by != 0, req.limit, req.offset).await;
+                let response = db_response.map_err(|_| Status::new(tonic::Code::Internal, "internal server error"))?;
+
+                Ok(Response::new(GetBlocksReply {
+                    blocks: response.iter().map(|b| b.to_owned().into()).collect(),
+                }))
+            }
+        }
     }
 
     async fn get_pending_blocks(

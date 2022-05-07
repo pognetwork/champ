@@ -285,8 +285,10 @@ impl Database for SledDB {
 
     async fn get_blocks(&self, newest: bool, limit: u32, offset: u32) -> Result<Vec<api::SignedBlock>, DatabaseError> {
         if !newest {
-            let mut blocks = self.blocks.scan_prefix(b"by_id_").skip(offset as usize);
-            let blocks = blocks
+            let blocks = self
+                .blocks
+                .scan_prefix(b"by_id_")
+                .skip(offset as usize)
                 .take(limit as usize)
                 .filter_map(|i| {
                     if let Ok(block_data) = i {
