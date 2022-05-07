@@ -147,7 +147,7 @@ impl Lattice for LatticeService {
         let db = self.state.db.lock().await;
 
         match req {
-            r if r.limit > 10 => Err(Status::new(tonic::Code::Internal, "missing Block data")),
+            r if r.limit > 100 => Err(Status::new(tonic::Code::Internal, "limit has to be < 100")),
             _ => {
                 let db_response = db.get_blocks(req.sort_by != 0, req.limit, req.offset).await;
                 let response = db_response.map_err(|_| Status::new(tonic::Code::Internal, "internal server error"))?;
