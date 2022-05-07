@@ -139,6 +139,13 @@ impl Lattice for LatticeService {
         }
     }
 
+    async fn get_blocks(
+        &self,
+        request: tonic::Request<GetBlocksRequest>,
+    ) -> Result<tonic::Response<GetBlocksReply>, tonic::Status> {
+        unimplemented!()
+    }
+
     async fn get_pending_blocks(
         &self,
         _request: tonic::Request<Empty>,

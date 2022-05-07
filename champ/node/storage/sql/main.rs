@@ -9,7 +9,7 @@ use entity::sea_orm::{
     self, sea_query::TableCreateStatement, ConnectOptions, ConnectionTrait, DatabaseConnection, DbBackend, Schema,
 };
 use entity::sea_orm::{
-    ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set, TransactionTrait,
+    ActiveModelTrait, ColumnTrait, EntityTrait, Order, QueryFilter, QueryOrder, QuerySelect, Set, TransactionTrait,
 };
 use entity::unix_to_datetime;
 use pog_proto::api;
@@ -89,9 +89,6 @@ impl Database for Sql {
     ) -> Result<api::SignedBlock, DatabaseError> {
         let (_, block) = Account::find_by_id(account_id.into())
             .find_also_related(Block)
-            .select_only()
-            .column(account::Column::LatestBlock)
-            .column(block::Column::Data)
             .one(&self.db)
             .await?
             .ok_or(DatabaseError::BlockNotFound)?;
@@ -200,6 +197,29 @@ impl Database for Sql {
 
             None => Ok(None),
         }
+    }
+
+    async fn get_blocks(&self, newest: bool, limit: u32, offset: u32) -> Result<Vec<api::SignedBlock>, DatabaseError> {
+        let order = if newest {
+            Order::Asc
+        } else {
+            Order::Desc
+        };
+
+        let blocks = Block::find()
+            .limit(limit.into())
+            .offset(offset.into())
+            .order_by(block::Column::Timestamp, order)
+            .all(&self.db)
+            .await?;
+
+        Ok(blocks
+            .iter()
+            .filter_map(|block| {
+                let block: api::SignedBlock = block.try_into().ok()?;
+                Some(block)
+            })
+            .collect())
     }
 
     async fn get_account_delegate(&self, account_id: api::AccountID) -> Result<Option<api::AccountID>, DatabaseError> {

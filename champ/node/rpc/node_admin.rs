@@ -74,9 +74,12 @@ impl NodeAdmin for NodeAdminService {
     }
     async fn get_node_status(
         &self,
-        _request: tonic::Request<Empty>,
+        request: tonic::Request<Empty>,
     ) -> Result<tonic::Response<GetNodeStatusReply>, tonic::Status> {
-        unimplemented!()
+        verify_perms(&request, "admin.read")?;
+        Ok(Response::new(GetNodeStatusReply {
+            status: 0,
+        }))
     }
 
     async fn get_mode(&self, request: tonic::Request<Empty>) -> Result<tonic::Response<GetModeReply>, tonic::Status> {

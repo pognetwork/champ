@@ -182,7 +182,7 @@ impl P2PServer {
                 Poll::Pending => {}
                 Poll::Ready(None) => return Err(anyhow::anyhow!("task queue closed")),
                 Poll::Ready(Some(_)) => {
-                    println!("1")
+                    // poll
                 }
             }
 
@@ -191,7 +191,7 @@ impl P2PServer {
                 Poll::Ready(None) => {}
                 Poll::Ready(Some(val)) => match val {
                     SwarmEvent::Dialing(peer_id) => {
-                        println!("dialing {peer_id}")
+                        tracing::debug!("dialing {peer_id}")
                     }
                     SwarmEvent::ConnectionEstablished {
                         peer_id,
@@ -199,7 +199,7 @@ impl P2PServer {
                         num_established,
                         ..
                     } => {
-                        println!("connection established: {peer_id}");
+                        tracing::debug!("connection established: {peer_id}");
                         let addr = endpoint.get_remote_address();
 
                         if !self.peers.contains_key(&peer_id) {
