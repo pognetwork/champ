@@ -283,6 +283,30 @@ impl Database for SledDB {
         Ok(Some(decode_block(&block)?))
     }
 
+    async fn get_blocks(&self, newest: bool, limit: u32, offset: u32) -> Result<Vec<api::SignedBlock>, DatabaseError> {
+        if !newest {
+            let blocks = self
+                .blocks
+                .scan_prefix(b"by_id_")
+                .skip(offset as usize)
+                .take(limit as usize)
+                .filter_map(|i| {
+                    if let Ok(block_data) = i {
+                        let block = decode_block(&*block_data.1);
+                        if let Ok(block) = block {
+                            return Some(block);
+                        }
+                    }
+                    None
+                })
+                .collect::<Vec<api::SignedBlock>>();
+
+            return Ok(blocks);
+        }
+
+        unimplemented!()
+    }
+
     async fn get_account_delegate(&self, account_id: api::AccountID) -> Result<Option<api::AccountID>, DatabaseError> {
         let mut last_block_key = account_id.to_vec();
         last_block_key.append(&mut b"_rep".to_vec());

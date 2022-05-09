@@ -5,7 +5,7 @@ use pog_proto::p2p::{request_body, response_body};
 
 use crate::p2p::{
     protocol::PogResponse,
-    server::{timestamp, P2PServer},
+    server::{timestamp, P2PServer, RequestResponse},
 };
 use pog_proto::p2p::response_body::Data as ResponseBodyData;
 

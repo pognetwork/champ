@@ -47,6 +47,25 @@ impl TryInto<api::SignedBlock> for Model {
     }
 }
 
+impl<'a> TryInto<api::SignedBlock> for &Model {
+    type Error = DecodeError;
+
+    fn try_into(self) -> Result<pog_proto::api::SignedBlock, Self::Error> {
+        let data = api::BlockData::decode(&*self.data)?;
+        let header = api::BlockHeader {
+            public_key: self.public_key.clone(),
+            signature: self.signature.clone(),
+            timestamp: self.timestamp.timestamp() as u64,
+        };
+
+        Ok(api::SignedBlock {
+            data_raw: self.data.clone(),
+            data,
+            header,
+        })
+    }
+}
+
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
