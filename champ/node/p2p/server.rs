@@ -44,10 +44,10 @@ pub fn timestamp() -> u64 {
 
 pub struct P2PServer {
     pub peers: Peers,
-    state: ChampStateArc,
+    pub state: ChampStateArc,
+    pub node_wallet: Wallet,
     swarm: Swarm<PogBehavior>,
     keypair: NodeKeypair,
-    node_wallet: Wallet,
 }
 
 impl P2PServer {
@@ -122,12 +122,12 @@ impl P2PServer {
         .map(|_| ())
     }
 
-    fn handle_event(&mut self, event: Event) {
+    async fn handle_event(&mut self, event: Event) {
         match event {
             SwarmEvent::Behaviour(RequestResponseEvent::Message {
                 peer,
                 message,
-            }) => self.process_message(peer, message),
+            }) => self.process_message(peer, message).await,
             SwarmEvent::Behaviour(RequestResponseEvent::ResponseSent {
                 ..
             }) => {}
@@ -195,19 +195,19 @@ impl P2PServer {
 
         loop {
             tokio::select! {
-                    event = self.swarm.select_next_some() => self.handle_event(event),
+                    event = self.swarm.select_next_some() => self.handle_event(event).await,
                     _ = interval.tick() => self.handle_tick(),
             }
         }
     }
 
-    fn process_message(&mut self, peer: PeerId, message: PogMessage) {
+    async fn process_message(&mut self, peer: PeerId, message: PogMessage) {
         let res = match message {
             protocol::RequestMessage {
                 channel,
                 request,
                 request_id,
-            } => self.process_request(channel, request, request_id, peer),
+            } => self.process_request(channel, request, request_id, peer).await,
             protocol::ResponseMessage {
                 request_id,
                 response,
@@ -219,7 +219,7 @@ impl P2PServer {
         }
     }
 
-    fn process_request(
+    async fn process_request(
         &mut self,
         channel: ResponseChannel<PogResponse>,
         request: PogRequest,
@@ -261,7 +261,7 @@ impl P2PServer {
 
         let result = match data {
             request_body::Data::FinalVote(data) => methods::process_final_vote(self, data, peer_id),
-            request_body::Data::VoteProposal(data) => methods::process_vote_proposal(self, data, peer_id),
+            request_body::Data::VoteProposal(data) => methods::process_vote_proposal(self, data, peer_id).await,
             request_body::Data::Forward(data) => methods::process_forward(self, *data, peer_id),
             request_body::Data::Ping(data) => return methods::process_ping(self, data, channel, peer_id),
         };
