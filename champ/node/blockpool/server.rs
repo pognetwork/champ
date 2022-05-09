@@ -1,13 +1,12 @@
 #![allow(dead_code)]
 
+use super::client;
+use super::shared::Command;
 use crate::state::ChampStateArc;
-use anyhow::{Context, Result};
+use anyhow::Result;
 use pog_proto::api::{BlockID, SignedBlock};
 use std::collections::{HashMap, HashSet, VecDeque};
-use tokio::sync::{
-    mpsc::{self, Receiver, Sender},
-    oneshot,
-};
+use tokio::sync::mpsc::{self, Receiver, Sender};
 
 use tracing::info;
 
@@ -32,63 +31,10 @@ impl Default for Blockpool {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct BlockpoolClient {
-    tx: Sender<Command>,
-}
-
-impl BlockpoolClient {
-    pub async fn process_block(&self) -> Result<()> {
-        let (resp_tx, resp_rx) = oneshot::channel();
-
-        self.tx
-            .send(Command::ProcessBlock {
-                resp: resp_tx,
-            })
-            .await
-            .with_context(|| "error sending process request")?;
-        resp_rx.await?
-    }
-
-    pub async fn process_vote(&self, block: pog_proto::api::RawBlock, vote: u64, final_vote: bool) -> Result<()> {
-        let (resp_tx, resp_rx) = oneshot::channel();
-
-        let block: SignedBlock = block.try_into()?;
-
-        self.tx
-            .send(Command::ProcessVote {
-                block,
-                vote,
-                final_vote,
-                resp: resp_tx,
-            })
-            .await
-            .with_context(|| "error sending process request")?;
-        resp_rx.await?
-    }
-
-    pub async fn get_queue_size(&self) -> Result<u64> {
-        let (resp_tx, resp_rx) = oneshot::channel();
-
-        self.tx
-            .send(Command::GetQueueSize {
-                resp: resp_tx,
-            })
-            .await
-            .with_context(|| "error sending process request")?;
-        resp_rx.await?
-    }
-
-    /// Gets the total voting power in the network
-    pub fn get_total_network_power(&self) -> f64 {
-        //TODO: Get all voting power of all prime delegates combined
-        100_000_000_f64
-    }
-}
-
 impl Blockpool {
     pub fn new() -> Self {
         let (tx, rx) = mpsc::channel(1000);
+
         Self {
             tx,
             rx,
@@ -103,10 +49,8 @@ impl Blockpool {
         self.state = Some(state);
     }
 
-    pub fn get_client(&self) -> BlockpoolClient {
-        BlockpoolClient {
-            tx: self.tx.clone(),
-        }
+    pub fn get_client(&self) -> client::BlockpoolClient {
+        client::BlockpoolClient::new(self.tx.clone())
     }
 
     pub async fn start(&mut self) -> Result<(), Box<std::io::Error>> {
@@ -114,13 +58,11 @@ impl Blockpool {
             panic!("add_state has to be called first")
         }
 
-        // let state = self.state.clone().unwrap();
-
         info!("blockpool started listening to incoming commands");
         while let Some(cmd) = self.rx.recv().await {
-            use Command::*;
             match cmd {
-                ProcessBlock {
+                Command::ProcessVoteProposal {
+                    block: _,
                     resp: _,
                 } => {
                     // let result = block::validate(&block, &state).await;
@@ -146,10 +88,8 @@ impl Blockpool {
                     //     }
                     // }
                 }
-                ProcessVote {
+                Command::ProcessFinalVote {
                     block: _,
-                    vote: _,
-                    final_vote: _,
                     resp: _,
                 } => {
                     // //TODO: Fix this
@@ -199,7 +139,7 @@ impl Blockpool {
                     //     }
                     // }
                 }
-                GetQueueSize {
+                Command::GetQueueSize {
                     resp,
                 } => {
                     let _ = resp.send(Ok(self.block_queue.len() as u64));
@@ -235,22 +175,4 @@ impl Blockpool {
             panic!("something went wrong")
         }
     }
-}
-
-type Responder<T> = oneshot::Sender<Result<T>>;
-
-#[derive(Debug)]
-pub enum Command {
-    ProcessBlock {
-        resp: Responder<()>,
-    },
-    ProcessVote {
-        block: pog_proto::api::SignedBlock,
-        vote: u64,
-        final_vote: bool,
-        resp: Responder<()>,
-    },
-    GetQueueSize {
-        resp: Responder<u64>,
-    },
 }
