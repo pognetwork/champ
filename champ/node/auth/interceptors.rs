@@ -76,8 +76,7 @@ mod tests {
 
         let jwt =
             &pog_jwt::create(&user.user_id, "test", 10, key_pair.private_key.as_bytes()).expect("should create jwt");
-        req.metadata_mut()
-            .append("authorization", MetadataValue::from_str(jwt).expect("matadata value should be created"));
+        req.metadata_mut().append("authorization", jwt.try_into().expect("matadata value should be created"));
 
         verify(jwt, key_pair.public_key.as_bytes()).expect("valid token");
         interceptor_auth(req, &key_pair.public_key, &users).expect("should allow valid token");
@@ -86,22 +85,19 @@ mod tests {
     #[test]
     fn should_err_on_invalid_token() {
         let (mut req, key_pair, _, users) = mock();
-        req.metadata_mut()
-            .append("authorization", MetadataValue::from_str("test").expect("matadata value should be created"));
+        req.metadata_mut().append("authorization", "test".try_into().expect("matadata value should be created"));
         interceptor_auth(req, &key_pair.public_key, &users).expect_err("should disallow invalid token");
     }
 
     #[test]
     fn should_err_on_invalid_user() {
         let (mut req, key_pair, _, users) = mock();
-        req.metadata_mut().append(
-            "authorization",
-            MetadataValue::from_str(
-                &pog_jwt::create("invalid_user_id", "invalid_user", 10, key_pair.private_key.as_bytes())
-                    .expect("shoud create jwt"),
-            )
-            .expect("matadata value should be created"),
-        );
+
+        let jwt = &pog_jwt::create("invalid_user_id", "invalid_user", 10, key_pair.private_key.as_bytes())
+            .expect("matadata value should be created");
+
+        req.metadata_mut().append("authorization", jwt.try_into().expect("shoud create jwt"));
+
         interceptor_auth(req, &key_pair.public_key, &users).expect_err("should disallow nonexisting user");
     }
 }
