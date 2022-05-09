@@ -24,20 +24,21 @@ impl BlockpoolClient {
         resp_rx.await?
     }
 
-    pub async fn process_block(&self) -> Result<()> {
-        self.send_command(|resp| Command::ProcessBlock {
+    pub async fn process_final_vote(&self, block: pog_proto::api::RawBlock, _vote: u64) -> Result<()> {
+        let block: SignedBlock = block.try_into()?;
+
+        self.send_command(|resp| Command::ProcessFinalVote {
+            block,
             resp,
         })
         .await
     }
 
-    pub async fn process_vote(&self, block: pog_proto::api::RawBlock, vote: u64, final_vote: bool) -> Result<()> {
+    pub async fn process_vote_proposal(&self, block: pog_proto::api::RawBlock, _vote: u64) -> Result<()> {
         let block: SignedBlock = block.try_into()?;
 
-        self.send_command(|resp| Command::ProcessVote {
+        self.send_command(|resp| Command::ProcessVoteProposal {
             block,
-            vote,
-            final_vote,
             resp,
         })
         .await

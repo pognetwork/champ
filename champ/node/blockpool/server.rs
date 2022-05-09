@@ -58,13 +58,11 @@ impl Blockpool {
             panic!("add_state has to be called first")
         }
 
-        // let state = self.state.clone().unwrap();
-
         info!("blockpool started listening to incoming commands");
         while let Some(cmd) = self.rx.recv().await {
-            use Command::*;
             match cmd {
-                ProcessBlock {
+                Command::ProcessVoteProposal {
+                    block: _,
                     resp: _,
                 } => {
                     // let result = block::validate(&block, &state).await;
@@ -90,10 +88,8 @@ impl Blockpool {
                     //     }
                     // }
                 }
-                ProcessVote {
+                Command::ProcessFinalVote {
                     block: _,
-                    vote: _,
-                    final_vote: _,
                     resp: _,
                 } => {
                     // //TODO: Fix this
@@ -143,7 +139,7 @@ impl Blockpool {
                     //     }
                     // }
                 }
-                GetQueueSize {
+                Command::GetQueueSize {
                     resp,
                 } => {
                     let _ = resp.send(Ok(self.block_queue.len() as u64));

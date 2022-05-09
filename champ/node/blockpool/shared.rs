@@ -5,15 +5,17 @@ type Responder<T> = oneshot::Sender<Result<T>>;
 
 #[derive(Debug)]
 pub enum Command {
-    ProcessBlock {
-        resp: Responder<()>,
-    },
-    ProcessVote {
+    // input
+    ProcessVoteProposal {
         block: pog_proto::api::SignedBlock,
-        vote: u64,
-        final_vote: bool,
         resp: Responder<()>,
     },
+    ProcessFinalVote {
+        block: pog_proto::api::SignedBlock,
+        resp: Responder<()>,
+    },
+
+    // output
     GetQueueSize {
         resp: Responder<u64>,
     },

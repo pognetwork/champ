@@ -19,7 +19,7 @@ pub async fn process_vote_proposal(
         None => return Err(anyhow!("block was none")),
     };
 
-    if server.state.blockpool_client.process_vote(raw_block.clone(), data.vote, false).await.is_err() {
+    if server.state.blockpool_client.process_vote_proposal(raw_block.clone(), data.vote).await.is_err() {
         return Err(anyhow!("error during processing vote"));
     }
 
