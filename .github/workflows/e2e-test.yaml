@@ -2,18 +2,27 @@ name: e2e-test
 
 on:
   workflow_call:
-    input:
-      username:
+    inputs:
+      image:
+        required: true
+        type: string
+      tag:
+        required: true
+        type: string
+      commit:
         required: true
         type: string
   workflow_dispatch:
     inputs:
-      logLevel:
-        description: 'Log level'     
+      image:
         required: true
-        default: 'warning'
-      tags:
-        description: 'Test scenario tags'  
+        type: string
+      tag:
+        required: true
+        type: string
+      commit:
+        required: true
+        type: string
 
 permissions:
   packages: write
