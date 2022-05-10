@@ -47,7 +47,7 @@ impl Default for DatabaseConfig {
         Self {
             kind: Databases::Sled,
             path: None,
-            temporary: Some(true),
+            temporary: Some(false),
             uri: None,
             data_path: None,
         }
