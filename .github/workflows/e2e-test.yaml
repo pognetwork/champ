@@ -1,6 +1,9 @@
 name: e2e-test
 
 on:
+  push:
+    branches:
+      - e2e_test_action_fix
   workflow_call:
     inputs:
       image:
