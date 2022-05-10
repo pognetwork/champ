@@ -15,6 +15,7 @@ pub struct Wallet {
     json: Option<String>,
     address: Option<String>,
     private_key: Option<Vec<u8>>,
+    public_key: Option<Vec<u8>>,
     kind: WalletKind,
 }
 
@@ -30,6 +31,7 @@ impl Wallet {
             address: Some(wallet_address),
             kind: WalletKind::JSON,
             private_key: None,
+            public_key: None,
         })
     }
 
@@ -49,22 +51,33 @@ impl Wallet {
             address: None,
             kind: WalletKind::JSON,
             private_key: None,
+            public_key: None,
         }
     }
 
     #[wasm_bindgen(catch, js_name = "fromPrivateKey")]
-    pub fn from_private_key(key: String) -> Result<Wallet, JsError> {
+    pub fn from_private_key(private_key: String) -> Result<Wallet, JsError> {
+        let private_key = decode(private_key)?;
+        let public_key = crypto::signatures::ed25519::create_public_key(&private_key)
+            .map_err(|_| JsError::new("invalid private key"))?;
+
         Ok(Wallet {
             json: None,
             address: None,
             kind: WalletKind::PrivateKey,
-            private_key: Some(decode(key)?),
+            private_key: Some(private_key),
+            public_key: Some(public_key.to_vec()),
         })
     }
 
     #[wasm_bindgen(getter = json)]
     pub fn json(&self) -> Option<String> {
         self.json.clone()
+    }
+
+    #[wasm_bindgen(getter = publicKey)]
+    pub fn public_key(&self) -> Option<Vec<u8>> {
+        self.public_key.clone()
     }
 
     #[wasm_bindgen(getter = address)]
@@ -94,8 +107,12 @@ impl Wallet {
 
         let json = self.json.clone().ok_or_else(|| JsError::new("no json wallet"))?;
         let private_key = lulw::unlock_wallet(&json, password).map_err(|e| JsError::new(&e.to_string()))?;
+        let public_key = crypto::signatures::ed25519::create_public_key(&private_key)
+            .map_err(|_| JsError::new("invalid private key"))?;
+
         self.address = Some(Wallet::account_address_from_key(&private_key)?);
         self.private_key = Some(private_key.to_vec());
+        self.public_key = Some(public_key.to_vec());
         Ok(())
     }
 
@@ -103,6 +120,7 @@ impl Wallet {
     pub fn lock(&mut self) {
         self.private_key.zeroize();
         self.private_key = None;
+        self.public_key = None;
     }
 
     #[wasm_bindgen(catch, js_name = "sign")]

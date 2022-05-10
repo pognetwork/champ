@@ -1,4 +1,4 @@
-use std::{net::SocketAddr, str::from_utf8};
+use std::net::SocketAddr;
 
 use anyhow::Result;
 use hyper::{
