@@ -32,7 +32,6 @@ permissions:
 
 jobs:
   e2e_tests:
-    needs: [build_docker]
     runs-on: ubuntu-latest
     steps:
       - name: Set image env
