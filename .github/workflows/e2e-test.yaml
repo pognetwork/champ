@@ -1,0 +1,38 @@
+name: e2e-test
+
+on:
+  workflow_call:
+    inputs:
+      image:
+        required: true
+        type: string
+      tag:
+        required: true
+        type: string
+      commit:
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      image:
+        required: true
+        type: string
+      tag:
+        required: true
+        type: string
+      commit:
+        required: true
+        type: string
+
+permissions:
+  packages: write
+
+jobs:
+  e2e_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: E2E testing webhook
+        uses: joelwmale/webhook-action@fd99bb3b8272237103e349e9bb4d9b0ead9a217c
+        with:
+          url: ${{ secrets.WEBHOOK_URL }}/update/${{ secrets.WEBHOOK_KEY }}
+          body: '{"image": "${{ github.event.inputs.image }}", "tag": "${{ github.event.inputs.tag }}", "commit": "${{ github.event.inputs.commit }}"}'
