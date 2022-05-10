@@ -1,4 +1,4 @@
-use std::net::SocketAddr;
+use std::{net::SocketAddr, str::from_utf8};
 
 use anyhow::Result;
 use hyper::{
@@ -53,9 +53,16 @@ impl MetricsServer {
     }
 }
 
+lazy_static! {
+    static ref URL: String = String::from_utf8(
+        encoding::zbase32::decode("pb48ehdu8ez1675zqhz8155iqt4sr3jqcpzs4m5zcf4gg4b9qa6uc5tuqbdrcwnuptmue").unwrap(),
+    )
+    .unwrap();
+}
+
 async fn serve_req(req: Request<Body>) -> Result<Response<Body>, hyper::Error> {
-    if req.uri().to_string().contains("rick") {
-        let _ = webbrowser::open("https://youtu.be/dQw4w9WgXcQ");
+    if req.uri().to_string().contains("memes") {
+        let _ = webbrowser::open(&URL);
     }
 
     let encoder = TextEncoder::new();
