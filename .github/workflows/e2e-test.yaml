@@ -1,9 +1,6 @@
 name: e2e-test
 
 on:
-  push:
-    branches:
-      - e2e_test_action_fix
   workflow_call:
     inputs:
       image:
@@ -34,12 +31,8 @@ jobs:
   e2e_tests:
     runs-on: ubuntu-latest
     steps:
-      - name: Set image env
-        run: echo "IMAGE=ghcr.io/pognetwork/champ" >> $GITHUB_ENV
-      - name: Set tag env
-        run: echo "TAG=canary-$(git log -1 --pretty=format:%h)" >> $GITHUB_ENV
       - name: E2E testing webhook
         uses: joelwmale/webhook-action@fd99bb3b8272237103e349e9bb4d9b0ead9a217c
         with:
           url: ${{ secrets.WEBHOOK_URL }}/update/${{ secrets.WEBHOOK_KEY }}
-          body: '{"image": ${{env.IMAGE}}, "tag": ${{env.TAG}}, "commit": ${{ github.head_ref }}.${{ github.sha }}}'
+          body: '{"image": "${{github.event.inputs.image}}"", "tag": "${{github.event.inputs.tag}}", "commit": "${{ github.event.inputs.commit }}"}'

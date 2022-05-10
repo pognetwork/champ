@@ -29,3 +29,12 @@ jobs:
         uses: docker/setup-buildx-action@v1
       - uses: extractions/setup-just@v1
       - run: just docker canary $(git log -1 --pretty=format:%h)
+      - name: Set image env
+        run: echo "IMAGE=ghcr.io/pognetwork/champ" >> $GITHUB_ENV
+      - name: Set tag env
+        run: echo "TAG=canary-$(git log -1 --pretty=format:%h)" >> $GITHUB_ENV
+      - uses: ./.github/workflows/e2e-test.yaml
+        with: 
+          image: ${{env.IMAGE}}
+          tag: ${{env.TAG}}
+          commit: ${{ github.head_ref }}.${{ github.sha }}
