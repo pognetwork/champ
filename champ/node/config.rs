@@ -49,6 +49,22 @@ fn default_node_name() -> String {
     "PogNetwork Node".to_string()
 }
 
+#[derive(Debug, Deserialize, Clone)]
+pub struct InternalConfig {
+    pub debug_skip_consensus: bool,
+    pub debug_skip_block_validation: bool,
+}
+
+#[allow(clippy::derivable_impls)]
+impl Default for InternalConfig {
+    fn default() -> Self {
+        Self {
+            debug_skip_consensus: false,
+            debug_skip_block_validation: false,
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct Config {
     #[serde(default = "default_admin")]
@@ -63,14 +79,17 @@ pub struct Config {
     #[serde(default = "default_consensus")]
     pub consensus: ConsensusSettings,
 
-    #[serde(skip_serializing)]
+    #[serde(skip)]
     config_path_override: Option<String>,
 
-    #[serde(skip_serializing)]
+    #[serde(skip)]
     pub data_path: Option<String>,
 
-    #[serde(skip_serializing)]
+    #[serde(skip)]
     pub config_path: Option<String>,
+
+    #[serde(skip)]
+    pub internal: InternalConfig,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]

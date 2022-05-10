@@ -3,8 +3,9 @@ use std::convert::TryInto;
 use crate::consensus::voting_power::{get_active_power, get_actual_power};
 use crate::state::ChampStateArc;
 use crate::storage;
+use crate::validation::block::validate;
 
-use pog_proto::api;
+use pog_proto::api::{self, SignedBlock};
 use pog_proto::rpc::lattice::*;
 
 pub use pog_proto::rpc::lattice::lattice_server::{Lattice, LatticeServer};
@@ -198,6 +199,36 @@ impl Lattice for LatticeService {
     ) -> Result<tonic::Response<TxByIndexReply>, tonic::Status> {
         // get blocks where type is tx
         // use index to get tx inside a block
+        unimplemented!()
+    }
+
+    async fn submit_block(
+        &self,
+        request: tonic::Request<pog_proto::api::RawBlock>,
+    ) -> Result<tonic::Response<Empty>, tonic::Status> {
+        let block = request.into_inner();
+        let block: SignedBlock =
+            block.try_into().map_err(|_e| Status::new(tonic::Code::Internal, "invalid block: encoding"))?;
+
+        let internal_config = { self.state.config.read().await.internal.clone() };
+        if internal_config.debug_skip_consensus {
+            let mut db = self.state.db.lock().await;
+
+            if !internal_config.debug_skip_block_validation && validate(&block, &self.state).await.is_err() {
+                return Err(Status::new(tonic::Code::Internal, "invalid block: validation"));
+            }
+
+            let db_response = db.add_block(block).await;
+            let _ = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
+        }
+
+        Ok(Response::new(Empty {}))
+    }
+
+    async fn get_block_spam_index(
+        &self,
+        _request: tonic::Request<pog_proto::api::RawBlock>,
+    ) -> Result<tonic::Response<BlockSpamIndexReply>, tonic::Status> {
         unimplemented!()
     }
 }
