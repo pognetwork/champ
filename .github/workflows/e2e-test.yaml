@@ -1,0 +1,34 @@
+name: e2e-test
+
+on:
+  workflow_call:
+    input:
+      username:
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'Log level'     
+        required: true
+        default: 'warning'
+      tags:
+        description: 'Test scenario tags'  
+
+permissions:
+  packages: write
+
+jobs:
+  e2e_tests:
+    needs: [build_docker]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set image env
+        run: echo "IMAGE=ghcr.io/pognetwork/champ" >> $GITHUB_ENV
+      - name: Set tag env
+        run: echo "TAG=canary-$(git log -1 --pretty=format:%h)" >> $GITHUB_ENV
+      - name: E2E testing webhook
+        uses: joelwmale/webhook-action@fd99bb3b8272237103e349e9bb4d9b0ead9a217c
+        with:
+          url: ${{ secrets.WEBHOOK_URL }}/update/${{ secrets.WEBHOOK_KEY }}
+          body: '{"image": ${{env.IMAGE}}, "tag": ${{env.TAG}}, "commit": ${{ github.head_ref }}.${{ github.sha }}}'
