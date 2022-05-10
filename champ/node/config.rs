@@ -79,16 +79,16 @@ pub struct Config {
     #[serde(default = "default_consensus")]
     pub consensus: ConsensusSettings,
 
-    #[serde(skip_serializing)]
+    #[serde(skip)]
     config_path_override: Option<String>,
 
-    #[serde(skip_serializing)]
+    #[serde(skip)]
     pub data_path: Option<String>,
 
-    #[serde(skip_serializing)]
+    #[serde(skip)]
     pub config_path: Option<String>,
 
-    #[serde(skip_serializing)]
+    #[serde(skip)]
     pub internal: InternalConfig,
 }
 

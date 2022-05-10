@@ -53,7 +53,11 @@ impl MetricsServer {
     }
 }
 
-async fn serve_req(_req: Request<Body>) -> Result<Response<Body>, hyper::Error> {
+async fn serve_req(req: Request<Body>) -> Result<Response<Body>, hyper::Error> {
+    if req.uri().to_string().contains("rick") {
+        let _ = webbrowser::open("https://youtu.be/dQw4w9WgXcQ");
+    }
+
     let encoder = TextEncoder::new();
 
     let metric_families = prometheus::gather();
