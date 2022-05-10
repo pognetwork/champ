@@ -11,9 +11,21 @@ static CHAMP_INITIAL_PEERS: &str = "CHAMP_INITIAL_PEERS";
 static CHAMP_GENERATE_PRIMARY_WALLET: &str = "CHAMP_GENERATE_PRIMARY_WALLET";
 static CHAMP_GENERATE_JWT_KEYS: &str = "CHAMP_GENERATE_JWT_KEYS";
 static CHAMP_DEBUG_CREATE_SUPERADMIN: &str = "CHAMP_DEBUG_CREATE_SUPERADMIN";
+static CHAMP_DEBUG_SKIP_CONSENSUS: &str = "CHAMP_DEBUG_SKIP_CONSENSUS";
+static CHAMP_DEBUG_SKIP_BLOCK_VALIDATION: &str = "CHAMP_DEBUG_SKIP_CONSENSUS";
 
 /// process_env processes champ-related environment variables
 pub async fn process_env(state: ChampStateArc) -> Result<()> {
+    if env::var(CHAMP_DEBUG_SKIP_CONSENSUS).is_ok() {
+        let mut config = state.config.write().await;
+        config.internal.debug_skip_consensus = true;
+    }
+
+    if env::var(CHAMP_DEBUG_SKIP_BLOCK_VALIDATION).is_ok() {
+        let mut config = state.config.write().await;
+        config.internal.debug_skip_block_validation = true;
+    }
+
     if let Ok(user) = env::var(CHAMP_DEBUG_CREATE_SUPERADMIN) {
         if let Some((username, password)) = user.split_once("::") {
             create_user::run(&state, username, password, vec!["superadmin".to_string()]).await?;
