@@ -20,18 +20,15 @@ pub struct SledDB {
 }
 
 fn encode_block(block: api::SignedBlock) -> Vec<u8> {
-    let data = adad::default.encode(adad::Data {
+    adad::default.encode(adad::Data {
         associated_data: block.header.encode_to_vec(),
         associated_data_codec: adad::Codecs::Protobuf as usize,
         authenticated_data: block.data_raw,
         authenticated_data_codec: adad::Codecs::Protobuf as usize,
-    });
-    println!("{data:?}");
-    data
+    })
 }
 
 fn decode_block(block: &[u8]) -> Result<api::SignedBlock, DatabaseError> {
-    println!("{block:?}");
     let block = adad::default.read(block).map_err(|e| DatabaseError::Specific(e.to_string()))?;
 
     assert_eq!(block.associated_data_codec, adad::Codecs::Protobuf as usize);
@@ -303,6 +300,10 @@ impl Database for SledDB {
 
                 let mut blocks = vec![];
                 for i in offset..limit {
+                    if account_height < i as u64 {
+                        break;
+                    }
+
                     let height: u64 = match newest {
                         true => account_height - i as u64,
                         false => i.into(),
