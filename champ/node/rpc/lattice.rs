@@ -42,8 +42,16 @@ impl Lattice for LatticeService {
         let db_response = db.get_unclaimed_transactions(addr).await;
         let response = db_response.map_err(|_| Status::new(tonic::Code::Internal, "internal server error"))?;
 
+        let mut txs = vec![];
+        for (transaction_id, transaction) in response {
+            txs.push(Tx {
+                transaction: Some(transaction),
+                transaction_id: transaction_id.to_vec(),
+            })
+        }
+
         Ok(Response::new(GetUnclaimedTransactionsReply {
-            transactions: response,
+            data: txs,
         }))
     }
 

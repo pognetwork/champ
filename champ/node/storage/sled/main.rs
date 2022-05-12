@@ -4,7 +4,7 @@ use crate::storage::{Database, DatabaseConfig, DatabaseError};
 use anyhow::Result;
 use async_trait::async_trait;
 use encoding::{account::generate_account_address, adad};
-use pog_proto::api::{self, AccountID, BlockID};
+use pog_proto::api::{self, AccountID, BlockID, TransactionID};
 use prost::Message;
 use sled::{transaction::ConflictableTransactionError, Transactional};
 
@@ -119,18 +119,22 @@ impl Database for SledDB {
     async fn get_unclaimed_transactions(
         &self,
         acc_id: api::AccountID,
-    ) -> Result<Vec<api::Transaction>, DatabaseError> {
+    ) -> Result<Vec<(api::TransactionID, api::Transaction)>, DatabaseError> {
         let mut sends = vec![];
 
         for tx in self.transactions.scan_prefix(b"by_id_") {
-            let (_, tx) = tx?;
+            let (tx_id, tx) = tx?;
             let tx = api::Transaction::decode(&*tx)?;
 
             if let Some(data) = tx.data.clone() {
                 match data {
                     api::transaction::Data::TxSend(data) => {
                         if data.receiver == acc_id.to_vec() {
-                            sends.push(tx)
+                            let tx_id = &tx_id[b"by_id_".len()..];
+                            let tx_id = TransactionID::try_from(tx_id)
+                                .map_err(|_| DatabaseError::Specific("invalid transaction id".to_string()))?;
+
+                            sends.push((tx_id, tx))
                         }
                     }
                     api::transaction::Data::TxClaim(_data) => {}

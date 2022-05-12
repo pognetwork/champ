@@ -72,7 +72,7 @@ impl Database for Sql {
     async fn get_unclaimed_transactions(
         &self,
         _acc_id: api::AccountID,
-    ) -> Result<Vec<api::Transaction>, DatabaseError> {
+    ) -> Result<Vec<(api::TransactionID, api::Transaction)>, DatabaseError> {
         unimplemented!()
     }
 
