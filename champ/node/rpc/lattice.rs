@@ -147,17 +147,24 @@ impl Lattice for LatticeService {
         let req = request.into_inner();
         let db = self.state.db.lock().await;
 
-        match req {
-            r if r.limit > 100 => Err(Status::new(tonic::Code::Internal, "limit has to be < 100")),
-            _ => {
-                let db_response = db.get_blocks(req.sort_by == 0, req.limit, req.offset).await;
-                let response = db_response.map_err(|_| Status::new(tonic::Code::Internal, "internal server error"))?;
+        let address: Option<api::AccountID> = match req.address {
+            Some(addr) => match api::AccountID::try_from(addr) {
+                Ok(a) => Some(a),
+                Err(_) => return Err(Status::new(tonic::Code::Internal, "Address could not be parsed")),
+            },
+            None => None,
+        };
 
-                Ok(Response::new(GetBlocksReply {
-                    blocks: response.iter().map(|b| b.to_owned().into()).collect(),
-                }))
-            }
+        if req.limit > 100 {
+            return Err(Status::new(tonic::Code::Internal, "limit has to be < 100"));
         }
+
+        let db_response = db.get_blocks(req.sort_by == 0, req.limit, req.offset, address).await;
+        let response = db_response.map_err(|_| Status::new(tonic::Code::Internal, "internal server error"))?;
+
+        Ok(Response::new(GetBlocksReply {
+            blocks: response.iter().map(|b| b.to_owned().into()).collect(),
+        }))
     }
 
     async fn get_pending_blocks(

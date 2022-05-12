@@ -20,18 +20,15 @@ pub struct SledDB {
 }
 
 fn encode_block(block: api::SignedBlock) -> Vec<u8> {
-    let data = adad::default.encode(adad::Data {
+    adad::default.encode(adad::Data {
         associated_data: block.header.encode_to_vec(),
         associated_data_codec: adad::Codecs::Protobuf as usize,
         authenticated_data: block.data_raw,
         authenticated_data_codec: adad::Codecs::Protobuf as usize,
-    });
-    println!("{data:?}");
-    data
+    })
 }
 
 fn decode_block(block: &[u8]) -> Result<api::SignedBlock, DatabaseError> {
-    println!("{block:?}");
     let block = adad::default.read(block).map_err(|e| DatabaseError::Specific(e.to_string()))?;
 
     assert_eq!(block.associated_data_codec, adad::Codecs::Protobuf as usize);
@@ -283,28 +280,61 @@ impl Database for SledDB {
         Ok(Some(decode_block(&block)?))
     }
 
-    async fn get_blocks(&self, newest: bool, limit: u32, offset: u32) -> Result<Vec<api::SignedBlock>, DatabaseError> {
-        if !newest {
-            let blocks = self
-                .blocks
-                .scan_prefix(b"by_id_")
-                .skip(offset as usize)
-                .take(limit as usize)
-                .filter_map(|i| {
-                    if let Ok(block_data) = i {
-                        let block = decode_block(&*block_data.1);
-                        if let Ok(block) = block {
-                            return Some(block);
-                        }
+    async fn get_blocks(
+        &self,
+        newest: bool,
+        limit: u32,
+        offset: u32,
+        account_id: Option<AccountID>,
+    ) -> Result<Vec<api::SignedBlock>, DatabaseError> {
+        match account_id {
+            Some(account_id) => {
+                let mut key = b"by_acc_".to_vec();
+                key.append(&mut account_id.to_vec());
+                key.append(&mut b"_".to_vec());
+
+                let account_height = match newest {
+                    true => self.get_latest_block_by_account(account_id).await?.data.height,
+                    false => 0,
+                };
+
+                let mut blocks = vec![];
+                for i in offset..limit {
+                    if account_height < i as u64 {
+                        break;
                     }
-                    None
-                })
-                .collect::<Vec<api::SignedBlock>>();
 
-            return Ok(blocks);
+                    let height: u64 = match newest {
+                        true => account_height - i as u64,
+                        false => i.into(),
+                    };
+                    if let Some(block) = self.get_block_by_height(account_id, &height).await? {
+                        blocks.push(block);
+                    }
+                }
+                Ok(blocks)
+            }
+            None if newest => unimplemented!(),
+            None if !newest => {
+                let blocks = self
+                    .blocks
+                    .scan_prefix(b"by_id_")
+                    .skip(offset as usize)
+                    .take(limit as usize)
+                    .filter_map(|i| {
+                        if let Ok(block_data) = i {
+                            let block = decode_block(&*block_data.1);
+                            if let Ok(block) = block {
+                                return Some(block);
+                            }
+                        }
+                        None
+                    })
+                    .collect::<Vec<api::SignedBlock>>();
+                Ok(blocks)
+            }
+            _ => unreachable!(),
         }
-
-        unimplemented!()
     }
 
     async fn get_account_delegate(&self, account_id: api::AccountID) -> Result<Option<api::AccountID>, DatabaseError> {

@@ -12,7 +12,7 @@ use entity::sea_orm::{
     ActiveModelTrait, ColumnTrait, EntityTrait, Order, QueryFilter, QueryOrder, QuerySelect, Set, TransactionTrait,
 };
 use entity::unix_to_datetime;
-use pog_proto::api;
+use pog_proto::api::{self, AccountID};
 
 use entity::account::{self, Entity as Account};
 use entity::block::{self, Entity as Block};
@@ -199,19 +199,25 @@ impl Database for Sql {
         }
     }
 
-    async fn get_blocks(&self, newest: bool, limit: u32, offset: u32) -> Result<Vec<api::SignedBlock>, DatabaseError> {
+    async fn get_blocks(
+        &self,
+        newest: bool,
+        limit: u32,
+        offset: u32,
+        account_id: Option<AccountID>,
+    ) -> Result<Vec<api::SignedBlock>, DatabaseError> {
         let order = if newest {
             Order::Asc
         } else {
             Order::Desc
         };
 
-        let blocks = Block::find()
-            .limit(limit.into())
-            .offset(offset.into())
-            .order_by(block::Column::Timestamp, order)
-            .all(&self.db)
-            .await?;
+        let mut blocks =
+            Block::find().limit(limit.into()).offset(offset.into()).order_by(block::Column::Timestamp, order);
+        if let Some(account_id) = account_id {
+            blocks = blocks.filter(block::Column::AccountIdV1.eq(account_id.to_vec()))
+        }
+        let blocks = blocks.all(&self.db).await?;
 
         Ok(blocks
             .iter()
