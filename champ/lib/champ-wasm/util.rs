@@ -1,5 +1,5 @@
 use crypto::hash::sha3;
-use encoding::account::validate_account_address_string;
+use encoding::account::{generate_account_address, validate_account_address_string};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(js_name = "util")]
@@ -26,6 +26,10 @@ impl Util {
     #[wasm_bindgen(catch, js_name = "getBlockID")]
     pub fn get_block_id(data_raw: Vec<u8>, public_key: Vec<u8>) -> Vec<u8> {
         sha3(concat_u8(&data_raw, &public_key)).to_vec()
+    }
+
+    pub fn account_id_from_public_key(public_key: Vec<u8>) -> Result<Vec<u8>, JsError> {
+        generate_account_address(public_key).map_err(|_| JsError::new("invalid public key")).map(|x| x.to_vec())
     }
 
     #[wasm_bindgen(js_name = "validateAddress")]

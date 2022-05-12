@@ -230,7 +230,7 @@ async fn validate_collect(
         Err(_) => return Err(Validation::TxValidationError("validate collect 2".to_string()).into()),
     };
 
-    let sendtx = match &receive_tx.data {
+    let sendtx = match &receive_tx.0.data {
         Some(Data::TxSend(t)) => t,
         Some(_) => return Err(Validation::MissmatchedTx.into()),
         None => return Err(Validation::SendTxNotFound.into()),

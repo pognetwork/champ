@@ -193,10 +193,13 @@ impl Lattice for LatticeService {
         };
         let db = self.state.db.lock().await;
         let db_response = db.get_transaction_by_id(transaction_id).await;
-        let transaction = db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
+        let (transaction, block, address) =
+            db_response.map_err(|_e| Status::new(tonic::Code::Internal, "internal server error"))?;
 
         Ok(Response::new(TxByIdReply {
             transaction: Some(transaction),
+            block: block.to_vec(),
+            address: address.to_vec(),
         }))
     }
 

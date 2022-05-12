@@ -127,7 +127,7 @@ pub trait Database: Send + Sync {
     async fn get_transaction_by_id(
         &self,
         transaction_id: api::TransactionID,
-    ) -> Result<api::Transaction, DatabaseError>;
+    ) -> Result<(api::Transaction, api::BlockID, api::AccountID), DatabaseError>;
 
     /// Finds the latest block for a given address
     ///

@@ -5,6 +5,7 @@
 use crate::storage::{Database, DatabaseConfig, DatabaseError};
 use anyhow::Result;
 use async_trait::async_trait;
+use encoding::account::generate_account_address;
 use entity::sea_orm::{
     self, sea_query::TableCreateStatement, ConnectOptions, ConnectionTrait, DatabaseConnection, DbBackend, Schema,
 };
@@ -76,11 +77,17 @@ impl Database for Sql {
     async fn get_transaction_by_id(
         &self,
         transaction_id: api::TransactionID,
-    ) -> Result<api::Transaction, DatabaseError> {
+    ) -> Result<(api::Transaction, api::BlockID, api::AccountID), DatabaseError> {
         let transaction =
             Transaction::find_by_id(transaction_id.into()).one(&self.db).await?.ok_or(DatabaseError::BlockNotFound)?;
 
-        api::Transaction::decode(&*transaction.data).map_err(DatabaseError::DecodeError)
+        let tx = api::Transaction::decode(&*transaction.data).map_err(DatabaseError::DecodeError)?;
+        let block_id = api::BlockID::try_from(transaction.block_id).map_err(|_| DatabaseError::Unknown)?;
+
+        let block = self.get_block_by_id(block_id).await?;
+        let address = generate_account_address(block.header.public_key).map_err(|_| DatabaseError::Unknown)?;
+
+        Ok((tx, block_id, address))
     }
 
     async fn get_latest_block_by_account(

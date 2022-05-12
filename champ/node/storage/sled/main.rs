@@ -3,7 +3,7 @@ use std::convert::TryInto;
 use crate::storage::{Database, DatabaseConfig, DatabaseError};
 use anyhow::Result;
 use async_trait::async_trait;
-use encoding::adad;
+use encoding::{account::generate_account_address, adad};
 use pog_proto::api::{self, AccountID, BlockID};
 use prost::Message;
 use sled::{transaction::ConflictableTransactionError, Transactional};
@@ -142,9 +142,12 @@ impl Database for SledDB {
     async fn get_transaction_by_id(
         &self,
         transaction_id: api::TransactionID,
-    ) -> Result<api::Transaction, DatabaseError> {
+    ) -> Result<(api::Transaction, api::BlockID, api::AccountID), DatabaseError> {
         let mut transaction_key = b"by_id_".to_vec();
         transaction_key.append(&mut transaction_id.to_vec());
+
+        let mut transaction_key2 = b"blk_by_id_".to_vec();
+        transaction_key2.append(&mut transaction_id.to_vec());
 
         let transaction = self
             .transactions
@@ -152,7 +155,19 @@ impl Database for SledDB {
             .map_err(DatabaseError::Sled)?
             .ok_or(DatabaseError::BlockNotFound)?;
 
-        api::Transaction::decode(&*transaction.to_vec()).map_err(DatabaseError::DecodeError)
+        let block_id: api::BlockID = self
+            .transactions
+            .get(transaction_key2)
+            .map_err(DatabaseError::Sled)?
+            .ok_or(DatabaseError::BlockNotFound)?
+            .to_vec()
+            .try_into()
+            .map_err(|_| DatabaseError::InvalidTransactionData)?;
+
+        let block = self.get_block_by_id(block_id).await?;
+        let address = generate_account_address(block.header.public_key).map_err(|_| DatabaseError::Unknown)?;
+        let tx = api::Transaction::decode(&*transaction.to_vec()).map_err(DatabaseError::DecodeError)?;
+        Ok((tx, block_id, address))
     }
 
     async fn get_latest_block_by_account(
