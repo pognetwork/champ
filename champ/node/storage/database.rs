@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use anyhow::Result;
 use async_trait::async_trait;
-use pog_proto::api;
+use pog_proto::api::{self, AccountID};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -147,8 +147,14 @@ pub trait Database: Send + Sync {
         unix_limit: u64,
     ) -> Result<Option<api::SignedBlock>, DatabaseError>;
 
-    // get_blocks returns a list of blocks, NOTE: this is not atomic! block order might not be correct and never can be, since consensus is seperate for each account chain.
-    async fn get_blocks(&self, newest: bool, limit: u32, offset: u32) -> Result<Vec<api::SignedBlock>, DatabaseError>;
+    // get_blocks returns a list of blocks, NOTE: if account_id is not specified, this is not atomic! block order might not be correct and never can be, since consensus is seperate for each account chain.
+    async fn get_blocks(
+        &self,
+        newest: bool,
+        limit: u32,
+        offset: u32,
+        account_id: Option<AccountID>,
+    ) -> Result<Vec<api::SignedBlock>, DatabaseError>;
 
     // get_account_delegate finds out if an account is delegating their power to someone else
     async fn get_account_delegate(&self, account_id: api::AccountID) -> Result<Option<api::AccountID>, DatabaseError>;
