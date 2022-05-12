@@ -134,6 +134,9 @@ pub trait Database: Send + Sync {
     /// Only includes confirmed blocks
     async fn get_latest_block_by_account(&self, acc_id: api::AccountID) -> Result<api::SignedBlock, DatabaseError>;
 
+    async fn get_unclaimed_transactions(&self, acc_id: api::AccountID)
+        -> Result<Vec<api::Transaction>, DatabaseError>;
+
     /// Finds the latest block for a given address before a given date
     ///
     /// Set limit to 0 to keep looking until an accounts first transaction

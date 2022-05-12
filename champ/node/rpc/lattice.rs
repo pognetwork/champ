@@ -27,9 +27,28 @@ impl LatticeService {
 
 #[tonic::async_trait]
 impl Lattice for LatticeService {
+    async fn get_unclaimed_transactions(
+        &self,
+        request: Request<GetUnclaimedTransactionsRequest>,
+    ) -> Result<Response<GetUnclaimedTransactionsReply>, Status> {
+        let req = request.into_inner();
+        let db = self.state.db.lock().await;
+
+        let addr = match api::AccountID::try_from(req.address) {
+            Ok(a) => a,
+            Err(_) => return Err(Status::new(tonic::Code::Internal, "Address could not be parsed")),
+        };
+
+        let db_response = db.get_unclaimed_transactions(addr).await;
+        let response = db_response.map_err(|_| Status::new(tonic::Code::Internal, "internal server error"))?;
+
+        Ok(Response::new(GetUnclaimedTransactionsReply {
+            transactions: response,
+        }))
+    }
+
     async fn get_balance(&self, request: Request<BalanceRequest>) -> Result<Response<BalanceReply>, Status> {
         // We must use .into_inner() as the fields of gRPC requests and responses are private
-        debug!("getting balance");
         let address: api::AccountID = match request.into_inner().address.try_into() {
             Ok(a) => a,
             Err(_) => return Err(Status::new(tonic::Code::Internal, "Address could not be parsed")),
@@ -44,14 +63,11 @@ impl Lattice for LatticeService {
         }))
     }
 
-    async fn get_block_height(
+    async fn get_latest_block(
         &self,
-        block_height_request: Request<BlockHeightRequest>,
-    ) -> Result<Response<BlockHeightReply>, Status> {
-        debug!("getting block height");
-
-        let request = block_height_request.into_inner();
-        let get_next_block_height = request.get_next as u64;
+        request: Request<LatestBlockRequest>,
+    ) -> Result<Response<LatestBlockReply>, Status> {
+        let request = request.into_inner();
 
         let address: api::AccountID = match request.address.try_into() {
             Ok(a) => a,
@@ -61,14 +77,14 @@ impl Lattice for LatticeService {
         let db = self.state.db.lock().await;
         let db_response = db.get_latest_block_by_account(address).await;
 
-        let height = match db_response {
-            Ok(response) => response.data.height,
-            Err(storage::DatabaseError::NoLastBlock) => 0,
+        let block = match db_response {
+            Ok(response) => Some(response.into()),
+            Err(storage::DatabaseError::NoLastBlock) => None,
             _ => return Err(Status::new(tonic::Code::Internal, "couldn't get last block")),
         };
 
-        Ok(Response::new(BlockHeightReply {
-            next_height: height + get_next_block_height,
+        Ok(Response::new(LatestBlockReply {
+            block,
         }))
     }
 

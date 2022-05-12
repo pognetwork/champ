@@ -116,6 +116,31 @@ impl SledDB {
 
 #[async_trait]
 impl Database for SledDB {
+    async fn get_unclaimed_transactions(
+        &self,
+        acc_id: api::AccountID,
+    ) -> Result<Vec<api::Transaction>, DatabaseError> {
+        let mut sends = vec![];
+
+        for tx in self.transactions.scan_prefix(b"by_id_") {
+            let (_, tx) = tx?;
+            let tx = api::Transaction::decode(&*tx)?;
+
+            if let Some(data) = tx.data.clone() {
+                match data {
+                    api::transaction::Data::TxSend(data) => {
+                        if data.receiver == acc_id.to_vec() {
+                            sends.push(tx)
+                        }
+                    }
+                    api::transaction::Data::TxClaim(_data) => {}
+                    _ => {}
+                }
+            };
+        }
+        Ok(sends)
+    }
+
     async fn get_send_recipient(&self, tx: api::TransactionID) -> Result<Option<api::TransactionID>, DatabaseError> {
         let claim = self.claims.get(tx).map_err(|e| DatabaseError::Specific(e.to_string()))?;
 

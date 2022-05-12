@@ -69,6 +69,13 @@ impl Sql {
 
 #[async_trait]
 impl Database for Sql {
+    async fn get_unclaimed_transactions(
+        &self,
+        _acc_id: api::AccountID,
+    ) -> Result<Vec<api::Transaction>, DatabaseError> {
+        unimplemented!()
+    }
+
     async fn get_block_by_id(&self, block_id: api::BlockID) -> Result<api::SignedBlock, DatabaseError> {
         let block = Block::find_by_id(block_id.into()).one(&self.db).await?.ok_or(DatabaseError::BlockNotFound)?;
         Ok(block.try_into()?)
