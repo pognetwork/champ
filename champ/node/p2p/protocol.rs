@@ -42,7 +42,7 @@ const PROTOBUF_CODEC: u32 = adad::Codecs::Protobuf as u32;
 fn is_proto(codec: usize) -> Result<(), io::Error> {
     match codec as u32 {
         PROTOBUF_CODEC => Ok(()),
-        _ => Err(invalid_data_error("invalid coded")),
+        _ => Err(invalid_data_error("invalid codec")),
     }
 }
 
@@ -56,7 +56,7 @@ impl RequestResponseCodec for PogCodec {
     where
         T: AsyncRead + Unpin + Send,
     {
-        let data = adad::default.async_read(io).await.map_err(|_| invalid_data_error("invalid data 😔"))?;
+        let data = adad::default.async_read(io).await.map_err(|_| invalid_data_error("invalid data"))?;
 
         is_proto(data.authenticated_data_codec)?;
         is_proto(data.associated_data_codec)?;
@@ -71,7 +71,7 @@ impl RequestResponseCodec for PogCodec {
     where
         T: AsyncRead + Unpin + Send,
     {
-        let raw_data = adad::default.async_read(io).await.map_err(|_| invalid_data_error("invalid data 😔"))?;
+        let raw_data = adad::default.async_read(io).await.map_err(|_| invalid_data_error("invalid data"))?;
 
         is_proto(raw_data.authenticated_data_codec)?;
         is_proto(raw_data.associated_data_codec)?;
@@ -144,6 +144,7 @@ impl PogProtocol {
         PogProtocol {}
     }
 
+    /// Create new Protocol Behavior using ADAD
     pub fn behavior(self) -> PogBehavior {
         RequestResponse::new(PogCodec(), std::iter::once((self, ProtocolSupport::Full)), Default::default())
     }

@@ -67,10 +67,15 @@ impl P2PServer {
         };
         let dh_keys = noise::Keypair::<noise::X25519Spec>::new().into_authentic(&id_keys).unwrap();
 
+        // unique id of this machine for libp2p
         let peer_id = PeerId::from(id_keys.public());
+        // custom protobuf/TLV based request-response protocol
         let pog_protocol = protocol::PogProtocol::new();
 
+        // encryption protocol similar to tls
         let noise = noise::NoiseConfig::xx(dh_keys.clone()).into_authenticated();
+        // create transport configuration using TokioTCP, authenticating it using noise
+        // and adds multiplexing to allow multiple protocols
         let transp = TokioDnsConfig::system(TokioTcpConfig::new())?
             .upgrade(upgrade::Version::V1)
             .authenticate(noise)
@@ -78,12 +83,14 @@ impl P2PServer {
             .timeout(Duration::from_secs(10))
             .boxed();
 
+        // instantiates the libp2p transport layer using a swarm, our protocol and our id
         let swarm = SwarmBuilder::new(transp, pog_protocol.behavior(), peer_id)
             .executor(Box::new(|f| {
                 tokio::task::spawn(f);
             }))
             .build();
 
+        // concurrent hashmap to store all connected peers
         let peers = Arc::new(DashMap::new());
 
         Ok(Self {
@@ -95,6 +102,7 @@ impl P2PServer {
         })
     }
 
+    /// Dials the initial peers defined in the config
     async fn connect_to_initial_peers(&mut self) {
         let peers = &self.state.config.read().await.consensus.initial_peers;
         for peer in peers {
@@ -105,11 +113,13 @@ impl P2PServer {
         tracing::debug!("{peers:?}");
     }
 
+    /// Randomly selects a number of online peers
     fn get_random_peer_ids(&mut self, max_nr_of_peers: usize) -> Vec<PeerId> {
         let mut r = crypto::rand::thread_rng();
         self.peers.iter().choose_multiple(&mut r, max_nr_of_peers).iter().map(|p| p.id).collect()
     }
 
+    /// Sends a ping to a peer with payload of random peers
     fn send_ping(&mut self, peer_id: PeerId) -> Result<()> {
         let peers = self.get_random_peer_ids(10).iter().map(|p| p.to_bytes()).collect();
 
@@ -122,6 +132,7 @@ impl P2PServer {
         .map(|_| ())
     }
 
+    /// Event handeler for libp2p swarm events
     async fn handle_event(&mut self, event: Event) {
         match event {
             SwarmEvent::Behaviour(RequestResponseEvent::Message {
@@ -153,6 +164,7 @@ impl P2PServer {
         }
     }
 
+    /// Adds new connection to our HashMap and pings the peer
     fn handle_new_connection(&mut self, peer_id: PeerId, endpoint: ConnectedPoint, num_established: NonZeroU32) {
         tracing::debug!("connection established: {peer_id}");
         let addr = endpoint.get_remote_address();
@@ -175,6 +187,7 @@ impl P2PServer {
         }
     }
 
+    /// Ping peers every tick and update metric server
     fn handle_tick(&mut self) {
         metrics::update(self.peers.clone());
         tracing::debug!("pinging all peers");
@@ -186,7 +199,9 @@ impl P2PServer {
         }
     }
 
+    /// Runs the server
     pub async fn start(&mut self) -> Result<()> {
+        // Binds the port to the Socket and starts listening
         self.swarm.listen_on("/ip4/0.0.0.0/tcp/50052".parse()?)?;
         self.connect_to_initial_peers().await;
         metrics::update(self.peers.clone());
@@ -201,6 +216,7 @@ impl P2PServer {
         }
     }
 
+    /// Splits messages as Request or Response message
     async fn process_message(&mut self, peer: PeerId, message: PogMessage) {
         let res = match message {
             protocol::RequestMessage {
